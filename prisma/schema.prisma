@@ -1,0 +1,140 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+/// ユーザー。組織に所属して大会を運営する側の人。
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  memberships OrganizationMember[]
+}
+
+/// 組織。大会の主催者。
+model Organization {
+  id        String   @id @default(uuid())
+  name      String
+  slug      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tournaments Tournament[]
+  members     OrganizationMember[]
+}
+
+/// 組織 N-N ユーザー の中間テーブル。
+model OrganizationMember {
+  organizationId String
+  userId         String
+  role           OrganizationRole @default(MEMBER)
+  joinedAt       DateTime         @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([organizationId, userId])
+  @@index([userId])
+}
+
+enum OrganizationRole {
+  OWNER
+  ADMIN
+  MEMBER
+}
+
+/// 大会。1 つの組織が主催する。
+model Tournament {
+  id             String           @id @default(uuid())
+  organizationId String
+  name           String
+  status         TournamentStatus @default(DRAFT)
+  startsAt       DateTime?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  organization Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  participants Participant[]
+  matches      Match[]
+
+  @@index([organizationId])
+}
+
+enum TournamentStatus {
+  DRAFT
+  IN_PROGRESS
+  COMPLETED
+}
+
+/// 参加者。大会単位のマスタで、複数の試合にエントリーしうる。
+model Participant {
+  id           String   @id @default(uuid())
+  tournamentId String
+  name         String
+  seed         Int?
+  team         String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  tournament Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  entries    Entry[]
+
+  @@unique([tournamentId, seed])
+  @@index([tournamentId])
+}
+
+/// 試合。大会内での位置を round / order で表す。
+model Match {
+  id           String      @id @default(uuid())
+  tournamentId String
+  round        Int
+  order        Int
+  status       MatchStatus @default(WAITING)
+  score        String?
+  startedAt    DateTime?
+  finishedAt   DateTime?
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  tournament Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  entries    Entry[]
+
+  @@unique([tournamentId, round, order])
+  @@index([tournamentId])
+}
+
+enum MatchStatus {
+  WAITING
+  READY
+  DONE
+  BYE
+}
+
+/// エントリー。「どの参加者がどの試合のどのスロットに入るか」を表す 試合 x 参加者 の中間テーブル。
+model Entry {
+  id            String   @id @default(uuid())
+  matchId       String
+  participantId String
+  slot          Int
+  isWinner      Boolean  @default(false)
+  score         Int?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  match       Match       @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  participant Participant @relation(fields: [participantId], references: [id], onDelete: Cascade)
+
+  @@unique([matchId, slot])
+  @@unique([matchId, participantId])
+  @@index([participantId])
+}
