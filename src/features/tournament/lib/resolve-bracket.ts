@@ -47,6 +47,14 @@ export function resolveBracket(
       winnerId =
         slots.find((slot) => slot.state === "confirmed")?.participant?.id ??
         null;
+      if (result) {
+        if (result.winnerId !== winnerId) {
+          throw new Error(
+            `Match "${match.id}" is a BYE auto-advancing "${winnerId}", but its result names conflicting winnerId "${result.winnerId}"`,
+          );
+        }
+        score = result.score ?? null;
+      }
     } else if (result) {
       winnerId = result.winnerId;
       score = result.score ?? null;

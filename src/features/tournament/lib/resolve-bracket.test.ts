@@ -151,4 +151,19 @@ describe("resolveBracket", () => {
     const results: MatchResult[] = [{ matchId: "m2", winnerId: "p1" }];
     expect(() => resolveBracket(participants, bracket, results)).toThrow(/p1/);
   });
+
+  it("BYE 試合の結果が自動勝者と一致すれば score が反映される", () => {
+    const results: MatchResult[] = [
+      { matchId: "m1", winnerId: "p1", score: "W-O" },
+    ];
+    const m1 = byId(resolveBracket(participants, bracket, results), "m1");
+    expect(m1.winnerId).toBe("p1");
+    expect(m1.score).toBe("W-O");
+    expect(m1.status).toBe("bye");
+  });
+
+  it("BYE 試合の結果が自動勝者と食い違うと例外を投げる", () => {
+    const results: MatchResult[] = [{ matchId: "m1", winnerId: "p9" }];
+    expect(() => resolveBracket(participants, bracket, results)).toThrow(/p9/);
+  });
 });
