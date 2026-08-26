@@ -166,21 +166,32 @@ Mock を手で書くため、静かに握り潰すより早く落とす方が良
 
 ## UI
 
-`MatchNode`:
+表示は 2 段に分ける。React Flow に依存する部分と、しない部分を分離するため。
+
+`MatchCard`（React Flow 非依存の純粋な表示コンポーネント）:
 
 - 上下 2 スロット。各スロットに参加者名とシード番号
 - 勝者側をハイライト（背景色 + 太字）
 - `pending` は「未定」、`bye` は「BYE」と淡色表示
-- スコアがあれば右端に表示
-- 左端に target ハンドル、右端に source ハンドル
+- スコアがあれば右上にバッジ表示
+
+`MatchNode`（React Flow のカスタムノード）:
+
+- `MatchCard` を包み、左端に target ハンドル、右端に source ハンドルを足すだけ
+
+この分割により、表示ロジックは `MatchCard` として jsdom 上で普通にテストできる。
+`Handle` は React Flow のストアコンテキストを必要とするため、それを含む `MatchNode` は
+テスト対象から外す。
 
 `TournamentFlow`（`"use client"`）:
 
-- `nodes` / `edges` は `useMemo` で 1 回計算。表示専用のため状態更新はない
+- `nodes` / `edges` は props で受け取るだけ。表示専用のため状態更新はない
 - `fitView`、`Background`、`Controls` を有効化
-- 高さは画面全体（`h-screen`）
+- 高さは親要素いっぱい（`h-full`）
 
-`page.tsx` は Server Component のまま `TournamentFlow` を描画する。
+`page.tsx`（Server Component）が `resolveBracket` → `layoutBracket` → `toFlowElements` を
+実行し、結果の `nodes` / `edges` を `TournamentFlow` に props で渡す。合成ロジックはサーバ側に
+留まり、クライアントへ送られるのは描画に必要なデータだけになる。
 
 スタイリングは Tailwind CSS v4（既存設定）を使う。React Flow の CSS（`@xyflow/react/dist/style.css`）を
 インポートする必要がある。
@@ -194,7 +205,8 @@ Mock を手で書くため、静かに握り潰すより早く落とす方が良
 
 - 1 回戦（8 試合）: うち 4 試合が BYE（上位シード 4 名が不戦勝）
 - 準々決勝（4 試合）、準決勝（2 試合）、決勝（1 試合）
-- `results` は準決勝までを埋め、決勝は未確定にする
+- `results` は準々決勝までを全て埋め、準決勝は 2 試合のうち片方だけ決着させる。
+  これにより決勝は「片側だけ確定・もう片側は未定」の `waiting` 状態になる
 
 これにより `confirmed` / `pending` / `bye` の 3 状態と `done` / `waiting` / `bye` が
 一画面で確認できる。
@@ -224,13 +236,15 @@ vitest + @testing-library/react（既存構成）。
 - 試合数と同数のノードが生成される
 - エッジが `winnerOf` 参照と 1 対 1 対応する
 
-`MatchNode`:
+`MatchCard`:
 
 - 参加者名・シード・スコアが表示される
-- 勝者が視覚的に区別される（クラスまたは aria 属性で検証）
+- 勝者が視覚的に区別される（`data-winner` 属性で検証）
 - `pending` / `bye` のプレースホルダが表示される
 
-`TournamentFlow` 自体は jsdom がノードサイズを計測できないため、レンダリングテストは行わない。
+`MatchNode` / `TournamentFlow` 自体は、React Flow が jsdom 上でノードサイズを計測できないため
+レンダリングテストは行わない。両者の検証は `pnpm typecheck` と `pnpm build`、および `pnpm dev` での
+目視確認で行う。
 
 ## ファイル構成
 
@@ -252,8 +266,9 @@ src/
       to-flow-elements.ts
       to-flow-elements.test.ts
     components/
-      MatchNode.tsx
-      MatchNode.test.tsx
+      MatchCard.tsx                        … React Flow 非依存の表示コンポーネント
+      MatchCard.test.tsx
+      MatchNode.tsx                        … MatchCard + React Flow の Handle
       TournamentFlow.tsx
 ```
 
