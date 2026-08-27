@@ -56,10 +56,22 @@
                   {
                     "group": [
                       "@/features/tournament/**",
+                      "../tournament/**",
                       "@/components/**",
-                      "@/app/**"
+                      "../../components/**",
+                      "@/app/**",
+                      "../../app/**"
                     ],
                     "message": "features/auth は他の機能・UI・app に依存できません。共通処理は src/shared に置いてください。"
+                  },
+                  {
+                    "group": [
+                      "@/features/auth/login/**",
+                      "./login/**",
+                      "@/features/auth/signup/**",
+                      "./signup/**"
+                    ],
+                    "message": "features/auth 直下から下位スライス（login・signup）に依存することはできません。祖先方向の参照のみ許可されます。共有するものは features/auth 直下か src/shared へ置いてください。"
                   }
                 ]
               }
@@ -80,8 +92,11 @@
                   {
                     "group": [
                       "@/features/tournament/**",
+                      "../../tournament/**",
                       "@/components/**",
-                      "@/app/**"
+                      "../../../components/**",
+                      "@/app/**",
+                      "../../../app/**"
                     ],
                     "message": "features/auth は他の機能・UI・app に依存できません。共通処理は src/shared に置いてください。"
                   },
@@ -113,8 +128,11 @@
                   {
                     "group": [
                       "@/features/tournament/**",
+                      "../../tournament/**",
                       "@/components/**",
-                      "@/app/**"
+                      "../../../components/**",
+                      "@/app/**",
+                      "../../../app/**"
                     ],
                     "message": "features/auth は他の機能・UI・app に依存できません。共通処理は src/shared に置いてください。"
                   },
@@ -146,10 +164,20 @@
                   {
                     "group": [
                       "@/features/auth/**",
+                      "../auth/**",
+                      "../../auth/**",
                       "@/components/**",
-                      "@/app/**"
+                      "../../components/**",
+                      "../../../components/**",
+                      "@/app/**",
+                      "../../app/**",
+                      "../../../app/**"
                     ],
                     "message": "features/tournament は他の機能・UI・app に依存できません。"
+                  },
+                  {
+                    "group": ["@/features/tournament/mock/**", "./mock/**"],
+                    "message": "features/tournament 直下から下位スライス（mock）に依存することはできません。祖先方向の参照のみ許可されます。"
                   }
                 ]
               }
