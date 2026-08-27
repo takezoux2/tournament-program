@@ -163,7 +163,7 @@ describe("validateMatchingConfig", () => {
     expect(result[0]).toContain("ghost");
   });
 
-  it("ルール 6: 存재하지 않는 matchId의 참조를 검출한다", () => {
+  it("ルール 6: 存在しない matchId の参照を検出する", () => {
     const result = validateMatchingConfig(
       config({
         id: "m2",
