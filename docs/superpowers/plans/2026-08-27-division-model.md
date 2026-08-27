@@ -162,8 +162,11 @@ Expected: `src/features/tournament/` の既存テストが全て PASS
 
 - [ ] **Step 12: コミット**
 
+`src/generated/prisma/` は `.gitignore` されているためコミット対象に含めない
+（`postinstall` の `prisma generate` で各環境が生成する）。
+
 ```bash
-git add prisma/schema.prisma prisma/migrations src/generated/prisma
+git add prisma/schema.prisma prisma/migrations
 git commit -m "feat: replace Match and Entry models with Division"
 ```
 
