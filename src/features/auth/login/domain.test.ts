@@ -37,4 +37,28 @@ describe("safeRedirectPath", () => {
   it("相対パスは / にする", () => {
     expect(safeRedirectPath("dashboard")).toBe("/");
   });
+
+  it("タブ文字を含むプロトコル相対 URL は / にする", () => {
+    expect(safeRedirectPath("/\t/evil.example.com")).toBe("/");
+  });
+
+  it("改行 (LF) を含むプロトコル相対 URL は / にする", () => {
+    expect(safeRedirectPath("/\n/evil.example.com")).toBe("/");
+  });
+
+  it("改行 (CR) を含むプロトコル相対 URL は / にする", () => {
+    expect(safeRedirectPath("/\r/evil.example.com")).toBe("/");
+  });
+
+  it("タブ文字が連続していても / にする", () => {
+    expect(safeRedirectPath("/\t\t/evil.example.com")).toBe("/");
+  });
+
+  it("パスの途中にタブ文字があっても / にする", () => {
+    expect(safeRedirectPath("/dash\tboard")).toBe("/");
+  });
+
+  it("スペースはタブと異なり弾かれずそのまま通す", () => {
+    expect(safeRedirectPath("/ /evil.example.com")).toBe("/ /evil.example.com");
+  });
 });
