@@ -1,4 +1,5 @@
-import type { DivisionEntries, MatchingConfig } from "./types";
+import type { DivisionFormat } from "@/generated/prisma/enums";
+import type { DivisionEntries, DivisionResults, MatchingConfig } from "./types";
 
 /** 検証エラーのメッセージ一覧。空配列なら妥当。 */
 export type ValidationErrors = string[];
@@ -93,6 +94,85 @@ export const validateMatchingConfig = (
           `${where}: 参照先 ${slot.matchId} の round ${sourceRound} が自分の round ${match.round} 以上です`,
         );
       }
+    }
+  }
+
+  return errors;
+};
+
+/**
+ * その試合のスロットに到達しうる entry id を集める。
+ * winnerOf / loserOf は参照先を再帰的にたどる。
+ * validateMatchingConfig が round の単調減少を保証していれば循環しないが、
+ * 未検証の入力でも止まるよう訪問済みの試合は再訪しない。
+ */
+export const reachableEntryIds = (
+  matchId: string,
+  config: MatchingConfig,
+): Set<string> => {
+  const byId = new Map(config.matches.map((match) => [match.id, match]));
+  const found = new Set<string>();
+  const visited = new Set<string>();
+
+  const visit = (id: string): void => {
+    if (visited.has(id)) {
+      return;
+    }
+    visited.add(id);
+    const match = byId.get(id);
+    if (!match) {
+      return;
+    }
+    for (const slot of match.slots) {
+      if (slot.kind === "entry") {
+        found.add(slot.entryId);
+      } else if (slot.kind !== "bye") {
+        visit(slot.matchId);
+      }
+    }
+  };
+
+  visit(matchId);
+  return found;
+};
+
+/**
+ * 勝敗記録の整合性を検証する（spec のルール 7〜9）。
+ * 1 試合につき結果は 1 件までとする。
+ */
+export const validateResults = (
+  results: DivisionResults,
+  config: MatchingConfig,
+  format: DivisionFormat,
+): ValidationErrors => {
+  const errors: ValidationErrors = [];
+  const matchIds = new Set(config.matches.map((match) => match.id));
+
+  for (const matchId of duplicates(
+    results.matches.map((record) => record.matchId),
+  )) {
+    errors.push(`results に同じ matchId が 2 回現れています: ${matchId}`);
+  }
+
+  for (const record of results.matches) {
+    if (!matchIds.has(record.matchId)) {
+      errors.push(
+        `matchId が matchingConfig に存在しません: ${record.matchId}`,
+      );
+      continue;
+    }
+    if (record.winnerEntryId === null) {
+      if (format !== "ROUND_ROBIN") {
+        errors.push(
+          `引き分けは ROUND_ROBIN でのみ許可されます: ${record.matchId}`,
+        );
+      }
+      continue;
+    }
+    if (!reachableEntryIds(record.matchId, config).has(record.winnerEntryId)) {
+      errors.push(
+        `${record.matchId}: winnerEntryId ${record.winnerEntryId} はこの試合に到達しません`,
+      );
     }
   }
 
