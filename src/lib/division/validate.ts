@@ -139,6 +139,8 @@ export const reachableEntryIds = (
 /**
  * 勝敗記録の整合性を検証する（spec のルール 7〜9）。
  * 1 試合につき結果は 1 件までとする。
+ * `config` は `validateMatchingConfig` を通過済みであることを前提とする。
+ * 未検証の config を渡すと、entries に無い entryId が到達可能と判定されうる。
  */
 export const validateResults = (
   results: DivisionResults,

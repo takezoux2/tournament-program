@@ -13,7 +13,11 @@ export class DivisionConflictError extends Error {
   }
 }
 
-/** 整合性検証に失敗したことを表す。呼び出し元は入力エラーとして扱う。 */
+/**
+ * 整合性検証に失敗したことを表す。
+ * errors は反映後の results 全体に対する検証結果なので、今回の入力ではなく
+ * 既に保存されていたレコードを指している場合がある。UI の文言はそれを踏まえること。
+ */
 export class DivisionValidationError extends Error {
   readonly errors: ValidationErrors;
 
@@ -48,7 +52,7 @@ const toJsonInput = (results: DivisionResults): Prisma.InputJsonValue =>
 
 /**
  * 楽観ロック付きで 1 試合分の結果を書き込む。
- * 書き込み前に results.ts の整合性ルール（spec のルール 7〜9）を反映後の値に対して検証し、
+ * 書き込み前に validate.ts の validateResults（spec のルール 7〜9）を反映後の値に対して検証し、
  * 不正なら DivisionValidationError を投げる。
  * 読み取りから書き込みの間に revision が変わっていたら DivisionConflictError を投げる。
  */
