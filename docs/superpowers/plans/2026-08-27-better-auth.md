@@ -368,6 +368,7 @@ model Session {
 /// Better Auth のアカウント。パスワードのハッシュと OAuth プロバイダの連携情報を持つ。
 model Account {
   id                    String    @id @default(uuid())
+  issuer                String
   userId                String
   accountId             String
   providerId            String
@@ -383,7 +384,7 @@ model Account {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([providerId, accountId])
+  @@unique([issuer, accountId])
   @@index([userId])
 }
 
@@ -401,6 +402,15 @@ model Verification {
 ```
 
 パスワードは `Account.password` に入る。`User` に `passwordHash` を足してはならない。
+
+`Account.issuer` は必須で、一意制約は `[providerId, accountId]` ではなく **`[issuer, accountId]`** に張る。
+Better Auth 1.7 は資格情報アカウントに `issuer = "local:credential"` を書き込むため、
+このフィールドが無いとサインアップが `Unknown argument \`issuer\`` で 500 になる。
+
+CLI 出力のうち採用しないもの:
+- `@@map("user")` などのテーブル名マッピング。既存テーブルは `"User"` であり、付けると壊れる
+- `@id` から `@default(uuid())` を落とす変更。Better Auth は自前で id を採番するが、
+  既定値を残しておいても害はない
 
 - [ ] **Step 6: スキーマの妥当性を確認する**
 
