@@ -70,7 +70,9 @@ Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/bui
 | `src/shared/lib/auth-client.ts` | ブラウザ側のクライアント |
 | `src/shared/middleware/require-session.ts` | **認証の実際の境界。** 保護するページ・Server Action の冒頭で呼ぶ |
 | `src/proxy.ts` | 未ログインを `/login` へ送る最適化。Cookie の有無しか見ておらず、境界ではない |
-| `src/features/auth/` | ログイン / サインアップ / ログアウトの各スライス（`schema.ts` / `domain.ts` / `usecase.ts`） |
+| `src/features/auth/domain.ts` | `safeRedirectPath`。ログイン後の遷移先を同一オリジンに限定するオープンリダイレクト対策 |
+| `src/features/auth/messages.ts` | `AuthError` → 日本語文言。`Match.exhaustive` によりタグを足して文言を忘れるとコンパイルエラーになる |
+| `src/features/auth/{login,signup}/` | 各スライス（`schema.ts` / `usecase.ts`）。UI は含まない |
 | `src/components/auth/` | ログイン / サインアップ / ログアウトの画面コンポーネント（`LoginForm.tsx` / `SignupForm.tsx` / `LogoutButton.tsx`） |
 
 新しく保護したいページを追加するときは、`requireSession()` を呼ぶこと。
