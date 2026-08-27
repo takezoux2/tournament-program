@@ -38,6 +38,8 @@
 | `src/shared/lib/auth.ts` | `betterAuth({...})` サーバー設定 |
 | `src/shared/lib/auth-client.ts` | `createAuthClient()` クライアント設定 |
 | `src/shared/errors/auth-error.ts` | `Data.TaggedError` による認証エラー型と `toAuthError` 写像 |
+| `src/shared/lib/auth-effect.ts` | `runAuthCall`。Better Auth のクライアント呼び出しを `Effect` に包む共通処理 |
+| `src/shared/testing/exit.ts` | `failureTag`。テストで `Exit` から失敗タグを取り出すヘルパ |
 | `src/shared/middleware/require-session.ts` | `requireSession()`。実際のセキュリティ境界 |
 | `src/features/auth/messages.ts` | `AuthError` → 日本語文言。`Match.exhaustive` で網羅性を保証 |
 | `src/features/auth/signup/schema.ts` | サインアップの Zod スキーマ |
@@ -476,11 +478,14 @@ git commit -m "feat: add Better Auth server config and auth tables"
 
 ---
 
-## Task 3: 認証エラー型と日本語文言
+## Task 3: 認証エラー型・Effect ヘルパ・日本語文言
 
 **Files:**
 - Create: `src/shared/errors/auth-error.ts`
 - Create: `src/shared/errors/auth-error.test.ts`
+- Create: `src/shared/testing/exit.ts`
+- Create: `src/shared/lib/auth-effect.ts`
+- Create: `src/shared/lib/auth-effect.test.ts`
 - Create: `src/features/auth/messages.ts`
 - Create: `src/features/auth/messages.test.ts`
 
@@ -489,8 +494,11 @@ git commit -m "feat: add Better Auth server config and auth tables"
 - Produces:
   - `AuthError` 型 = `InvalidCredentials | EmailAlreadyExists | WeakPassword | UnexpectedAuthError`
   - `toAuthError(code: string | undefined, cause: unknown): AuthError`
+  - `type AuthCallPort<I> = (input: I) => Promise<{ error?: { code?: string } | null }>`
+  - `runAuthCall<I>(port: AuthCallPort<I>, input: I): Effect.Effect<void, AuthError>`
+  - `failureTag<A, E extends { _tag: string }>(exit: Exit.Exit<A, E>): string`
   - `authErrorMessage(error: AuthError): string`
-  - 各エラークラスは `_tag` と `code: string` を持つ。`UnexpectedAuthError` のみ `cause: unknown` も持つ
+  - 各エラークラスは `_tag` と `code: string` を持つ。`UnexpectedAuthError` のみ `reason: unknown` も持つ
 
 - [ ] **Step 1: toAuthError の失敗するテストを書く**
 
@@ -625,7 +633,146 @@ pnpm exec vitest run src/shared/errors/auth-error.test.ts
 
 Expected: PASS（8 tests passed）。
 
-- [ ] **Step 5: 文言マッパの失敗するテストを書く**
+- [ ] **Step 5: テスト用の Exit ヘルパを作る**
+
+signup / login 双方の usecase テストが使うため、スライスに属さない場所に置く。
+
+`src/shared/testing/exit.ts`:
+
+```ts
+import { Exit } from "effect";
+
+/**
+ * Exit から失敗値のタグを取り出す。成功していた場合はテストを落とす。
+ * Effect を返す関数の分岐を検証するテストで使う。
+ */
+export const failureTag = <A, E extends { _tag: string }>(
+  exit: Exit.Exit<A, E>,
+): string => {
+  if (Exit.isSuccess(exit)) {
+    throw new Error("失敗を期待したが成功した");
+  }
+  const cause = exit.cause;
+  if (cause._tag !== "Fail") {
+    throw new Error(`Fail を期待したが ${cause._tag} だった`);
+  }
+  return cause.error._tag;
+};
+```
+
+このファイルは本番コードから import されないため、専用のテストは書かない。
+Task 4 / Task 5 の usecase テストが実質的な検証になる。
+
+- [ ] **Step 6: runAuthCall の失敗するテストを書く**
+
+`src/shared/lib/auth-effect.test.ts`:
+
+```ts
+import { Effect, Exit } from "effect";
+import { describe, expect, it, vi } from "vitest";
+import { failureTag } from "@/shared/testing/exit";
+import type { AuthCallPort } from "./auth-effect";
+import { runAuthCall } from "./auth-effect";
+
+const input = { email: "user@example.com" };
+
+describe("runAuthCall", () => {
+  it("エラーが無ければ成功し、入力をそのまま渡す", async () => {
+    const port: AuthCallPort<typeof input> = vi
+      .fn()
+      .mockResolvedValue({ error: null });
+    const exit = await Effect.runPromiseExit(runAuthCall(port, input));
+    expect(Exit.isSuccess(exit)).toBe(true);
+    expect(port).toHaveBeenCalledWith(input);
+  });
+
+  it("error が undefined でも成功として扱う", async () => {
+    const port: AuthCallPort<typeof input> = vi.fn().mockResolvedValue({});
+    const exit = await Effect.runPromiseExit(runAuthCall(port, input));
+    expect(Exit.isSuccess(exit)).toBe(true);
+  });
+
+  it("エラーコードを AuthError に写像する", async () => {
+    const port: AuthCallPort<typeof input> = vi
+      .fn()
+      .mockResolvedValue({ error: { code: "INVALID_EMAIL_OR_PASSWORD" } });
+    const exit = await Effect.runPromiseExit(runAuthCall(port, input));
+    expect(failureTag(exit)).toBe("InvalidCredentials");
+  });
+
+  it("未知のコードは UnexpectedAuthError にする", async () => {
+    const port: AuthCallPort<typeof input> = vi
+      .fn()
+      .mockResolvedValue({ error: { code: "WAT" } });
+    const exit = await Effect.runPromiseExit(runAuthCall(port, input));
+    expect(failureTag(exit)).toBe("UnexpectedAuthError");
+  });
+
+  it("Promise が reject したら UnexpectedAuthError にする", async () => {
+    const port: AuthCallPort<typeof input> = vi
+      .fn()
+      .mockRejectedValue(new Error("network"));
+    const exit = await Effect.runPromiseExit(runAuthCall(port, input));
+    expect(failureTag(exit)).toBe("UnexpectedAuthError");
+  });
+});
+```
+
+- [ ] **Step 7: runAuthCall を実装してテストを通す**
+
+まずテストが失敗することを確認する。
+
+```bash
+pnpm exec vitest run src/shared/lib/auth-effect.test.ts
+```
+
+Expected: FAIL。`Failed to resolve import "./auth-effect"`。
+
+`src/shared/lib/auth-effect.ts`:
+
+```ts
+import { Effect } from "effect";
+import { type AuthError, toAuthError } from "@/shared/errors/auth-error";
+
+/**
+ * Better Auth のクライアントメソッドが満たす最小の形。
+ * 実体を引数で受けることで、テストから Better Auth 本体を呼ばずに分岐を検証できる。
+ */
+export type AuthCallPort<I> = (
+  input: I,
+) => Promise<{ error?: { code?: string } | null }>;
+
+/**
+ * Better Auth の呼び出しを Effect に包み、失敗を AuthError に揃える。
+ * Better Auth のクライアントは例外を投げずに { error } を返すため、
+ * reject と error の 2 経路をここで 1 つに畳む。
+ */
+export const runAuthCall = <I>(
+  port: AuthCallPort<I>,
+  input: I,
+): Effect.Effect<void, AuthError> =>
+  Effect.tryPromise({
+    try: () => port(input),
+    // ネットワーク断などで Promise 自体が reject した場合。コードは無い。
+    catch: (cause) => toAuthError(undefined, cause),
+  }).pipe(
+    Effect.flatMap((result) =>
+      result.error
+        ? Effect.fail(toAuthError(result.error.code, result.error))
+        : Effect.void,
+    ),
+  );
+```
+
+再度テストを実行する。
+
+```bash
+pnpm exec vitest run src/shared/lib/auth-effect.test.ts
+```
+
+Expected: PASS（5 tests passed）。
+
+- [ ] **Step 8: 文言マッパの失敗するテストを書く**
 
 `src/features/auth/messages.test.ts`:
 
@@ -662,7 +809,7 @@ describe("authErrorMessage", () => {
 });
 ```
 
-- [ ] **Step 6: テストが失敗することを確認する**
+- [ ] **Step 9: テストが失敗することを確認する**
 
 ```bash
 pnpm exec vitest run src/features/auth/messages.test.ts
@@ -670,7 +817,7 @@ pnpm exec vitest run src/features/auth/messages.test.ts
 
 Expected: FAIL。`Failed to resolve import "./messages"`。
 
-- [ ] **Step 7: 文言マッパを実装する**
+- [ ] **Step 10: 文言マッパを実装する**
 
 `src/features/auth/messages.ts`:
 
@@ -703,7 +850,7 @@ export const authErrorMessage: (error: AuthError) => string = Match.type<
 );
 ```
 
-- [ ] **Step 8: テストが通ることを確認する**
+- [ ] **Step 11: テストが通ることを確認する**
 
 ```bash
 pnpm exec vitest run src/features/auth/messages.test.ts
@@ -711,7 +858,7 @@ pnpm exec vitest run src/features/auth/messages.test.ts
 
 Expected: PASS（4 tests passed）。
 
-- [ ] **Step 9: 型と lint を通す**
+- [ ] **Step 12: 型と lint を通す**
 
 ```bash
 pnpm typecheck && pnpm lint:fix && pnpm test
@@ -719,7 +866,7 @@ pnpm typecheck && pnpm lint:fix && pnpm test
 
 Expected: すべて成功。
 
-- [ ] **Step 10: コミット**
+- [ ] **Step 13: コミット**
 
 ```bash
 git add -A
@@ -739,11 +886,11 @@ git commit -m "feat: add tagged auth errors and Japanese messages"
 - Create: `src/features/auth/signup/usecase.test.ts`
 
 **Interfaces:**
-- Consumes: `normalizeEmail`, `MIN_PASSWORD_LENGTH`, `MAX_PASSWORD_LENGTH`（Task 1）、`AuthError`, `toAuthError`（Task 3）
+- Consumes: `normalizeEmail`, `MIN_PASSWORD_LENGTH`, `MAX_PASSWORD_LENGTH`（Task 1）、`AuthError`, `AuthCallPort`, `runAuthCall`, `failureTag`（Task 3）
 - Produces:
   - `isPasswordLengthValid(password: string): boolean`
   - `signupSchema` (Zod) と `type SignupInput = { name: string; email: string; password: string }`
-  - `type SignUpPort = (input: { name: string; email: string; password: string }) => Promise<{ error?: { code?: string } | null }>`
+  - `type SignUpPort = AuthCallPort<SignupInput>`
   - `signup(port: SignUpPort, input: SignupInput): Effect.Effect<void, AuthError>`
 
 - [ ] **Step 1: domain の失敗するテストを書く**
@@ -946,6 +1093,7 @@ Expected: PASS（6 tests passed）。
 ```ts
 import { Effect, Exit } from "effect";
 import { describe, expect, it, vi } from "vitest";
+import { failureTag } from "@/shared/testing/exit";
 import type { SignUpPort } from "./usecase";
 import { signup } from "./usecase";
 
@@ -955,56 +1103,23 @@ const input = {
   password: "password123",
 };
 
-/** Exit から失敗値のタグを取り出す。成功していたらテストを落とす。 */
-const failureTag = <A, E extends { _tag: string }>(
-  exit: Exit.Exit<A, E>,
-): string => {
-  if (Exit.isSuccess(exit)) {
-    throw new Error("失敗を期待したが成功した");
-  }
-  const failure = exit.cause;
-  if (failure._tag !== "Fail") {
-    throw new Error(`Fail を期待したが ${failure._tag} だった`);
-  }
-  return failure.error._tag;
-};
-
+// Effect への包み方と AuthError への写像そのものは
+// src/shared/lib/auth-effect.test.ts が網羅している。ここでは signup が
+// サインアップ固有の入力をポートへ渡し、失敗を素通しすることだけを見る。
 describe("signup", () => {
-  it("エラーが無ければ成功する", async () => {
+  it("入力をそのままポートへ渡し、エラーが無ければ成功する", async () => {
     const port: SignUpPort = vi.fn().mockResolvedValue({ error: null });
     const exit = await Effect.runPromiseExit(signup(port, input));
     expect(Exit.isSuccess(exit)).toBe(true);
     expect(port).toHaveBeenCalledWith(input);
   });
 
-  it("USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL を EmailAlreadyExists にする", async () => {
+  it("メール重複を EmailAlreadyExists として返す", async () => {
     const port: SignUpPort = vi.fn().mockResolvedValue({
       error: { code: "USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL" },
     });
     const exit = await Effect.runPromiseExit(signup(port, input));
     expect(failureTag(exit)).toBe("EmailAlreadyExists");
-  });
-
-  it("PASSWORD_TOO_SHORT を WeakPassword にする", async () => {
-    const port: SignUpPort = vi
-      .fn()
-      .mockResolvedValue({ error: { code: "PASSWORD_TOO_SHORT" } });
-    const exit = await Effect.runPromiseExit(signup(port, input));
-    expect(failureTag(exit)).toBe("WeakPassword");
-  });
-
-  it("未知のコードを UnexpectedAuthError にする", async () => {
-    const port: SignUpPort = vi
-      .fn()
-      .mockResolvedValue({ error: { code: "WAT" } });
-    const exit = await Effect.runPromiseExit(signup(port, input));
-    expect(failureTag(exit)).toBe("UnexpectedAuthError");
-  });
-
-  it("Promise が reject したら UnexpectedAuthError にする", async () => {
-    const port: SignUpPort = vi.fn().mockRejectedValue(new Error("network"));
-    const exit = await Effect.runPromiseExit(signup(port, input));
-    expect(failureTag(exit)).toBe("UnexpectedAuthError");
   });
 });
 ```
@@ -1022,35 +1137,18 @@ Expected: FAIL。`Failed to resolve import "./usecase"`。
 `src/features/auth/signup/usecase.ts`:
 
 ```ts
-import { Effect } from "effect";
-import { type AuthError, toAuthError } from "@/shared/errors/auth-error";
+import type { Effect } from "effect";
+import type { AuthError } from "@/shared/errors/auth-error";
+import { type AuthCallPort, runAuthCall } from "@/shared/lib/auth-effect";
 import type { SignupInput } from "./schema";
 
-/**
- * authClient.signUp.email が満たす最小の形。実体を引数で受けることで、
- * テストから Better Auth 本体を呼ばずに分岐を検証できる。
- */
-export type SignUpPort = (input: {
-  name: string;
-  email: string;
-  password: string;
-}) => Promise<{ error?: { code?: string } | null }>;
+/** authClient.signUp.email が満たす最小の形。 */
+export type SignUpPort = AuthCallPort<SignupInput>;
 
 export const signup = (
   port: SignUpPort,
   input: SignupInput,
-): Effect.Effect<void, AuthError> =>
-  Effect.tryPromise({
-    try: () => port(input),
-    // ネットワーク断などで Promise 自体が reject した場合。コードは無い。
-    catch: (cause) => toAuthError(undefined, cause),
-  }).pipe(
-    Effect.flatMap((result) =>
-      result.error
-        ? Effect.fail(toAuthError(result.error.code, result.error))
-        : Effect.void,
-    ),
-  );
+): Effect.Effect<void, AuthError> => runAuthCall(port, input);
 ```
 
 - [ ] **Step 12: テストが通ることを確認する**
@@ -1059,7 +1157,7 @@ export const signup = (
 pnpm exec vitest run src/features/auth/signup/usecase.test.ts
 ```
 
-Expected: PASS（5 tests passed）。
+Expected: PASS（2 tests passed）。
 
 - [ ] **Step 13: 型と lint を通す**
 
@@ -1089,11 +1187,11 @@ git commit -m "feat: add signup slice with schema, domain and usecase"
 - Create: `src/features/auth/login/usecase.test.ts`
 
 **Interfaces:**
-- Consumes: `normalizeEmail`（Task 1）、`AuthError`, `toAuthError`（Task 3）
+- Consumes: `normalizeEmail`（Task 1）、`AuthError`, `AuthCallPort`, `runAuthCall`, `failureTag`（Task 3）
 - Produces:
   - `safeRedirectPath(raw: string | null | undefined): string`
   - `loginSchema` (Zod) と `type LoginInput = { email: string; password: string }`
-  - `type SignInPort = (input: { email: string; password: string }) => Promise<{ error?: { code?: string } | null }>`
+  - `type SignInPort = AuthCallPort<LoginInput>`
   - `login(port: SignInPort, input: LoginInput): Effect.Effect<void, AuthError>`
 
 - [ ] **Step 1: safeRedirectPath の失敗するテストを書く**
@@ -1267,53 +1365,29 @@ Expected: PASS（4 tests passed）。
 ```ts
 import { Effect, Exit } from "effect";
 import { describe, expect, it, vi } from "vitest";
+import { failureTag } from "@/shared/testing/exit";
 import type { SignInPort } from "./usecase";
 import { login } from "./usecase";
 
 const input = { email: "user@example.com", password: "password123" };
 
-/** Exit から失敗値のタグを取り出す。成功していたらテストを落とす。 */
-const failureTag = <A, E extends { _tag: string }>(
-  exit: Exit.Exit<A, E>,
-): string => {
-  if (Exit.isSuccess(exit)) {
-    throw new Error("失敗を期待したが成功した");
-  }
-  const failure = exit.cause;
-  if (failure._tag !== "Fail") {
-    throw new Error(`Fail を期待したが ${failure._tag} だった`);
-  }
-  return failure.error._tag;
-};
-
+// Effect への包み方と AuthError への写像そのものは
+// src/shared/lib/auth-effect.test.ts が網羅している。ここでは login が
+// ログイン固有の入力をポートへ渡し、失敗を素通しすることだけを見る。
 describe("login", () => {
-  it("エラーが無ければ成功する", async () => {
+  it("入力をそのままポートへ渡し、エラーが無ければ成功する", async () => {
     const port: SignInPort = vi.fn().mockResolvedValue({ error: null });
     const exit = await Effect.runPromiseExit(login(port, input));
     expect(Exit.isSuccess(exit)).toBe(true);
     expect(port).toHaveBeenCalledWith(input);
   });
 
-  it("INVALID_EMAIL_OR_PASSWORD を InvalidCredentials にする", async () => {
+  it("資格情報の誤りを InvalidCredentials として返す", async () => {
     const port: SignInPort = vi
       .fn()
       .mockResolvedValue({ error: { code: "INVALID_EMAIL_OR_PASSWORD" } });
     const exit = await Effect.runPromiseExit(login(port, input));
     expect(failureTag(exit)).toBe("InvalidCredentials");
-  });
-
-  it("未知のコードを UnexpectedAuthError にする", async () => {
-    const port: SignInPort = vi
-      .fn()
-      .mockResolvedValue({ error: { code: "WAT" } });
-    const exit = await Effect.runPromiseExit(login(port, input));
-    expect(failureTag(exit)).toBe("UnexpectedAuthError");
-  });
-
-  it("Promise が reject したら UnexpectedAuthError にする", async () => {
-    const port: SignInPort = vi.fn().mockRejectedValue(new Error("network"));
-    const exit = await Effect.runPromiseExit(login(port, input));
-    expect(failureTag(exit)).toBe("UnexpectedAuthError");
   });
 });
 ```
@@ -1331,33 +1405,18 @@ Expected: FAIL。`Failed to resolve import "./usecase"`。
 `src/features/auth/login/usecase.ts`:
 
 ```ts
-import { Effect } from "effect";
-import { type AuthError, toAuthError } from "@/shared/errors/auth-error";
+import type { Effect } from "effect";
+import type { AuthError } from "@/shared/errors/auth-error";
+import { type AuthCallPort, runAuthCall } from "@/shared/lib/auth-effect";
 import type { LoginInput } from "./schema";
 
-/**
- * authClient.signIn.email が満たす最小の形。実体を引数で受けることで、
- * テストから Better Auth 本体を呼ばずに分岐を検証できる。
- */
-export type SignInPort = (input: {
-  email: string;
-  password: string;
-}) => Promise<{ error?: { code?: string } | null }>;
+/** authClient.signIn.email が満たす最小の形。 */
+export type SignInPort = AuthCallPort<LoginInput>;
 
 export const login = (
   port: SignInPort,
   input: LoginInput,
-): Effect.Effect<void, AuthError> =>
-  Effect.tryPromise({
-    try: () => port(input),
-    catch: (cause) => toAuthError(undefined, cause),
-  }).pipe(
-    Effect.flatMap((result) =>
-      result.error
-        ? Effect.fail(toAuthError(result.error.code, result.error))
-        : Effect.void,
-    ),
-  );
+): Effect.Effect<void, AuthError> => runAuthCall(port, input);
 ```
 
 - [ ] **Step 12: テストが通ることを確認する**
@@ -1366,7 +1425,7 @@ export const login = (
 pnpm exec vitest run src/features/auth/login/usecase.test.ts
 ```
 
-Expected: PASS（4 tests passed）。
+Expected: PASS（2 tests passed）。
 
 - [ ] **Step 13: 型と lint を通す**
 
