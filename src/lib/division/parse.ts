@@ -92,7 +92,7 @@ const parseBracketMatch = (value: unknown, path: string): BracketMatch => {
   const record = asRecord(value, path);
   const slots = asArray(record.slots, `${path}.slots`);
   if (slots.length !== 2) {
-    fail(`${path}.slots`, "要素 2 個の配列");
+    return fail(`${path}.slots`, "要素 2 個の配列");
   }
   return {
     id: asString(record.id, `${path}.id`),

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { applyMatchResult } from "./results";
+import { applyMatchResult, DivisionValidationError } from "./results";
 import { EMPTY_DIVISION_RESULTS } from "./types";
 
 describe("applyMatchResult", () => {
@@ -60,5 +60,15 @@ describe("applyMatchResult", () => {
     applyMatchResult(before, { matchId: "m1", winnerEntryId: "e1" });
 
     expect(before.matches).toEqual([]);
+  });
+});
+
+describe("DivisionValidationError", () => {
+  it("検証エラーの一覧を保持する", () => {
+    const error = new DivisionValidationError(["エラー A", "エラー B"]);
+
+    expect(error).toBeInstanceOf(Error);
+    expect(error.errors).toEqual(["エラー A", "エラー B"]);
+    expect(error.message).toContain("エラー A");
   });
 });

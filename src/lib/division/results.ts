@@ -1,6 +1,7 @@
 import type { Prisma, PrismaClient } from "@/generated/prisma/client";
-import { parseDivisionResults } from "./parse";
+import { parseDivisionResults, parseMatchingConfig } from "./parse";
 import type { DivisionResults, MatchResultRecord } from "./types";
+import { type ValidationErrors, validateResults } from "./validate";
 
 /** 楽観ロックの競合。呼び出し元は再読み込みを促す。 */
 export class DivisionConflictError extends Error {
@@ -9,6 +10,17 @@ export class DivisionConflictError extends Error {
       `Division ${divisionId} は他の人が更新しました。再読み込みしてください。`,
     );
     this.name = "DivisionConflictError";
+  }
+}
+
+/** 整合性検証に失敗したことを表す。呼び出し元は入力エラーとして扱う。 */
+export class DivisionValidationError extends Error {
+  readonly errors: ValidationErrors;
+
+  constructor(errors: ValidationErrors) {
+    super(`勝敗記録が整合しません: ${errors.join(" / ")}`);
+    this.name = "DivisionValidationError";
+    this.errors = errors;
   }
 }
 
@@ -34,14 +46,10 @@ export const applyMatchResult = (
 const toJsonInput = (results: DivisionResults): Prisma.InputJsonValue =>
   results as unknown as Prisma.InputJsonValue;
 
-const isRecordNotFound = (error: unknown): boolean =>
-  typeof error === "object" &&
-  error !== null &&
-  "code" in error &&
-  (error as { code: unknown }).code === "P2025";
-
 /**
  * 楽観ロック付きで 1 試合分の結果を書き込む。
+ * 書き込み前に results.ts の整合性ルール（spec のルール 7〜9）を反映後の値に対して検証し、
+ * 不正なら DivisionValidationError を投げる。
  * 読み取りから書き込みの間に revision が変わっていたら DivisionConflictError を投げる。
  */
 export const recordMatchResult = async (
@@ -51,21 +59,31 @@ export const recordMatchResult = async (
 ): Promise<DivisionResults> => {
   const division = await prisma.division.findUniqueOrThrow({
     where: { id: divisionId },
-    select: { results: true, revision: true },
+    select: {
+      results: true,
+      revision: true,
+      matchingConfig: true,
+      format: true,
+    },
   });
 
   const next = applyMatchResult(parseDivisionResults(division.results), record);
 
-  try {
-    await prisma.division.update({
-      where: { id: divisionId, revision: division.revision },
-      data: { results: toJsonInput(next), revision: division.revision + 1 },
-    });
-  } catch (error) {
-    if (isRecordNotFound(error)) {
-      throw new DivisionConflictError(divisionId);
-    }
-    throw error;
+  const errors = validateResults(
+    next,
+    parseMatchingConfig(division.matchingConfig),
+    division.format,
+  );
+  if (errors.length > 0) {
+    throw new DivisionValidationError(errors);
+  }
+
+  const updated = await prisma.division.updateMany({
+    where: { id: divisionId, revision: division.revision },
+    data: { results: toJsonInput(next), revision: division.revision + 1 },
+  });
+  if (updated.count === 0) {
+    throw new DivisionConflictError(divisionId);
   }
 
   return next;

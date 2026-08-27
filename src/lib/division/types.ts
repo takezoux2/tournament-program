@@ -60,17 +60,23 @@ export type DivisionResults = {
   matches: MatchResultRecord[];
 };
 
-export const EMPTY_DIVISION_ENTRIES: DivisionEntries = {
-  version: 1,
-  entries: [],
-};
+// 空配列リテラルは `never[]` に推論され `Object.freeze([]) as X[]` は型エラーになるため、
+// 一度 readonly X[] に型付けしてから X[] へキャストする。
+const EMPTY_ENTRY_LIST: readonly DivisionEntry[] = Object.freeze([]);
+const EMPTY_BRACKET_MATCH_LIST: readonly BracketMatch[] = Object.freeze([]);
+const EMPTY_MATCH_RESULT_LIST: readonly MatchResultRecord[] = Object.freeze([]);
 
-export const EMPTY_MATCHING_CONFIG: MatchingConfig = {
+export const EMPTY_DIVISION_ENTRIES: DivisionEntries = Object.freeze({
   version: 1,
-  matches: [],
-};
+  entries: EMPTY_ENTRY_LIST as DivisionEntry[],
+});
 
-export const EMPTY_DIVISION_RESULTS: DivisionResults = {
+export const EMPTY_MATCHING_CONFIG: MatchingConfig = Object.freeze({
   version: 1,
-  matches: [],
-};
+  matches: EMPTY_BRACKET_MATCH_LIST as BracketMatch[],
+});
+
+export const EMPTY_DIVISION_RESULTS: DivisionResults = Object.freeze({
+  version: 1,
+  matches: EMPTY_MATCH_RESULT_LIST as MatchResultRecord[],
+});
