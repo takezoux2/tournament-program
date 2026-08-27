@@ -65,7 +65,7 @@ model Tournament {
 
   organization Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   participants Participant[]
-  matches      Match[]
+  divisions    Division[]
 
   @@index([organizationId])
 }
@@ -87,54 +87,45 @@ model Participant {
   updatedAt    DateTime @updatedAt
 
   tournament Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
-  entries    Entry[]
 
   @@unique([tournamentId, seed])
   @@index([tournamentId])
 }
 
-/// 試合。大会内での位置を round / order で表す。
-model Match {
-  id           String      @id @default(uuid())
-  tournamentId String
-  round        Int
-  order        Int
-  status       MatchStatus @default(WAITING)
-  score        String?
-  startedAt    DateTime?
-  finishedAt   DateTime?
-  createdAt    DateTime    @default(now())
-  updatedAt    DateTime    @updatedAt
+/// 部門。大会内の 1 つの競技形式（男子の部、決勝トーナメントなど）。
+model Division {
+  id             String         @id @default(uuid())
+  tournamentId   String
+  /// 表示名。「男子シングルス」「決勝トーナメント」など。
+  name           String
+  /// 大会内での表示順・実施順。0 始まり。
+  order          Int
+  /// 試合の種類。
+  format         DivisionFormat
+  /// エントリー情報。DivisionEntries 型。
+  entries        Json           @default("{\"version\":1,\"entries\":[]}")
+  /// マッチング設定。展開済みの組み合わせを保持する。MatchingConfig 型。
+  matchingConfig Json           @default("{\"version\":1,\"matches\":[]}")
+  /// 勝敗記録。DivisionResults 型。
+  results        Json           @default("{\"version\":1,\"matches\":[]}")
+  /// results の楽観ロック用リビジョン。results を更新するたびに +1 する。
+  revision       Int            @default(0)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
 
   tournament Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
-  entries    Entry[]
 
-  @@unique([tournamentId, round, order])
+  @@unique([tournamentId, order])
   @@index([tournamentId])
 }
 
-enum MatchStatus {
-  WAITING
-  READY
-  DONE
-  BYE
-}
-
-/// エントリー。「どの参加者がどの試合のどのスロットに入るか」を表す 試合 x 参加者 の中間テーブル。
-model Entry {
-  id            String   @id @default(uuid())
-  matchId       String
-  participantId String
-  slot          Int
-  isWinner      Boolean  @default(false)
-  score         Int?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-
-  match       Match       @relation(fields: [matchId], references: [id], onDelete: Cascade)
-  participant Participant @relation(fields: [participantId], references: [id], onDelete: Cascade)
-
-  @@unique([matchId, slot])
-  @@unique([matchId, participantId])
-  @@index([participantId])
+enum DivisionFormat {
+  /// シングルエリミネーション
+  SINGLE_ELIMINATION
+  /// ダブルエリミネーション。勝者トーナメント優勝者と敗者トーナメント優勝者が最終試合を行う。
+  DOUBLE_ELIMINATION_GRAND_FINAL
+  /// ダブルエリミネーション。敗者トーナメント優勝者が 3 位となる。
+  DOUBLE_ELIMINATION_THIRD_PLACE
+  /// リーグ（総当たり）
+  ROUND_ROBIN
 }

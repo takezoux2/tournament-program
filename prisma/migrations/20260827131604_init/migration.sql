@@ -1,6 +1,3 @@
--- CreateSchema
-CREATE SCHEMA IF NOT EXISTS "public";
-
 -- CreateEnum
 CREATE TYPE "OrganizationRole" AS ENUM ('OWNER', 'ADMIN', 'MEMBER');
 
@@ -8,7 +5,7 @@ CREATE TYPE "OrganizationRole" AS ENUM ('OWNER', 'ADMIN', 'MEMBER');
 CREATE TYPE "TournamentStatus" AS ENUM ('DRAFT', 'IN_PROGRESS', 'COMPLETED');
 
 -- CreateEnum
-CREATE TYPE "MatchStatus" AS ENUM ('WAITING', 'READY', 'DONE', 'BYE');
+CREATE TYPE "DivisionFormat" AS ENUM ('SINGLE_ELIMINATION', 'DOUBLE_ELIMINATION_GRAND_FINAL', 'DOUBLE_ELIMINATION_THIRD_PLACE', 'ROUND_ROBIN');
 
 -- CreateTable
 CREATE TABLE "User" (
@@ -69,33 +66,20 @@ CREATE TABLE "Participant" (
 );
 
 -- CreateTable
-CREATE TABLE "Match" (
+CREATE TABLE "Division" (
     "id" TEXT NOT NULL,
     "tournamentId" TEXT NOT NULL,
-    "round" INTEGER NOT NULL,
+    "name" TEXT NOT NULL,
     "order" INTEGER NOT NULL,
-    "status" "MatchStatus" NOT NULL DEFAULT 'WAITING',
-    "score" TEXT,
-    "startedAt" TIMESTAMP(3),
-    "finishedAt" TIMESTAMP(3),
+    "format" "DivisionFormat" NOT NULL,
+    "entries" JSONB NOT NULL DEFAULT '{"version":1,"entries":[]}',
+    "matchingConfig" JSONB NOT NULL DEFAULT '{"version":1,"matches":[]}',
+    "results" JSONB NOT NULL DEFAULT '{"version":1,"matches":[]}',
+    "revision" INTEGER NOT NULL DEFAULT 0,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
-    CONSTRAINT "Match_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
-CREATE TABLE "Entry" (
-    "id" TEXT NOT NULL,
-    "matchId" TEXT NOT NULL,
-    "participantId" TEXT NOT NULL,
-    "slot" INTEGER NOT NULL,
-    "isWinner" BOOLEAN NOT NULL DEFAULT false,
-    "score" INTEGER,
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" TIMESTAMP(3) NOT NULL,
-
-    CONSTRAINT "Entry_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "Division_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateIndex
@@ -117,19 +101,10 @@ CREATE INDEX "Participant_tournamentId_idx" ON "Participant"("tournamentId");
 CREATE UNIQUE INDEX "Participant_tournamentId_seed_key" ON "Participant"("tournamentId", "seed");
 
 -- CreateIndex
-CREATE INDEX "Match_tournamentId_idx" ON "Match"("tournamentId");
+CREATE INDEX "Division_tournamentId_idx" ON "Division"("tournamentId");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "Match_tournamentId_round_order_key" ON "Match"("tournamentId", "round", "order");
-
--- CreateIndex
-CREATE INDEX "Entry_participantId_idx" ON "Entry"("participantId");
-
--- CreateIndex
-CREATE UNIQUE INDEX "Entry_matchId_slot_key" ON "Entry"("matchId", "slot");
-
--- CreateIndex
-CREATE UNIQUE INDEX "Entry_matchId_participantId_key" ON "Entry"("matchId", "participantId");
+CREATE UNIQUE INDEX "Division_tournamentId_order_key" ON "Division"("tournamentId", "order");
 
 -- AddForeignKey
 ALTER TABLE "OrganizationMember" ADD CONSTRAINT "OrganizationMember_organizationId_fkey" FOREIGN KEY ("organizationId") REFERENCES "Organization"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -144,10 +119,4 @@ ALTER TABLE "Tournament" ADD CONSTRAINT "Tournament_organizationId_fkey" FOREIGN
 ALTER TABLE "Participant" ADD CONSTRAINT "Participant_tournamentId_fkey" FOREIGN KEY ("tournamentId") REFERENCES "Tournament"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Match" ADD CONSTRAINT "Match_tournamentId_fkey" FOREIGN KEY ("tournamentId") REFERENCES "Tournament"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "Entry" ADD CONSTRAINT "Entry_matchId_fkey" FOREIGN KEY ("matchId") REFERENCES "Match"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "Entry" ADD CONSTRAINT "Entry_participantId_fkey" FOREIGN KEY ("participantId") REFERENCES "Participant"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "Division" ADD CONSTRAINT "Division_tournamentId_fkey" FOREIGN KEY ("tournamentId") REFERENCES "Tournament"("id") ON DELETE CASCADE ON UPDATE CASCADE;
