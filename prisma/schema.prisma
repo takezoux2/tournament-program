@@ -153,6 +153,7 @@ model Session {
 /// Better Auth のアカウント。パスワードのハッシュと OAuth プロバイダの連携情報を持つ。
 model Account {
   id                    String    @id @default(uuid())
+  issuer                String
   userId                String
   accountId             String
   providerId            String
@@ -168,7 +169,7 @@ model Account {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([providerId, accountId])
+  @@unique([issuer, accountId])
   @@index([userId])
 }
 
