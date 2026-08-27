@@ -75,3 +75,14 @@ Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/bui
 
 新しく保護したいページを追加するときは、`requireSession()` を呼ぶこと。
 `src/proxy.ts` の matcher を通ったことは認証済みを意味しない。
+
+### 既知のリスク: アカウント事前乗っ取り
+
+メール確認なしの自己サインアップと、Google アカウント連携の自動許可
+（`account.accountLinking = { enabled: true, trustedProviders: ["google"] }`）を
+組み合わせているため、攻撃者が被害者のメールアドレスで先にパスワード登録し、
+後で被害者が Google でログインするとそのアカウントへ連携されてしまう恐れがある
+（詳細は `docs/superpowers/specs/2026-08-27-better-auth-design.md` の
+「リスクと留意点」を参照）。モックデータのみの現段階では許容しているが、
+**実ユーザーが登場する前に** `emailVerification` / `requireEmailVerification`
+を設定すること。

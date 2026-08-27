@@ -173,6 +173,11 @@ betterAuth({
 - `nextCookies()` は plugins 配列の**最後**に置く必要がある
 - `trustedProviders: ["google"]` により、同一メールの Google ログインが
   メール確認を経ずに既存ユーザーへ連携される。Google は検証済みメールを返すため許容する
+- **注意（アカウント事前乗っ取り）**: メール確認なしの自己サインアップと
+  この自動連携を組み合わせると、被害者のメールアドレスで攻撃者が先に
+  パスワード登録しておき、後で被害者が Google でログインした際に
+  そのアカウントへ連携されてしまう恐れがある。詳細と対応方針は
+  「リスクと留意点」の表を参照
 
 `src/app/api/auth/[...all]/route.ts`:
 
@@ -321,3 +326,4 @@ Google OAuth の疎通は実際の Client ID が必要なため、環境変数�
 | `npx auth generate` が Prisma 7 の `prisma7.config.ts` とカスタム出力先 `src/generated/prisma` を正しく扱えない可能性 | 生成結果を必ずレビューし、必要なら手で補正する |
 | proxy の Cookie チェックだけで保護済みと誤解されること | `requireSession()` を境界とする方針をコード上のコメントと本設計書に明記済み |
 | Effect 導入により既存コードとのスタイル差が生まれる | 適用範囲を `features/auth/*/usecase.ts` に限定する |
+| **アカウント事前乗っ取り**: メール確認なしの自己サインアップと `accountLinking.enabled: true` の組み合わせにより、攻撃者が被害者のメールアドレスで先にパスワード登録し、後で被害者が Google でログインすると Better Auth がその Google アイデンティティを攻撃者の既存アカウントへ連携してしまう。攻撃者は自分が設定したパスワードで被害者のアカウントに入り続けられる | 現段階（モックデータのみ・実ユーザー不在）ではリスクを許容し、挙動は変更しない。**実ユーザーが登場する前に**、Better Auth の `emailVerification` と `requireEmailVerification` を設定し、メール未確認のパスワードアカウントへは連携できないようにすることが解消条件 |
