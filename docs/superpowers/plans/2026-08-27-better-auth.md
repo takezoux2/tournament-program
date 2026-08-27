@@ -332,7 +332,7 @@ git diff prisma/schema.prisma
 最終的に以下の状態になっていること。`User` の既存フィールドは消さない。
 
 ```prisma
-/// ユーザー。組織に所属して大会を運営する側の人。
+/// ユーザー。組織に所属して大会を運営する側の、管理等を行える正式登録ユーザー。
 model User {
   id            String   @id @default(uuid())
   email         String   @unique
@@ -342,7 +342,7 @@ model User {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  memberships OrganizationMember[]
+  memberships OrganizationUser[]
   sessions    Session[]
   accounts    Account[]
 }

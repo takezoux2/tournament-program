@@ -10,7 +10,7 @@ datasource db {
   provider = "postgresql"
 }
 
-/// ユーザー。組織に所属して大会を運営する側の人。
+/// ユーザー。組織に所属して大会を運営する側の、管理等を行える正式登録ユーザー。
 model User {
   id        String   @id @default(uuid())
   email     String   @unique
@@ -18,7 +18,7 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  memberships OrganizationMember[]
+  memberships OrganizationUser[]
 }
 
 /// 組織。大会の主催者。
@@ -30,11 +30,12 @@ model Organization {
   updatedAt DateTime @updatedAt
 
   tournaments Tournament[]
-  members     OrganizationMember[]
+  users       OrganizationUser[]
+  members     Member[]
 }
 
 /// 組織 N-N ユーザー の中間テーブル。
-model OrganizationMember {
+model OrganizationUser {
   organizationId String
   userId         String
   role           OrganizationRole @default(MEMBER)
@@ -51,6 +52,24 @@ enum OrganizationRole {
   OWNER
   ADMIN
   MEMBER
+}
+
+/// メンバー。組織に所属する人。大会へ参加した場合などに組織へメンバーとして登録する。
+/// User と違い、アプリのログインアカウントを持つとは限らない。
+model Member {
+  id             String   @id @default(uuid())
+  organizationId String
+  /// 氏名。
+  name           String
+  /// 氏名の読み方（かな）。
+  nameKana       String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  participants Participant[]
+
+  @@index([organizationId])
 }
 
 /// 大会。1 つの組織が主催する。
@@ -77,19 +96,22 @@ enum TournamentStatus {
 }
 
 /// 参加者。大会単位のマスタで、複数の試合にエントリーしうる。
+/// 表示名は紐づく Member の name / nameKana を参照する。
 model Participant {
   id           String   @id @default(uuid())
   tournamentId String
-  name         String
+  memberId     String
   seed         Int?
   team         String?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
   tournament Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  member     Member     @relation(fields: [memberId], references: [id], onDelete: Restrict)
 
   @@unique([tournamentId, seed])
   @@index([tournamentId])
+  @@index([memberId])
 }
 
 /// 部門。大会内の 1 つの競技形式（男子の部、決勝トーナメントなど）。

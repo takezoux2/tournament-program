@@ -6,7 +6,7 @@
 
 ## 背景と目的
 
-本アプリには現在認証が存在しない。`User` / `Organization` / `OrganizationMember` モデルは
+本アプリには現在認証が存在しない。`User` / `Organization` / `OrganizationUser` モデルは
 定義済みだが、ユーザーがログインする手段がないため、大会の作成・編集といった運営操作を
 誰が行ったのか特定できない。
 
