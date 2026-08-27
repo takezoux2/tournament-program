@@ -8,6 +8,7 @@ import { loginSchema } from "@/features/auth/login/schema";
 import { login } from "@/features/auth/login/usecase";
 import { authErrorMessage } from "@/features/auth/messages";
 import { authClient } from "@/shared/lib/auth-client";
+import { runAuthCall } from "@/shared/lib/auth-effect";
 
 export function LoginForm({ redirectTo }: { redirectTo: string }) {
   const router = useRouter();
@@ -45,6 +46,33 @@ export function LoginForm({ redirectTo }: { redirectTo: string }) {
     router.push(redirectTo);
     // Server Component 側のセッションを読み直させる。
     router.refresh();
+  };
+
+  const onGoogleSignIn = async () => {
+    setError(null);
+    setPending(true);
+    // メール/パスワードの login と同じ runAuthCall を通し、reject と
+    // { error } の両経路を AuthError に畳んでから扱う。
+    const exit = await Effect.runPromiseExit(
+      runAuthCall((input) => authClient.signIn.social(input), {
+        provider: "google" as const,
+        callbackURL: redirectTo,
+      }),
+    );
+    setPending(false);
+
+    if (Exit.isFailure(exit)) {
+      const failure = Cause.failureOption(exit.cause);
+      setError(
+        Option.isSome(failure)
+          ? authErrorMessage(failure.value)
+          : "処理に失敗しました。時間をおいて再度お試しください",
+      );
+      return;
+    }
+
+    // 成功時は signIn.social 自身がブラウザを Google の認証画面へ
+    // 遷移させるため、ここでの router.push は不要。
   };
 
   return (
@@ -103,13 +131,9 @@ export function LoginForm({ redirectTo }: { redirectTo: string }) {
 
       <button
         type="button"
-        onClick={() =>
-          authClient.signIn.social({
-            provider: "google",
-            callbackURL: redirectTo,
-          })
-        }
-        className="w-full rounded border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700"
+        onClick={onGoogleSignIn}
+        disabled={pending}
+        className="w-full rounded border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 disabled:opacity-50"
       >
         Google でログイン
       </button>
