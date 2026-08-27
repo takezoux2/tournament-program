@@ -29,3 +29,14 @@ src/
 * effect-tsを利用して、純粋関数型のアプローチで副作用を管理する
 * 他の機能への依存が発生しないようにlintで制約をかける
 * features以下のディレクトリでは、上位のディレクトリのみ依存関係を許可する。同列、下位のディレクトリへの依存は許可しない。
+
+## 例外: features/auth
+
+`features/auth` の各スライスには `handler.ts` と `repository.ts` を置いていない。
+
+* ルーティングは Next.js の `app/` が所有する（`app/api/auth/[...all]/route.ts` が唯一のエントリポイント）
+* 認証テーブルへの DB 操作は Better Auth のアダプタが所有する
+
+このため、スライス側に置くと委譲するだけの空ファイルになる。
+`features/auth` には `schema.ts` / `domain.ts` / `usecase.ts` のみを置き、画面のコンポーネントは
+`src/components/auth/` に置く（`src/features/` 配下に `.tsx` は置かない）。
