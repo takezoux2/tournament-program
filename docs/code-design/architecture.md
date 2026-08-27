@@ -3,11 +3,13 @@
 ディレクトリやファイルは以下のように分割する。
 ```
 src/
+├── app/                          # Next.jsのAppディレクトリ
+├── components/                   # UIコンポーネント
 ├── features/                     # 垂直スライス（機能単位）
 │   └── user/                     # 機能カテゴリー
 │       ├── registration/         # アクション
 │       │   ├── schema.ts         # 入力バリデーション（Zod）
-│       │   ├── handler.ts        # HTTPエンドポイント・ルーティング
+│       │   ├── handler.ts        # サーバーアクションからの呼び出し
 │       │   ├── usecase.ts        # アプリケーションロジック
 │       │   ├── domain.ts         # 純粋なビジネスルール（純粋関数）
 │       │   ├── repository.ts     # DB操作のインターフェース & 実装
