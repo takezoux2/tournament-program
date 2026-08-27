@@ -45,7 +45,7 @@ Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/bui
 | 変数 | 内容 |
 | --- | --- |
 | `BETTER_AUTH_SECRET` | セッショントークンの署名鍵。`node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"` で生成する |
-| `BETTER_AUTH_URL` | アプリの URL。開発時は `http://localhost:3000` |
+| `BETTER_AUTH_URL` | アプリの URL。開発時は `http://localhost:3000`。**実際に配信されているオリジン（ポート番号含む）と必ず一致させること**。`next dev` が 3000番ポートの使用中により別のポートへフォールバックした場合も追従して変更する。ずれていると、Cookie を送らない curl 等の疎通確認は通る一方、ログイン後のブラウザ操作（ログアウトなど）だけが `403 INVALID_ORIGIN` で失敗し、原因に気づきにくい |
 | `GOOGLE_CLIENT_ID` | 下記の手順で発行する |
 | `GOOGLE_CLIENT_SECRET` | 下記の手順で発行する |
 
