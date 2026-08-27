@@ -1,5 +1,5 @@
 import { LoginForm } from "@/components/auth/LoginForm";
-import { safeRedirectPath } from "@/features/auth/login/domain";
+import { safeRedirectPath } from "@/features/auth/domain";
 
 export default async function LoginPage({ searchParams }: PageProps<"/login">) {
   const params = await searchParams;
