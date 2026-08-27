@@ -1762,6 +1762,11 @@ Expected: 出力なし。`src/features/` 配下に `.tsx` は残らない。
 `noRestrictedImports` は `style` グループにあり、既定の severity は warn なので
 `"level": "error"` を明示する。
 
+**重要:** biome の `overrides` は、同じルールの `options` を**マージせず置き換える**。
+`src/features/auth/**` と `src/features/auth/login/**` の両方にマッチしたとき、後者の
+`patterns` が前者を丸ごと上書きしてしまう。そのため、スライス単位の override には
+auth 全体のパターンを**再掲する**必要がある。以下の JSON はその形になっている。
+
 ```json
   "overrides": [
     {
@@ -1794,6 +1799,10 @@ Expected: 出力なし。`src/features/` 配下に `.tsx` は残らない。
               "options": {
                 "patterns": [
                   {
+                    "group": ["@/features/tournament/**", "@/components/**", "@/app/**"],
+                    "message": "features/auth は他の機能・UI・app に依存できません。共通処理は src/shared に置いてください。"
+                  },
+                  {
                     "group": ["@/features/auth/signup/**", "@/features/auth/logout/**", "../signup/**", "../logout/**"],
                     "message": "同列のスライスには依存できません。共有するものは features/auth 直下か src/shared へ。"
                   }
@@ -1813,6 +1822,10 @@ Expected: 出力なし。`src/features/` 配下に `.tsx` は残らない。
               "level": "error",
               "options": {
                 "patterns": [
+                  {
+                    "group": ["@/features/tournament/**", "@/components/**", "@/app/**"],
+                    "message": "features/auth は他の機能・UI・app に依存できません。共通処理は src/shared に置いてください。"
+                  },
                   {
                     "group": ["@/features/auth/login/**", "@/features/auth/logout/**", "../login/**", "../logout/**"],
                     "message": "同列のスライスには依存できません。共有するものは features/auth 直下か src/shared へ。"
