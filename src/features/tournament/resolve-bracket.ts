@@ -6,7 +6,7 @@ import type {
   ResolvedMatch,
   ResolvedSlot,
   SlotSource,
-} from "../types";
+} from "./types";
 
 /**
  * 参加者・ブラケット構造・勝敗の 3 データを突き合わせ、描画可能な形へ畳み込む。

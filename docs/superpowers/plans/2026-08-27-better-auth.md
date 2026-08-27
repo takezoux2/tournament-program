@@ -23,6 +23,8 @@
 - `AGENTS.md` 冒頭のブロックは `next dev` が自動生成する。差分から消しても再生成されるので、変更があれば一緒にコミットしてよい。
 - 新しい worktree では `pnpm typecheck` の前に **`pnpm exec next typegen`** が必要（`LayoutProps` / `PageProps` の型が解決できないため）。
 - Better Auth のエラーコード文字列は `@better-auth/core` の `BASE_ERROR_CODES` のキー名と一致する。本計画に出てくるコード名は実パッケージ (1.7.2) から確認済みで、勝手に変えてはならない。
+- `docs/code-design/architecture.md` の依存ルール: **`src/features/` 配下では上位ディレクトリのみ依存してよい。同列（兄弟）・下位ディレクトリへの依存は禁止。** 他の機能カテゴリへの依存も禁止。
+- UI コンポーネントは `src/components/` に置く。`src/features/` 配下に `.tsx` は置かない。`src/components/` は `src/features/` に依存してよい（逆は不可）。
 
 ---
 
@@ -38,33 +40,43 @@
 | `src/shared/lib/auth.ts` | `betterAuth({...})` サーバー設定 |
 | `src/shared/lib/auth-client.ts` | `createAuthClient()` クライアント設定 |
 | `src/shared/errors/auth-error.ts` | `Data.TaggedError` による認証エラー型と `toAuthError` 写像 |
+| `src/shared/lib/auth-effect.ts` | `runAuthCall`。Better Auth のクライアント呼び出しを `Effect` に包む共通処理 |
+| `src/shared/testing/exit.ts` | `failureTag`。テストで `Exit` から失敗タグを取り出すヘルパ |
 | `src/shared/middleware/require-session.ts` | `requireSession()`。実際のセキュリティ境界 |
 | `src/features/auth/messages.ts` | `AuthError` → 日本語文言。`Match.exhaustive` で網羅性を保証 |
 | `src/features/auth/signup/schema.ts` | サインアップの Zod スキーマ |
 | `src/features/auth/signup/domain.ts` | `isPasswordLengthValid` |
 | `src/features/auth/signup/usecase.ts` | `signup` (Effect) |
-| `src/features/auth/signup/SignupForm.tsx` | サインアップフォーム |
 | `src/features/auth/login/schema.ts` | ログインの Zod スキーマ |
 | `src/features/auth/login/domain.ts` | `safeRedirectPath` |
 | `src/features/auth/login/usecase.ts` | `login` (Effect) |
-| `src/features/auth/login/LoginForm.tsx` | ログインフォーム + Google ボタン |
-| `src/features/auth/logout/LogoutButton.tsx` | ログアウトボタン |
+| `src/components/auth/SignupForm.tsx` | サインアップフォーム |
+| `src/components/auth/LoginForm.tsx` | ログインフォーム + Google ボタン |
+| `src/components/auth/LogoutButton.tsx` | ログアウトボタン |
 | `src/app/api/auth/[...all]/route.ts` | Better Auth のエンドポイント |
 | `src/app/(auth)/login/page.tsx` | `/login` |
 | `src/app/(auth)/signup/page.tsx` | `/signup` |
 | `src/proxy.ts` | 未ログインの最適化リダイレクト |
 
-テストは実装と同じディレクトリに `*.test.ts` として置く（既存の `features/tournament` と同じ規約）。
+テストは実装と同じディレクトリに `*.test.ts` として置く。
 
 ### 変更
 
 | ファイル | 変更内容 |
 | --- | --- |
 | `prisma/schema.prisma` | `User` に `emailVerified` / `image` / リレーションを追加、`Session` / `Account` / `Verification` を新規追加 |
-| `src/app/page.tsx` | 冒頭で `requireSession()`、ヘッダーにユーザー名とログアウトボタン |
+| `src/app/page.tsx` | import 先の変更、冒頭で `requireSession()`、ヘッダーにユーザー名とログアウトボタン |
+| `biome.json` | `overrides` で features 配下の依存制約を lint で強制する |
 | `package.json` | 依存追加 |
 | `.env.example` | 認証用の環境変数 |
 | `README.md` | Google OAuth のセットアップ手順 |
+
+### 移動（Task 7 の構成移行）
+
+| 移動元 | 移動先 |
+| --- | --- |
+| `src/features/tournament/components/*.tsx` | `src/components/tournament/` |
+| `src/features/tournament/lib/*.ts` | `src/features/tournament/`（1 階層上げる） |
 
 ### 削除
 
@@ -74,8 +86,12 @@
 
 ### 設計書からの変更点
 
-設計書では `normalizeEmail` を `signup/domain.ts` に置くとしていたが、`login/schema.ts` からも使うため
-`src/shared/lib/email.ts` に移す。スライス間の横断 import を避けるための調整。
+1. 設計書では `normalizeEmail` を `signup/domain.ts` に置くとしていたが、`login/schema.ts` からも使うため
+   `src/shared/lib/email.ts` に移す。スライス間の横断 import を避けるための調整。
+2. `docs/code-design/architecture.md` が更新され、`src/components/`（UI コンポーネント）が追加された。
+   認証フォームは `src/features/auth/*/` ではなく `src/components/auth/` に置く。
+3. 同じ更新で「features 以下は上位ディレクトリのみ依存可、同列・下位は不可」「lint で制約をかける」が
+   追加された。Task 7 でこの制約を biome に入れ、既存の `features/tournament` を新構成へ移行する。
 
 ---
 
@@ -366,6 +382,7 @@ model Session {
 /// Better Auth のアカウント。パスワードのハッシュと OAuth プロバイダの連携情報を持つ。
 model Account {
   id                    String    @id @default(uuid())
+  issuer                String
   userId                String
   accountId             String
   providerId            String
@@ -381,7 +398,7 @@ model Account {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([providerId, accountId])
+  @@unique([issuer, accountId])
   @@index([userId])
 }
 
@@ -399,6 +416,15 @@ model Verification {
 ```
 
 パスワードは `Account.password` に入る。`User` に `passwordHash` を足してはならない。
+
+`Account.issuer` は必須で、一意制約は `[providerId, accountId]` ではなく **`[issuer, accountId]`** に張る。
+Better Auth 1.7 は資格情報アカウントに `issuer = "local:credential"` を書き込むため、
+このフィールドが無いとサインアップが `Unknown argument \`issuer\`` で 500 になる。
+
+CLI 出力のうち採用しないもの:
+- `@@map("user")` などのテーブル名マッピング。既存テーブルは `"User"` であり、付けると壊れる
+- `@id` から `@default(uuid())` を落とす変更。Better Auth は自前で id を採番するが、
+  既定値を残しておいても害はない
 
 - [ ] **Step 6: スキーマの妥当性を確認する**
 
@@ -476,11 +502,14 @@ git commit -m "feat: add Better Auth server config and auth tables"
 
 ---
 
-## Task 3: 認証エラー型と日本語文言
+## Task 3: 認証エラー型・Effect ヘルパ・日本語文言
 
 **Files:**
 - Create: `src/shared/errors/auth-error.ts`
 - Create: `src/shared/errors/auth-error.test.ts`
+- Create: `src/shared/testing/exit.ts`
+- Create: `src/shared/lib/auth-effect.ts`
+- Create: `src/shared/lib/auth-effect.test.ts`
 - Create: `src/features/auth/messages.ts`
 - Create: `src/features/auth/messages.test.ts`
 
@@ -489,8 +518,11 @@ git commit -m "feat: add Better Auth server config and auth tables"
 - Produces:
   - `AuthError` 型 = `InvalidCredentials | EmailAlreadyExists | WeakPassword | UnexpectedAuthError`
   - `toAuthError(code: string | undefined, cause: unknown): AuthError`
+  - `type AuthCallPort<I> = (input: I) => Promise<{ error?: { code?: string } | null }>`
+  - `runAuthCall<I>(port: AuthCallPort<I>, input: I): Effect.Effect<void, AuthError>`
+  - `failureTag<A, E extends { _tag: string }>(exit: Exit.Exit<A, E>): string`
   - `authErrorMessage(error: AuthError): string`
-  - 各エラークラスは `_tag` と `code: string` を持つ。`UnexpectedAuthError` のみ `cause: unknown` も持つ
+  - 各エラークラスは `_tag` と `code: string` を持つ。`UnexpectedAuthError` のみ `reason: unknown` も持つ
 
 - [ ] **Step 1: toAuthError の失敗するテストを書く**
 
@@ -625,7 +657,146 @@ pnpm exec vitest run src/shared/errors/auth-error.test.ts
 
 Expected: PASS（8 tests passed）。
 
-- [ ] **Step 5: 文言マッパの失敗するテストを書く**
+- [ ] **Step 5: テスト用の Exit ヘルパを作る**
+
+signup / login 双方の usecase テストが使うため、スライスに属さない場所に置く。
+
+`src/shared/testing/exit.ts`:
+
+```ts
+import { Exit } from "effect";
+
+/**
+ * Exit から失敗値のタグを取り出す。成功していた場合はテストを落とす。
+ * Effect を返す関数の分岐を検証するテストで使う。
+ */
+export const failureTag = <A, E extends { _tag: string }>(
+  exit: Exit.Exit<A, E>,
+): string => {
+  if (Exit.isSuccess(exit)) {
+    throw new Error("失敗を期待したが成功した");
+  }
+  const cause = exit.cause;
+  if (cause._tag !== "Fail") {
+    throw new Error(`Fail を期待したが ${cause._tag} だった`);
+  }
+  return cause.error._tag;
+};
+```
+
+このファイルは本番コードから import されないため、専用のテストは書かない。
+Task 4 / Task 5 の usecase テストが実質的な検証になる。
+
+- [ ] **Step 6: runAuthCall の失敗するテストを書く**
+
+`src/shared/lib/auth-effect.test.ts`:
+
+```ts
+import { Effect, Exit } from "effect";
+import { describe, expect, it, vi } from "vitest";
+import { failureTag } from "@/shared/testing/exit";
+import type { AuthCallPort } from "./auth-effect";
+import { runAuthCall } from "./auth-effect";
+
+const input = { email: "user@example.com" };
+
+describe("runAuthCall", () => {
+  it("エラーが無ければ成功し、入力をそのまま渡す", async () => {
+    const port: AuthCallPort<typeof input> = vi
+      .fn()
+      .mockResolvedValue({ error: null });
+    const exit = await Effect.runPromiseExit(runAuthCall(port, input));
+    expect(Exit.isSuccess(exit)).toBe(true);
+    expect(port).toHaveBeenCalledWith(input);
+  });
+
+  it("error が undefined でも成功として扱う", async () => {
+    const port: AuthCallPort<typeof input> = vi.fn().mockResolvedValue({});
+    const exit = await Effect.runPromiseExit(runAuthCall(port, input));
+    expect(Exit.isSuccess(exit)).toBe(true);
+  });
+
+  it("エラーコードを AuthError に写像する", async () => {
+    const port: AuthCallPort<typeof input> = vi
+      .fn()
+      .mockResolvedValue({ error: { code: "INVALID_EMAIL_OR_PASSWORD" } });
+    const exit = await Effect.runPromiseExit(runAuthCall(port, input));
+    expect(failureTag(exit)).toBe("InvalidCredentials");
+  });
+
+  it("未知のコードは UnexpectedAuthError にする", async () => {
+    const port: AuthCallPort<typeof input> = vi
+      .fn()
+      .mockResolvedValue({ error: { code: "WAT" } });
+    const exit = await Effect.runPromiseExit(runAuthCall(port, input));
+    expect(failureTag(exit)).toBe("UnexpectedAuthError");
+  });
+
+  it("Promise が reject したら UnexpectedAuthError にする", async () => {
+    const port: AuthCallPort<typeof input> = vi
+      .fn()
+      .mockRejectedValue(new Error("network"));
+    const exit = await Effect.runPromiseExit(runAuthCall(port, input));
+    expect(failureTag(exit)).toBe("UnexpectedAuthError");
+  });
+});
+```
+
+- [ ] **Step 7: runAuthCall を実装してテストを通す**
+
+まずテストが失敗することを確認する。
+
+```bash
+pnpm exec vitest run src/shared/lib/auth-effect.test.ts
+```
+
+Expected: FAIL。`Failed to resolve import "./auth-effect"`。
+
+`src/shared/lib/auth-effect.ts`:
+
+```ts
+import { Effect } from "effect";
+import { type AuthError, toAuthError } from "@/shared/errors/auth-error";
+
+/**
+ * Better Auth のクライアントメソッドが満たす最小の形。
+ * 実体を引数で受けることで、テストから Better Auth 本体を呼ばずに分岐を検証できる。
+ */
+export type AuthCallPort<I> = (
+  input: I,
+) => Promise<{ error?: { code?: string } | null }>;
+
+/**
+ * Better Auth の呼び出しを Effect に包み、失敗を AuthError に揃える。
+ * Better Auth のクライアントは例外を投げずに { error } を返すため、
+ * reject と error の 2 経路をここで 1 つに畳む。
+ */
+export const runAuthCall = <I>(
+  port: AuthCallPort<I>,
+  input: I,
+): Effect.Effect<void, AuthError> =>
+  Effect.tryPromise({
+    try: () => port(input),
+    // ネットワーク断などで Promise 自体が reject した場合。コードは無い。
+    catch: (cause) => toAuthError(undefined, cause),
+  }).pipe(
+    Effect.flatMap((result) =>
+      result.error
+        ? Effect.fail(toAuthError(result.error.code, result.error))
+        : Effect.void,
+    ),
+  );
+```
+
+再度テストを実行する。
+
+```bash
+pnpm exec vitest run src/shared/lib/auth-effect.test.ts
+```
+
+Expected: PASS（5 tests passed）。
+
+- [ ] **Step 8: 文言マッパの失敗するテストを書く**
 
 `src/features/auth/messages.test.ts`:
 
@@ -662,7 +833,7 @@ describe("authErrorMessage", () => {
 });
 ```
 
-- [ ] **Step 6: テストが失敗することを確認する**
+- [ ] **Step 9: テストが失敗することを確認する**
 
 ```bash
 pnpm exec vitest run src/features/auth/messages.test.ts
@@ -670,7 +841,7 @@ pnpm exec vitest run src/features/auth/messages.test.ts
 
 Expected: FAIL。`Failed to resolve import "./messages"`。
 
-- [ ] **Step 7: 文言マッパを実装する**
+- [ ] **Step 10: 文言マッパを実装する**
 
 `src/features/auth/messages.ts`:
 
@@ -703,7 +874,7 @@ export const authErrorMessage: (error: AuthError) => string = Match.type<
 );
 ```
 
-- [ ] **Step 8: テストが通ることを確認する**
+- [ ] **Step 11: テストが通ることを確認する**
 
 ```bash
 pnpm exec vitest run src/features/auth/messages.test.ts
@@ -711,7 +882,7 @@ pnpm exec vitest run src/features/auth/messages.test.ts
 
 Expected: PASS（4 tests passed）。
 
-- [ ] **Step 9: 型と lint を通す**
+- [ ] **Step 12: 型と lint を通す**
 
 ```bash
 pnpm typecheck && pnpm lint:fix && pnpm test
@@ -719,7 +890,7 @@ pnpm typecheck && pnpm lint:fix && pnpm test
 
 Expected: すべて成功。
 
-- [ ] **Step 10: コミット**
+- [ ] **Step 13: コミット**
 
 ```bash
 git add -A
@@ -739,11 +910,11 @@ git commit -m "feat: add tagged auth errors and Japanese messages"
 - Create: `src/features/auth/signup/usecase.test.ts`
 
 **Interfaces:**
-- Consumes: `normalizeEmail`, `MIN_PASSWORD_LENGTH`, `MAX_PASSWORD_LENGTH`（Task 1）、`AuthError`, `toAuthError`（Task 3）
+- Consumes: `normalizeEmail`, `MIN_PASSWORD_LENGTH`, `MAX_PASSWORD_LENGTH`（Task 1）、`AuthError`, `AuthCallPort`, `runAuthCall`, `failureTag`（Task 3）
 - Produces:
   - `isPasswordLengthValid(password: string): boolean`
   - `signupSchema` (Zod) と `type SignupInput = { name: string; email: string; password: string }`
-  - `type SignUpPort = (input: { name: string; email: string; password: string }) => Promise<{ error?: { code?: string } | null }>`
+  - `type SignUpPort = AuthCallPort<SignupInput>`
   - `signup(port: SignUpPort, input: SignupInput): Effect.Effect<void, AuthError>`
 
 - [ ] **Step 1: domain の失敗するテストを書く**
@@ -946,6 +1117,7 @@ Expected: PASS（6 tests passed）。
 ```ts
 import { Effect, Exit } from "effect";
 import { describe, expect, it, vi } from "vitest";
+import { failureTag } from "@/shared/testing/exit";
 import type { SignUpPort } from "./usecase";
 import { signup } from "./usecase";
 
@@ -955,56 +1127,23 @@ const input = {
   password: "password123",
 };
 
-/** Exit から失敗値のタグを取り出す。成功していたらテストを落とす。 */
-const failureTag = <A, E extends { _tag: string }>(
-  exit: Exit.Exit<A, E>,
-): string => {
-  if (Exit.isSuccess(exit)) {
-    throw new Error("失敗を期待したが成功した");
-  }
-  const failure = exit.cause;
-  if (failure._tag !== "Fail") {
-    throw new Error(`Fail を期待したが ${failure._tag} だった`);
-  }
-  return failure.error._tag;
-};
-
+// Effect への包み方と AuthError への写像そのものは
+// src/shared/lib/auth-effect.test.ts が網羅している。ここでは signup が
+// サインアップ固有の入力をポートへ渡し、失敗を素通しすることだけを見る。
 describe("signup", () => {
-  it("エラーが無ければ成功する", async () => {
+  it("入力をそのままポートへ渡し、エラーが無ければ成功する", async () => {
     const port: SignUpPort = vi.fn().mockResolvedValue({ error: null });
     const exit = await Effect.runPromiseExit(signup(port, input));
     expect(Exit.isSuccess(exit)).toBe(true);
     expect(port).toHaveBeenCalledWith(input);
   });
 
-  it("USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL を EmailAlreadyExists にする", async () => {
+  it("メール重複を EmailAlreadyExists として返す", async () => {
     const port: SignUpPort = vi.fn().mockResolvedValue({
       error: { code: "USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL" },
     });
     const exit = await Effect.runPromiseExit(signup(port, input));
     expect(failureTag(exit)).toBe("EmailAlreadyExists");
-  });
-
-  it("PASSWORD_TOO_SHORT を WeakPassword にする", async () => {
-    const port: SignUpPort = vi
-      .fn()
-      .mockResolvedValue({ error: { code: "PASSWORD_TOO_SHORT" } });
-    const exit = await Effect.runPromiseExit(signup(port, input));
-    expect(failureTag(exit)).toBe("WeakPassword");
-  });
-
-  it("未知のコードを UnexpectedAuthError にする", async () => {
-    const port: SignUpPort = vi
-      .fn()
-      .mockResolvedValue({ error: { code: "WAT" } });
-    const exit = await Effect.runPromiseExit(signup(port, input));
-    expect(failureTag(exit)).toBe("UnexpectedAuthError");
-  });
-
-  it("Promise が reject したら UnexpectedAuthError にする", async () => {
-    const port: SignUpPort = vi.fn().mockRejectedValue(new Error("network"));
-    const exit = await Effect.runPromiseExit(signup(port, input));
-    expect(failureTag(exit)).toBe("UnexpectedAuthError");
   });
 });
 ```
@@ -1022,35 +1161,18 @@ Expected: FAIL。`Failed to resolve import "./usecase"`。
 `src/features/auth/signup/usecase.ts`:
 
 ```ts
-import { Effect } from "effect";
-import { type AuthError, toAuthError } from "@/shared/errors/auth-error";
+import type { Effect } from "effect";
+import type { AuthError } from "@/shared/errors/auth-error";
+import { type AuthCallPort, runAuthCall } from "@/shared/lib/auth-effect";
 import type { SignupInput } from "./schema";
 
-/**
- * authClient.signUp.email が満たす最小の形。実体を引数で受けることで、
- * テストから Better Auth 本体を呼ばずに分岐を検証できる。
- */
-export type SignUpPort = (input: {
-  name: string;
-  email: string;
-  password: string;
-}) => Promise<{ error?: { code?: string } | null }>;
+/** authClient.signUp.email が満たす最小の形。 */
+export type SignUpPort = AuthCallPort<SignupInput>;
 
 export const signup = (
   port: SignUpPort,
   input: SignupInput,
-): Effect.Effect<void, AuthError> =>
-  Effect.tryPromise({
-    try: () => port(input),
-    // ネットワーク断などで Promise 自体が reject した場合。コードは無い。
-    catch: (cause) => toAuthError(undefined, cause),
-  }).pipe(
-    Effect.flatMap((result) =>
-      result.error
-        ? Effect.fail(toAuthError(result.error.code, result.error))
-        : Effect.void,
-    ),
-  );
+): Effect.Effect<void, AuthError> => runAuthCall(port, input);
 ```
 
 - [ ] **Step 12: テストが通ることを確認する**
@@ -1059,7 +1181,7 @@ export const signup = (
 pnpm exec vitest run src/features/auth/signup/usecase.test.ts
 ```
 
-Expected: PASS（5 tests passed）。
+Expected: PASS（2 tests passed）。
 
 - [ ] **Step 13: 型と lint を通す**
 
@@ -1089,11 +1211,11 @@ git commit -m "feat: add signup slice with schema, domain and usecase"
 - Create: `src/features/auth/login/usecase.test.ts`
 
 **Interfaces:**
-- Consumes: `normalizeEmail`（Task 1）、`AuthError`, `toAuthError`（Task 3）
+- Consumes: `normalizeEmail`（Task 1）、`AuthError`, `AuthCallPort`, `runAuthCall`, `failureTag`（Task 3）
 - Produces:
   - `safeRedirectPath(raw: string | null | undefined): string`
   - `loginSchema` (Zod) と `type LoginInput = { email: string; password: string }`
-  - `type SignInPort = (input: { email: string; password: string }) => Promise<{ error?: { code?: string } | null }>`
+  - `type SignInPort = AuthCallPort<LoginInput>`
   - `login(port: SignInPort, input: LoginInput): Effect.Effect<void, AuthError>`
 
 - [ ] **Step 1: safeRedirectPath の失敗するテストを書く**
@@ -1267,53 +1389,29 @@ Expected: PASS（4 tests passed）。
 ```ts
 import { Effect, Exit } from "effect";
 import { describe, expect, it, vi } from "vitest";
+import { failureTag } from "@/shared/testing/exit";
 import type { SignInPort } from "./usecase";
 import { login } from "./usecase";
 
 const input = { email: "user@example.com", password: "password123" };
 
-/** Exit から失敗値のタグを取り出す。成功していたらテストを落とす。 */
-const failureTag = <A, E extends { _tag: string }>(
-  exit: Exit.Exit<A, E>,
-): string => {
-  if (Exit.isSuccess(exit)) {
-    throw new Error("失敗を期待したが成功した");
-  }
-  const failure = exit.cause;
-  if (failure._tag !== "Fail") {
-    throw new Error(`Fail を期待したが ${failure._tag} だった`);
-  }
-  return failure.error._tag;
-};
-
+// Effect への包み方と AuthError への写像そのものは
+// src/shared/lib/auth-effect.test.ts が網羅している。ここでは login が
+// ログイン固有の入力をポートへ渡し、失敗を素通しすることだけを見る。
 describe("login", () => {
-  it("エラーが無ければ成功する", async () => {
+  it("入力をそのままポートへ渡し、エラーが無ければ成功する", async () => {
     const port: SignInPort = vi.fn().mockResolvedValue({ error: null });
     const exit = await Effect.runPromiseExit(login(port, input));
     expect(Exit.isSuccess(exit)).toBe(true);
     expect(port).toHaveBeenCalledWith(input);
   });
 
-  it("INVALID_EMAIL_OR_PASSWORD を InvalidCredentials にする", async () => {
+  it("資格情報の誤りを InvalidCredentials として返す", async () => {
     const port: SignInPort = vi
       .fn()
       .mockResolvedValue({ error: { code: "INVALID_EMAIL_OR_PASSWORD" } });
     const exit = await Effect.runPromiseExit(login(port, input));
     expect(failureTag(exit)).toBe("InvalidCredentials");
-  });
-
-  it("未知のコードを UnexpectedAuthError にする", async () => {
-    const port: SignInPort = vi
-      .fn()
-      .mockResolvedValue({ error: { code: "WAT" } });
-    const exit = await Effect.runPromiseExit(login(port, input));
-    expect(failureTag(exit)).toBe("UnexpectedAuthError");
-  });
-
-  it("Promise が reject したら UnexpectedAuthError にする", async () => {
-    const port: SignInPort = vi.fn().mockRejectedValue(new Error("network"));
-    const exit = await Effect.runPromiseExit(login(port, input));
-    expect(failureTag(exit)).toBe("UnexpectedAuthError");
   });
 });
 ```
@@ -1331,33 +1429,18 @@ Expected: FAIL。`Failed to resolve import "./usecase"`。
 `src/features/auth/login/usecase.ts`:
 
 ```ts
-import { Effect } from "effect";
-import { type AuthError, toAuthError } from "@/shared/errors/auth-error";
+import type { Effect } from "effect";
+import type { AuthError } from "@/shared/errors/auth-error";
+import { type AuthCallPort, runAuthCall } from "@/shared/lib/auth-effect";
 import type { LoginInput } from "./schema";
 
-/**
- * authClient.signIn.email が満たす最小の形。実体を引数で受けることで、
- * テストから Better Auth 本体を呼ばずに分岐を検証できる。
- */
-export type SignInPort = (input: {
-  email: string;
-  password: string;
-}) => Promise<{ error?: { code?: string } | null }>;
+/** authClient.signIn.email が満たす最小の形。 */
+export type SignInPort = AuthCallPort<LoginInput>;
 
 export const login = (
   port: SignInPort,
   input: LoginInput,
-): Effect.Effect<void, AuthError> =>
-  Effect.tryPromise({
-    try: () => port(input),
-    catch: (cause) => toAuthError(undefined, cause),
-  }).pipe(
-    Effect.flatMap((result) =>
-      result.error
-        ? Effect.fail(toAuthError(result.error.code, result.error))
-        : Effect.void,
-    ),
-  );
+): Effect.Effect<void, AuthError> => runAuthCall(port, input);
 ```
 
 - [ ] **Step 12: テストが通ることを確認する**
@@ -1366,7 +1449,7 @@ export const login = (
 pnpm exec vitest run src/features/auth/login/usecase.test.ts
 ```
 
-Expected: PASS（4 tests passed）。
+Expected: PASS（2 tests passed）。
 
 - [ ] **Step 13: 型と lint を通す**
 
@@ -1544,12 +1627,281 @@ git commit -m "feat: add requireSession boundary and proxy redirect"
 
 ---
 
-## Task 7: ログインとサインアップの画面
+## Task 7: 構成の移行と依存制約の lint 化
+
+**Files:**
+- Create: `biome.json` への `overrides` 追加（既存ファイルを変更）
+- Move: `src/features/tournament/components/*.tsx` → `src/components/tournament/`
+- Move: `src/features/tournament/lib/*.ts` → `src/features/tournament/`
+- Modify: 移動に伴う相対 import、`src/app/page.tsx`
+
+**Interfaces:**
+- Consumes: なし（既存コードの再配置のみ）
+- Produces: `src/components/` 配下に UI コンポーネントを置く規約と、それを守らせる lint 設定
+
+**背景:** `docs/code-design/architecture.md` が更新され、`src/components/`（UI コンポーネント）が
+追加された。あわせて「features 以下は上位ディレクトリのみ依存可、同列・下位は不可」「lint で制約を
+かける」というルールが明文化された。既存の `features/tournament` は `components/` が同列の `lib/` を
+import しており、この新ルールに違反している。Task 8 で認証 UI を新構成に置く前に、既存コードを
+先に移行しておく。
+
+**移行後の形:**
+
+```
+src/
+├── components/
+│   └── tournament/
+│       ├── MatchCard.tsx
+│       ├── MatchCard.test.tsx
+│       ├── MatchNode.tsx
+│       └── TournamentFlow.tsx
+└── features/tournament/
+    ├── types.ts
+    ├── layout-bracket.ts        + layout-bracket.test.ts
+    ├── resolve-bracket.ts       + resolve-bracket.test.ts
+    ├── to-flow-elements.ts      + to-flow-elements.test.ts
+    └── mock/
+        ├── bracket.ts / participants.ts / results.ts
+        └── mock.test.ts
+```
+
+`lib/` を 1 階層上げるのは、`mock/mock.test.ts` が `../lib/*` を参照しており、これが
+同列ディレクトリ間の依存にあたるため。上げてしまえば `../layout-bracket` という上位参照になり
+ルールを満たす。`components/` は `src/features/` の外に出るので、`@/features/tournament/*` を
+import してよい。
+
+`src/lib/division/` は本タスクの対象外。並行作業中のため触らない。
+
+- [ ] **Step 1: 移行前のテスト本数を記録する**
+
+```bash
+pnpm test
+```
+
+Expected: PASS。この本数を控えておく。移行はファイルの移動だけなので、
+完了時に**同じ本数**が通らなければならない。
+
+- [ ] **Step 2: UI コンポーネントを src/components/tournament/ へ移す**
+
+```bash
+mkdir -p src/components/tournament
+git mv src/features/tournament/components/MatchCard.tsx src/components/tournament/MatchCard.tsx
+git mv src/features/tournament/components/MatchCard.test.tsx src/components/tournament/MatchCard.test.tsx
+git mv src/features/tournament/components/MatchNode.tsx src/components/tournament/MatchNode.tsx
+git mv src/features/tournament/components/TournamentFlow.tsx src/components/tournament/TournamentFlow.tsx
+rmdir src/features/tournament/components
+```
+
+- [ ] **Step 3: lib/ を 1 階層上げる**
+
+```bash
+git mv src/features/tournament/lib/layout-bracket.ts src/features/tournament/layout-bracket.ts
+git mv src/features/tournament/lib/layout-bracket.test.ts src/features/tournament/layout-bracket.test.ts
+git mv src/features/tournament/lib/resolve-bracket.ts src/features/tournament/resolve-bracket.ts
+git mv src/features/tournament/lib/resolve-bracket.test.ts src/features/tournament/resolve-bracket.test.ts
+git mv src/features/tournament/lib/to-flow-elements.ts src/features/tournament/to-flow-elements.ts
+git mv src/features/tournament/lib/to-flow-elements.test.ts src/features/tournament/to-flow-elements.test.ts
+rmdir src/features/tournament/lib
+```
+
+- [ ] **Step 4: import を書き換える**
+
+移動したファイルの相対 import が壊れているので直す。書き換えの対応表:
+
+| ファイル | 旧 | 新 |
+| --- | --- | --- |
+| `src/components/tournament/MatchCard.tsx` | `../lib/layout-bracket` | `@/features/tournament/layout-bracket` |
+| `src/components/tournament/MatchCard.tsx` | `../types` | `@/features/tournament/types` |
+| `src/components/tournament/MatchCard.test.tsx` | `../types` | `@/features/tournament/types` |
+| `src/components/tournament/MatchCard.test.tsx` | `./MatchCard` | 変更なし |
+| `src/components/tournament/MatchNode.tsx` | `../lib/to-flow-elements` | `@/features/tournament/to-flow-elements` |
+| `src/components/tournament/MatchNode.tsx` | `./MatchCard` | 変更なし |
+| `src/components/tournament/TournamentFlow.tsx` | `../lib/to-flow-elements` | `@/features/tournament/to-flow-elements` |
+| `src/components/tournament/TournamentFlow.tsx` | `./MatchNode` | 変更なし |
+| `src/features/tournament/*.ts`（旧 lib） | `../types` | `./types` |
+| `src/features/tournament/mock/mock.test.ts` | `../lib/layout-bracket` | `../layout-bracket` |
+| `src/features/tournament/mock/mock.test.ts` | `../lib/resolve-bracket` | `../resolve-bracket` |
+| `src/features/tournament/mock/mock.test.ts` | `../lib/to-flow-elements` | `../to-flow-elements` |
+
+`src/app/page.tsx` の import も直す:
+
+```
+@/features/tournament/components/TournamentFlow → @/components/tournament/TournamentFlow
+@/features/tournament/lib/layout-bracket        → @/features/tournament/layout-bracket
+@/features/tournament/lib/resolve-bracket       → @/features/tournament/resolve-bracket
+@/features/tournament/lib/to-flow-elements      → @/features/tournament/to-flow-elements
+```
+
+- [ ] **Step 5: 移行が壊れていないことを確認する**
+
+```bash
+pnpm exec next typegen && pnpm typecheck && pnpm lint:fix && pnpm test
+```
+
+Expected: すべて成功し、テスト本数が Step 1 と**同じ**であること。減っていたら
+テストファイルの移動漏れか、vitest の `include`（`src/**/*.{test,spec}.{ts,tsx}`）から
+外れている。
+
+- [ ] **Step 6: 残った違反がないことを確認する**
+
+```bash
+grep -rn "from \"\.\./lib/\|from \"\.\./components/" src/features src/components --include=*.ts --include=*.tsx
+```
+
+Expected: 出力なし。
+
+```bash
+grep -rln "\.tsx$" /dev/null; find src/features -name "*.tsx"
+```
+
+Expected: 出力なし。`src/features/` 配下に `.tsx` は残らない。
+
+- [ ] **Step 7: 依存制約を biome に入れる**
+
+`biome.json` の末尾（`assist` の後、閉じ括弧の前）に `overrides` を追加する。
+`noRestrictedImports` は `style` グループにあり、既定の severity は warn なので
+`"level": "error"` を明示する。
+
+**重要:** biome の `overrides` は、同じルールの `options` を**マージせず置き換える**。
+`src/features/auth/**` と `src/features/auth/login/**` の両方にマッチしたとき、後者の
+`patterns` が前者を丸ごと上書きしてしまう。そのため、スライス単位の override には
+auth 全体のパターンを**再掲する**必要がある。以下の JSON はその形になっている。
+
+```json
+  "overrides": [
+    {
+      "includes": ["src/features/auth/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": ["@/features/tournament/**", "@/components/**", "@/app/**"],
+                    "message": "features/auth は他の機能・UI・app に依存できません。共通処理は src/shared に置いてください。"
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": ["src/features/auth/login/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": ["@/features/tournament/**", "@/components/**", "@/app/**"],
+                    "message": "features/auth は他の機能・UI・app に依存できません。共通処理は src/shared に置いてください。"
+                  },
+                  {
+                    "group": ["@/features/auth/signup/**", "@/features/auth/logout/**", "../signup/**", "../logout/**"],
+                    "message": "同列のスライスには依存できません。共有するものは features/auth 直下か src/shared へ。"
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": ["src/features/auth/signup/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": ["@/features/tournament/**", "@/components/**", "@/app/**"],
+                    "message": "features/auth は他の機能・UI・app に依存できません。共通処理は src/shared に置いてください。"
+                  },
+                  {
+                    "group": ["@/features/auth/login/**", "@/features/auth/logout/**", "../login/**", "../logout/**"],
+                    "message": "同列のスライスには依存できません。共有するものは features/auth 直下か src/shared へ。"
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": ["src/features/tournament/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": ["@/features/auth/**", "@/components/**", "@/app/**"],
+                    "message": "features/tournament は他の機能・UI・app に依存できません。"
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+```
+
+- [ ] **Step 8: lint 設定が効いていることを実際に確かめる**
+
+設定を書いただけでは効いている保証がない。わざと違反する import を一時的に入れて、
+lint が落ちることを確認する。
+
+```bash
+printf 'import { layoutBracket } from "@/features/tournament/layout-bracket";\nexport const x = layoutBracket;\n' > src/features/auth/login/violation-probe.ts
+pnpm exec biome check src/features/auth/login/violation-probe.ts
+```
+
+Expected: `noRestrictedImports` の error が出て終了コードが非 0 になる。
+出なければ `includes` のパターンか `group` の書き方が誤っている。直してから進む。
+
+確認できたらプローブを消す。
+
+```bash
+rm src/features/auth/login/violation-probe.ts
+```
+
+- [ ] **Step 9: 全体を通す**
+
+```bash
+pnpm exec next typegen && pnpm typecheck && pnpm lint && pnpm test
+```
+
+Expected: すべて成功。`pnpm lint`（`--write` なし）が通ること。
+
+- [ ] **Step 10: コミット**
+
+```bash
+git add -A
+git commit -m "refactor: move UI to src/components and enforce feature boundaries"
+```
+
+---
+
+## Task 8: ログインとサインアップの画面
 
 **Files:**
 - Create: `src/shared/lib/auth-client.ts`
-- Create: `src/features/auth/login/LoginForm.tsx`
-- Create: `src/features/auth/signup/SignupForm.tsx`
+- Create: `src/components/auth/LoginForm.tsx`
+- Create: `src/components/auth/SignupForm.tsx`
 - Create: `src/app/(auth)/login/page.tsx`
 - Create: `src/app/(auth)/signup/page.tsx`
 
@@ -1575,7 +1927,7 @@ export const authClient = createAuthClient();
 
 - [ ] **Step 2: ログインフォームを作る**
 
-`src/features/auth/login/LoginForm.tsx`:
+`src/components/auth/LoginForm.tsx`:
 
 ```tsx
 "use client";
@@ -1584,10 +1936,10 @@ import { Cause, Effect, Exit, Option } from "effect";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { loginSchema } from "@/features/auth/login/schema";
+import { login } from "@/features/auth/login/usecase";
 import { authErrorMessage } from "@/features/auth/messages";
 import { authClient } from "@/shared/lib/auth-client";
-import { loginSchema } from "./schema";
-import { login } from "./usecase";
 
 export function LoginForm({ redirectTo }: { redirectTo: string }) {
   const router = useRouter();
@@ -1707,7 +2059,7 @@ export function LoginForm({ redirectTo }: { redirectTo: string }) {
 
 - [ ] **Step 3: サインアップフォームを作る**
 
-`src/features/auth/signup/SignupForm.tsx`:
+`src/components/auth/SignupForm.tsx`:
 
 ```tsx
 "use client";
@@ -1717,10 +2069,10 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { authErrorMessage } from "@/features/auth/messages";
+import { signupSchema } from "@/features/auth/signup/schema";
+import { signup } from "@/features/auth/signup/usecase";
 import { authClient } from "@/shared/lib/auth-client";
 import { MIN_PASSWORD_LENGTH } from "@/shared/lib/password-policy";
-import { signupSchema } from "./schema";
-import { signup } from "./usecase";
 
 export function SignupForm({ redirectTo }: { redirectTo: string }) {
   const router = useRouter();
@@ -1865,7 +2217,7 @@ export function SignupForm({ redirectTo }: { redirectTo: string }) {
 
 ```tsx
 import { safeRedirectPath } from "@/features/auth/login/domain";
-import { LoginForm } from "@/features/auth/login/LoginForm";
+import { LoginForm } from "@/components/auth/LoginForm";
 
 export default async function LoginPage({ searchParams }: PageProps<"/login">) {
   const params = await searchParams;
@@ -1886,7 +2238,7 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
 
 ```tsx
 import { safeRedirectPath } from "@/features/auth/login/domain";
-import { SignupForm } from "@/features/auth/signup/SignupForm";
+import { SignupForm } from "@/components/auth/SignupForm";
 
 export default async function SignupPage({
   searchParams,
@@ -1935,10 +2287,10 @@ git commit -m "feat: add login and signup screens"
 
 ---
 
-## Task 8: ログアウトとトップページの保護
+## Task 9: ログアウトとトップページの保護
 
 **Files:**
-- Create: `src/features/auth/logout/LogoutButton.tsx`
+- Create: `src/components/auth/LogoutButton.tsx`
 - Modify: `src/app/page.tsx`
 
 **Interfaces:**
@@ -1947,7 +2299,7 @@ git commit -m "feat: add login and signup screens"
 
 - [ ] **Step 1: ログアウトボタンを作る**
 
-`src/features/auth/logout/LogoutButton.tsx`:
+`src/components/auth/LogoutButton.tsx`:
 
 ```tsx
 "use client";
@@ -1987,11 +2339,11 @@ export function LogoutButton() {
 冒頭のガードとヘッダーのユーザー表示だけを足す。
 
 ```tsx
-import { LogoutButton } from "@/features/auth/logout/LogoutButton";
-import { TournamentFlow } from "@/features/tournament/components/TournamentFlow";
-import { layoutBracket } from "@/features/tournament/lib/layout-bracket";
-import { resolveBracket } from "@/features/tournament/lib/resolve-bracket";
-import { toFlowElements } from "@/features/tournament/lib/to-flow-elements";
+import { LogoutButton } from "@/components/auth/LogoutButton";
+import { TournamentFlow } from "@/components/tournament/TournamentFlow";
+import { layoutBracket } from "@/features/tournament/layout-bracket";
+import { resolveBracket } from "@/features/tournament/resolve-bracket";
+import { toFlowElements } from "@/features/tournament/to-flow-elements";
 import { mockBracket } from "@/features/tournament/mock/bracket";
 import { mockParticipants } from "@/features/tournament/mock/participants";
 import { mockResults } from "@/features/tournament/mock/results";
@@ -2079,7 +2431,7 @@ git commit -m "feat: require login for the tournament page and add logout"
 
 ---
 
-## Task 9: ドキュメントと最終検証
+## Task 10: ドキュメントと最終検証
 
 **Files:**
 - Modify: `README.md`

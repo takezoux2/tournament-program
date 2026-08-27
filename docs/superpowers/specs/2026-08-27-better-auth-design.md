@@ -95,25 +95,25 @@ src/
 │   ├── db/prisma.ts                    # src/lib/prisma.ts から移動
 │   ├── lib/auth.ts                     # betterAuth({...}) サーバー設定
 │   ├── lib/auth-client.ts              # createAuthClient (better-auth/react)
+│   ├── lib/auth-effect.ts              # runAuthCall。Better Auth 呼び出しを Effect に包む
 │   ├── errors/auth-error.ts            # Data.TaggedError による認証エラー型
 │   └── middleware/require-session.ts   # RSC / Server Action 用ガード
+├── components/auth/                    # UI は features ではなく components に置く
+│   ├── LoginForm.tsx
+│   ├── SignupForm.tsx
+│   └── LogoutButton.tsx
 ├── features/auth/
+│   ├── domain.ts                       # safeRedirectPath（login / signup 双方が使う）
+│   ├── domain.test.ts
+│   ├── messages.ts                     # AuthError → 日本語文言（Match.exhaustive）
 │   ├── signup/
 │   │   ├── schema.ts
-│   │   ├── domain.ts
 │   │   ├── usecase.ts
-│   │   ├── domain.test.ts
-│   │   ├── usecase.test.ts
-│   │   └── SignupForm.tsx
-│   ├── login/
-│   │   ├── schema.ts
-│   │   ├── domain.ts
-│   │   ├── usecase.ts
-│   │   ├── domain.test.ts
-│   │   ├── usecase.test.ts
-│   │   └── LoginForm.tsx
-│   └── logout/
-│       └── LogoutButton.tsx
+│   │   └── usecase.test.ts
+│   └── login/
+│       ├── schema.ts
+│       ├── usecase.ts
+│       └── usecase.test.ts
 ├── app/
 │   ├── api/auth/[...all]/route.ts
 │   ├── (auth)/login/page.tsx
@@ -139,13 +139,19 @@ src/
 
 | ファイル | 責務 |
 | --- | --- |
-| `signup/schema.ts` | Zod スキーマ。`name` / `email` / `password`。パスワード長は `shared/lib/auth.ts` と共有する定数を使う |
-| `signup/domain.ts` | 純粋関数。表示用のメールアドレス正規化（trim + 小文字化）とパスワード長判定 |
-| `signup/usecase.ts` | `Effect` で `auth.api.signUpEmail` を呼び、失敗を `AuthError` タグへ写像する |
-| `login/schema.ts` | Zod スキーマ。`email` / `password` |
-| `login/domain.ts` | 純粋関数 `safeRedirectPath(raw: string \| null): string`。`/` 始まりかつ `//` `/\` で始まらない値のみ通し、それ以外は `/` を返す |
-| `login/usecase.ts` | `Effect` で `authClient.signIn.email` を呼び、失敗を `AuthError` タグへ写像する |
-| `logout/LogoutButton.tsx` | `authClient.signOut()` を呼び `/login` へ遷移するクライアントコンポーネント |
+| `features/auth/domain.ts` | 純粋関数 `safeRedirectPath(raw: string \| null \| undefined): string`。`/` 始まりかつ `//` `/\` で始まらず、タブ・LF・CR を含まない値のみ通し、それ以外は `/` を返す。login / signup 双方が使うためカテゴリ直下に置く |
+| `features/auth/messages.ts` | `AuthError` → 日本語文言。`Match.exhaustive` で網羅性を保証する |
+| `features/auth/signup/schema.ts` | Zod スキーマ。`name` / `email` / `password`。パスワード長は `shared/lib/password-policy.ts` の定数を使う |
+| `features/auth/signup/usecase.ts` | `runAuthCall` で `authClient.signUp.email` を包み、失敗を `AuthError` タグへ写像する |
+| `features/auth/login/schema.ts` | Zod スキーマ。`email` / `password`。既存ユーザーを締め出さないようパスワード長の下限は課さない |
+| `features/auth/login/usecase.ts` | `runAuthCall` で `authClient.signIn.email` を包み、失敗を `AuthError` タグへ写像する |
+| `components/auth/LoginForm.tsx` | メール+パスワードのフォームと Google ボタン |
+| `components/auth/SignupForm.tsx` | 名前・メール・パスワードのフォームと Google ボタン |
+| `components/auth/LogoutButton.tsx` | `authClient.signOut()` を呼び `/login` へ遷移するクライアントコンポーネント |
+
+`domain.ts` に「メールアドレス正規化」は置かない。`normalizeEmail` は login / signup 双方に加えて
+将来の機能からも使いうるため `shared/lib/email.ts` にある。パスワード長の判定も専用の純粋関数を
+持たず、`schema.ts` が `shared/lib/password-policy.ts` の定数で直接チェックする。
 
 ## Better Auth 設定
 
@@ -173,6 +179,11 @@ betterAuth({
 - `nextCookies()` は plugins 配列の**最後**に置く必要がある
 - `trustedProviders: ["google"]` により、同一メールの Google ログインが
   メール確認を経ずに既存ユーザーへ連携される。Google は検証済みメールを返すため許容する
+- **注意（アカウント事前乗っ取り）**: メール確認なしの自己サインアップと
+  この自動連携を組み合わせると、被害者のメールアドレスで攻撃者が先に
+  パスワード登録しておき、後で被害者が Google でログインした際に
+  そのアカウントへ連携されてしまう恐れがある。詳細と対応方針は
+  「リスクと留意点」の表を参照
 
 `src/app/api/auth/[...all]/route.ts`:
 
@@ -289,11 +300,14 @@ vitest で以下を検証する。
 
 | 対象 | 内容 |
 | --- | --- |
+| `shared/lib/email.ts` | `normalizeEmail` の trim + 小文字化、空文字・空白のみ |
+| `shared/errors/auth-error.ts` | Better Auth の各エラーコードが正しいタグへ写像されること。未知コードは元の文字列を保持したまま `UnexpectedAuthError` になること |
+| `shared/lib/auth-effect.ts` | `runAuthCall` が「Promise の reject」と「解決値の `{ error }`」の両方を `AuthError` に畳むこと |
+| `features/auth/messages.ts` | 各タグの文言。ログイン失敗はメールとパスワードのどちらが誤りか示さないこと |
+| `features/auth/domain.ts` | `safeRedirectPath`。`/dashboard` は通し、`//evil.com` `/\evil.com` `https://evil.com` `null` と、タブ・LF・CR を含む値は `/` になること。半角スペースは通すこと |
 | `signup/schema.ts`, `login/schema.ts` | Zod の境界値。メール形式、パスワード長の下限・上限、名前の空文字 |
-| `signup/domain.ts` | メール正規化とパスワード長判定の純粋関数 |
-| `login/domain.ts` | `safeRedirectPath`。`/dashboard` は通し、`//evil.com` `/\evil.com` `https://evil.com` `null` は `/` になること |
-| `signup/usecase.ts` | `auth.api` をモックし、成功と `EmailAlreadyExists` / `WeakPassword` / `UnexpectedAuthError` の各分岐 |
-| `login/usecase.ts` | 同様に成功と `InvalidCredentials` / `UnexpectedAuthError` |
+| `signup/usecase.ts`, `login/usecase.ts` | ポートをモックし、入力がそのまま渡ることと失敗が素通しされること |
+| `components/auth/*.tsx` | Google ボタンとログアウトの失敗時に、ボタンが再度有効になり `role="alert"` が出ること |
 | `require-session.ts` | セッション有無による戻り値と `redirect` 呼び出し |
 
 Better Auth 本体および Prisma は実際には呼ばない。E2E テストは本設計の範囲外とする。
@@ -321,3 +335,4 @@ Google OAuth の疎通は実際の Client ID が必要なため、環境変数�
 | `npx auth generate` が Prisma 7 の `prisma7.config.ts` とカスタム出力先 `src/generated/prisma` を正しく扱えない可能性 | 生成結果を必ずレビューし、必要なら手で補正する |
 | proxy の Cookie チェックだけで保護済みと誤解されること | `requireSession()` を境界とする方針をコード上のコメントと本設計書に明記済み |
 | Effect 導入により既存コードとのスタイル差が生まれる | 適用範囲を `features/auth/*/usecase.ts` に限定する |
+| **アカウント事前乗っ取り**: メール確認なしの自己サインアップと `accountLinking.enabled: true` の組み合わせにより、攻撃者が被害者のメールアドレスで先にパスワード登録し、後で被害者が Google でログインすると Better Auth がその Google アイデンティティを攻撃者の既存アカウントへ連携してしまう。攻撃者は自分が設定したパスワードで被害者のアカウントに入り続けられる | 現段階（モックデータのみ・実ユーザー不在）ではリスクを許容し、挙動は変更しない。**実ユーザーが登場する前に**、Better Auth の `emailVerification` と `requireEmailVerification` を設定し、メール未確認のパスワードアカウントへは連携できないようにすることが解消条件 |

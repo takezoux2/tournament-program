@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import type { MatchStatus, ResolvedMatch, ResolvedSlot } from "../types";
 import type { Position } from "./layout-bracket";
 import { toFlowElements } from "./to-flow-elements";
+import type { MatchStatus, ResolvedMatch, ResolvedSlot } from "./types";
 
 const emptySlot: ResolvedSlot = {
   participant: null,

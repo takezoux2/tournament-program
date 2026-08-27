@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { layoutBracket } from "../lib/layout-bracket";
-import { resolveBracket } from "../lib/resolve-bracket";
-import { toFlowElements } from "../lib/to-flow-elements";
+import { layoutBracket } from "../layout-bracket";
+import { resolveBracket } from "../resolve-bracket";
+import { toFlowElements } from "../to-flow-elements";
 import type { MatchStatus, ResolvedMatch } from "../types";
 import { mockBracket } from "./bracket";
 import { mockParticipants } from "./participants";

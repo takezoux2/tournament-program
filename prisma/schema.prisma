@@ -12,13 +12,17 @@ datasource db {
 
 /// ユーザー。組織に所属して大会を運営する側の、管理等を行える正式登録ユーザー。
 model User {
-  id        String   @id @default(uuid())
-  email     String   @unique
-  name      String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id            String   @id @default(uuid())
+  email         String   @unique
+  name          String
+  emailVerified Boolean  @default(false)
+  image         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   memberships OrganizationUser[]
+  sessions    Session[]
+  accounts    Account[]
 }
 
 /// 組織。大会の主催者。
@@ -150,4 +154,55 @@ enum DivisionFormat {
   DOUBLE_ELIMINATION_THIRD_PLACE
   /// リーグ（総当たり）
   ROUND_ROBIN
+}
+
+/// Better Auth のセッション。DB 保存のため個別失効ができる。
+model Session {
+  id        String   @id @default(uuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+/// Better Auth のアカウント。パスワードのハッシュと OAuth プロバイダの連携情報を持つ。
+model Account {
+  id                    String    @id @default(uuid())
+  issuer                String
+  userId                String
+  accountId             String
+  providerId            String
+  accessToken           String?
+  refreshToken          String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  idToken               String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([issuer, accountId])
+  @@index([userId])
+}
+
+/// Better Auth の検証トークン置き場。
+model Verification {
+  id         String   @id @default(uuid())
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([identifier])
 }

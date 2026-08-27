@@ -1,11 +1,6 @@
 import { describe, expect, it } from "vitest";
-import type {
-  Bracket,
-  MatchResult,
-  Participant,
-  ResolvedMatch,
-} from "../types";
 import { resolveBracket } from "./resolve-bracket";
+import type { Bracket, MatchResult, Participant, ResolvedMatch } from "./types";
 
 const participants: Participant[] = [
   { id: "p1", name: "Alice", seed: 1 },
