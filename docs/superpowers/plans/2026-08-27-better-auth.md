@@ -23,6 +23,8 @@
 - `AGENTS.md` 冒頭のブロックは `next dev` が自動生成する。差分から消しても再生成されるので、変更があれば一緒にコミットしてよい。
 - 新しい worktree では `pnpm typecheck` の前に **`pnpm exec next typegen`** が必要（`LayoutProps` / `PageProps` の型が解決できないため）。
 - Better Auth のエラーコード文字列は `@better-auth/core` の `BASE_ERROR_CODES` のキー名と一致する。本計画に出てくるコード名は実パッケージ (1.7.2) から確認済みで、勝手に変えてはならない。
+- `docs/code-design/architecture.md` の依存ルール: **`src/features/` 配下では上位ディレクトリのみ依存してよい。同列（兄弟）・下位ディレクトリへの依存は禁止。** 他の機能カテゴリへの依存も禁止。
+- UI コンポーネントは `src/components/` に置く。`src/features/` 配下に `.tsx` は置かない。`src/components/` は `src/features/` に依存してよい（逆は不可）。
 
 ---
 
@@ -45,28 +47,36 @@
 | `src/features/auth/signup/schema.ts` | サインアップの Zod スキーマ |
 | `src/features/auth/signup/domain.ts` | `isPasswordLengthValid` |
 | `src/features/auth/signup/usecase.ts` | `signup` (Effect) |
-| `src/features/auth/signup/SignupForm.tsx` | サインアップフォーム |
 | `src/features/auth/login/schema.ts` | ログインの Zod スキーマ |
 | `src/features/auth/login/domain.ts` | `safeRedirectPath` |
 | `src/features/auth/login/usecase.ts` | `login` (Effect) |
-| `src/features/auth/login/LoginForm.tsx` | ログインフォーム + Google ボタン |
-| `src/features/auth/logout/LogoutButton.tsx` | ログアウトボタン |
+| `src/components/auth/SignupForm.tsx` | サインアップフォーム |
+| `src/components/auth/LoginForm.tsx` | ログインフォーム + Google ボタン |
+| `src/components/auth/LogoutButton.tsx` | ログアウトボタン |
 | `src/app/api/auth/[...all]/route.ts` | Better Auth のエンドポイント |
 | `src/app/(auth)/login/page.tsx` | `/login` |
 | `src/app/(auth)/signup/page.tsx` | `/signup` |
 | `src/proxy.ts` | 未ログインの最適化リダイレクト |
 
-テストは実装と同じディレクトリに `*.test.ts` として置く（既存の `features/tournament` と同じ規約）。
+テストは実装と同じディレクトリに `*.test.ts` として置く。
 
 ### 変更
 
 | ファイル | 変更内容 |
 | --- | --- |
 | `prisma/schema.prisma` | `User` に `emailVerified` / `image` / リレーションを追加、`Session` / `Account` / `Verification` を新規追加 |
-| `src/app/page.tsx` | 冒頭で `requireSession()`、ヘッダーにユーザー名とログアウトボタン |
+| `src/app/page.tsx` | import 先の変更、冒頭で `requireSession()`、ヘッダーにユーザー名とログアウトボタン |
+| `biome.json` | `overrides` で features 配下の依存制約を lint で強制する |
 | `package.json` | 依存追加 |
 | `.env.example` | 認証用の環境変数 |
 | `README.md` | Google OAuth のセットアップ手順 |
+
+### 移動（Task 7 の構成移行）
+
+| 移動元 | 移動先 |
+| --- | --- |
+| `src/features/tournament/components/*.tsx` | `src/components/tournament/` |
+| `src/features/tournament/lib/*.ts` | `src/features/tournament/`（1 階層上げる） |
 
 ### 削除
 
@@ -76,8 +86,12 @@
 
 ### 設計書からの変更点
 
-設計書では `normalizeEmail` を `signup/domain.ts` に置くとしていたが、`login/schema.ts` からも使うため
-`src/shared/lib/email.ts` に移す。スライス間の横断 import を避けるための調整。
+1. 設計書では `normalizeEmail` を `signup/domain.ts` に置くとしていたが、`login/schema.ts` からも使うため
+   `src/shared/lib/email.ts` に移す。スライス間の横断 import を避けるための調整。
+2. `docs/code-design/architecture.md` が更新され、`src/components/`（UI コンポーネント）が追加された。
+   認証フォームは `src/features/auth/*/` ではなく `src/components/auth/` に置く。
+3. 同じ更新で「features 以下は上位ディレクトリのみ依存可、同列・下位は不可」「lint で制約をかける」が
+   追加された。Task 7 でこの制約を biome に入れ、既存の `features/tournament` を新構成へ移行する。
 
 ---
 
@@ -1613,12 +1627,268 @@ git commit -m "feat: add requireSession boundary and proxy redirect"
 
 ---
 
-## Task 7: ログインとサインアップの画面
+## Task 7: 構成の移行と依存制約の lint 化
+
+**Files:**
+- Create: `biome.json` への `overrides` 追加（既存ファイルを変更）
+- Move: `src/features/tournament/components/*.tsx` → `src/components/tournament/`
+- Move: `src/features/tournament/lib/*.ts` → `src/features/tournament/`
+- Modify: 移動に伴う相対 import、`src/app/page.tsx`
+
+**Interfaces:**
+- Consumes: なし（既存コードの再配置のみ）
+- Produces: `src/components/` 配下に UI コンポーネントを置く規約と、それを守らせる lint 設定
+
+**背景:** `docs/code-design/architecture.md` が更新され、`src/components/`（UI コンポーネント）が
+追加された。あわせて「features 以下は上位ディレクトリのみ依存可、同列・下位は不可」「lint で制約を
+かける」というルールが明文化された。既存の `features/tournament` は `components/` が同列の `lib/` を
+import しており、この新ルールに違反している。Task 8 で認証 UI を新構成に置く前に、既存コードを
+先に移行しておく。
+
+**移行後の形:**
+
+```
+src/
+├── components/
+│   └── tournament/
+│       ├── MatchCard.tsx
+│       ├── MatchCard.test.tsx
+│       ├── MatchNode.tsx
+│       └── TournamentFlow.tsx
+└── features/tournament/
+    ├── types.ts
+    ├── layout-bracket.ts        + layout-bracket.test.ts
+    ├── resolve-bracket.ts       + resolve-bracket.test.ts
+    ├── to-flow-elements.ts      + to-flow-elements.test.ts
+    └── mock/
+        ├── bracket.ts / participants.ts / results.ts
+        └── mock.test.ts
+```
+
+`lib/` を 1 階層上げるのは、`mock/mock.test.ts` が `../lib/*` を参照しており、これが
+同列ディレクトリ間の依存にあたるため。上げてしまえば `../layout-bracket` という上位参照になり
+ルールを満たす。`components/` は `src/features/` の外に出るので、`@/features/tournament/*` を
+import してよい。
+
+`src/lib/division/` は本タスクの対象外。並行作業中のため触らない。
+
+- [ ] **Step 1: 移行前のテスト本数を記録する**
+
+```bash
+pnpm test
+```
+
+Expected: PASS。この本数を控えておく。移行はファイルの移動だけなので、
+完了時に**同じ本数**が通らなければならない。
+
+- [ ] **Step 2: UI コンポーネントを src/components/tournament/ へ移す**
+
+```bash
+mkdir -p src/components/tournament
+git mv src/features/tournament/components/MatchCard.tsx src/components/tournament/MatchCard.tsx
+git mv src/features/tournament/components/MatchCard.test.tsx src/components/tournament/MatchCard.test.tsx
+git mv src/features/tournament/components/MatchNode.tsx src/components/tournament/MatchNode.tsx
+git mv src/features/tournament/components/TournamentFlow.tsx src/components/tournament/TournamentFlow.tsx
+rmdir src/features/tournament/components
+```
+
+- [ ] **Step 3: lib/ を 1 階層上げる**
+
+```bash
+git mv src/features/tournament/lib/layout-bracket.ts src/features/tournament/layout-bracket.ts
+git mv src/features/tournament/lib/layout-bracket.test.ts src/features/tournament/layout-bracket.test.ts
+git mv src/features/tournament/lib/resolve-bracket.ts src/features/tournament/resolve-bracket.ts
+git mv src/features/tournament/lib/resolve-bracket.test.ts src/features/tournament/resolve-bracket.test.ts
+git mv src/features/tournament/lib/to-flow-elements.ts src/features/tournament/to-flow-elements.ts
+git mv src/features/tournament/lib/to-flow-elements.test.ts src/features/tournament/to-flow-elements.test.ts
+rmdir src/features/tournament/lib
+```
+
+- [ ] **Step 4: import を書き換える**
+
+移動したファイルの相対 import が壊れているので直す。書き換えの対応表:
+
+| ファイル | 旧 | 新 |
+| --- | --- | --- |
+| `src/components/tournament/MatchCard.tsx` | `../lib/layout-bracket` | `@/features/tournament/layout-bracket` |
+| `src/components/tournament/MatchCard.tsx` | `../types` | `@/features/tournament/types` |
+| `src/components/tournament/MatchCard.test.tsx` | `../types` | `@/features/tournament/types` |
+| `src/components/tournament/MatchCard.test.tsx` | `./MatchCard` | 変更なし |
+| `src/components/tournament/MatchNode.tsx` | `../lib/to-flow-elements` | `@/features/tournament/to-flow-elements` |
+| `src/components/tournament/MatchNode.tsx` | `./MatchCard` | 変更なし |
+| `src/components/tournament/TournamentFlow.tsx` | `../lib/to-flow-elements` | `@/features/tournament/to-flow-elements` |
+| `src/components/tournament/TournamentFlow.tsx` | `./MatchNode` | 変更なし |
+| `src/features/tournament/*.ts`（旧 lib） | `../types` | `./types` |
+| `src/features/tournament/mock/mock.test.ts` | `../lib/layout-bracket` | `../layout-bracket` |
+| `src/features/tournament/mock/mock.test.ts` | `../lib/resolve-bracket` | `../resolve-bracket` |
+| `src/features/tournament/mock/mock.test.ts` | `../lib/to-flow-elements` | `../to-flow-elements` |
+
+`src/app/page.tsx` の import も直す:
+
+```
+@/features/tournament/components/TournamentFlow → @/components/tournament/TournamentFlow
+@/features/tournament/lib/layout-bracket        → @/features/tournament/layout-bracket
+@/features/tournament/lib/resolve-bracket       → @/features/tournament/resolve-bracket
+@/features/tournament/lib/to-flow-elements      → @/features/tournament/to-flow-elements
+```
+
+- [ ] **Step 5: 移行が壊れていないことを確認する**
+
+```bash
+pnpm exec next typegen && pnpm typecheck && pnpm lint:fix && pnpm test
+```
+
+Expected: すべて成功し、テスト本数が Step 1 と**同じ**であること。減っていたら
+テストファイルの移動漏れか、vitest の `include`（`src/**/*.{test,spec}.{ts,tsx}`）から
+外れている。
+
+- [ ] **Step 6: 残った違反がないことを確認する**
+
+```bash
+grep -rn "from \"\.\./lib/\|from \"\.\./components/" src/features src/components --include=*.ts --include=*.tsx
+```
+
+Expected: 出力なし。
+
+```bash
+grep -rln "\.tsx$" /dev/null; find src/features -name "*.tsx"
+```
+
+Expected: 出力なし。`src/features/` 配下に `.tsx` は残らない。
+
+- [ ] **Step 7: 依存制約を biome に入れる**
+
+`biome.json` の末尾（`assist` の後、閉じ括弧の前）に `overrides` を追加する。
+`noRestrictedImports` は `style` グループにあり、既定の severity は warn なので
+`"level": "error"` を明示する。
+
+```json
+  "overrides": [
+    {
+      "includes": ["src/features/auth/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": ["@/features/tournament/**", "@/components/**", "@/app/**"],
+                    "message": "features/auth は他の機能・UI・app に依存できません。共通処理は src/shared に置いてください。"
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": ["src/features/auth/login/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": ["@/features/auth/signup/**", "@/features/auth/logout/**", "../signup/**", "../logout/**"],
+                    "message": "同列のスライスには依存できません。共有するものは features/auth 直下か src/shared へ。"
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": ["src/features/auth/signup/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": ["@/features/auth/login/**", "@/features/auth/logout/**", "../login/**", "../logout/**"],
+                    "message": "同列のスライスには依存できません。共有するものは features/auth 直下か src/shared へ。"
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": ["src/features/tournament/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": ["@/features/auth/**", "@/components/**", "@/app/**"],
+                    "message": "features/tournament は他の機能・UI・app に依存できません。"
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+```
+
+- [ ] **Step 8: lint 設定が効いていることを実際に確かめる**
+
+設定を書いただけでは効いている保証がない。わざと違反する import を一時的に入れて、
+lint が落ちることを確認する。
+
+```bash
+printf 'import { layoutBracket } from "@/features/tournament/layout-bracket";\nexport const x = layoutBracket;\n' > src/features/auth/login/violation-probe.ts
+pnpm exec biome check src/features/auth/login/violation-probe.ts
+```
+
+Expected: `noRestrictedImports` の error が出て終了コードが非 0 になる。
+出なければ `includes` のパターンか `group` の書き方が誤っている。直してから進む。
+
+確認できたらプローブを消す。
+
+```bash
+rm src/features/auth/login/violation-probe.ts
+```
+
+- [ ] **Step 9: 全体を通す**
+
+```bash
+pnpm exec next typegen && pnpm typecheck && pnpm lint && pnpm test
+```
+
+Expected: すべて成功。`pnpm lint`（`--write` なし）が通ること。
+
+- [ ] **Step 10: コミット**
+
+```bash
+git add -A
+git commit -m "refactor: move UI to src/components and enforce feature boundaries"
+```
+
+---
+
+## Task 8: ログインとサインアップの画面
 
 **Files:**
 - Create: `src/shared/lib/auth-client.ts`
-- Create: `src/features/auth/login/LoginForm.tsx`
-- Create: `src/features/auth/signup/SignupForm.tsx`
+- Create: `src/components/auth/LoginForm.tsx`
+- Create: `src/components/auth/SignupForm.tsx`
 - Create: `src/app/(auth)/login/page.tsx`
 - Create: `src/app/(auth)/signup/page.tsx`
 
@@ -1644,7 +1914,7 @@ export const authClient = createAuthClient();
 
 - [ ] **Step 2: ログインフォームを作る**
 
-`src/features/auth/login/LoginForm.tsx`:
+`src/components/auth/LoginForm.tsx`:
 
 ```tsx
 "use client";
@@ -1653,10 +1923,10 @@ import { Cause, Effect, Exit, Option } from "effect";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { loginSchema } from "@/features/auth/login/schema";
+import { login } from "@/features/auth/login/usecase";
 import { authErrorMessage } from "@/features/auth/messages";
 import { authClient } from "@/shared/lib/auth-client";
-import { loginSchema } from "./schema";
-import { login } from "./usecase";
 
 export function LoginForm({ redirectTo }: { redirectTo: string }) {
   const router = useRouter();
@@ -1776,7 +2046,7 @@ export function LoginForm({ redirectTo }: { redirectTo: string }) {
 
 - [ ] **Step 3: サインアップフォームを作る**
 
-`src/features/auth/signup/SignupForm.tsx`:
+`src/components/auth/SignupForm.tsx`:
 
 ```tsx
 "use client";
@@ -1786,10 +2056,10 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { authErrorMessage } from "@/features/auth/messages";
+import { signupSchema } from "@/features/auth/signup/schema";
+import { signup } from "@/features/auth/signup/usecase";
 import { authClient } from "@/shared/lib/auth-client";
 import { MIN_PASSWORD_LENGTH } from "@/shared/lib/password-policy";
-import { signupSchema } from "./schema";
-import { signup } from "./usecase";
 
 export function SignupForm({ redirectTo }: { redirectTo: string }) {
   const router = useRouter();
@@ -1934,7 +2204,7 @@ export function SignupForm({ redirectTo }: { redirectTo: string }) {
 
 ```tsx
 import { safeRedirectPath } from "@/features/auth/login/domain";
-import { LoginForm } from "@/features/auth/login/LoginForm";
+import { LoginForm } from "@/components/auth/LoginForm";
 
 export default async function LoginPage({ searchParams }: PageProps<"/login">) {
   const params = await searchParams;
@@ -1955,7 +2225,7 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
 
 ```tsx
 import { safeRedirectPath } from "@/features/auth/login/domain";
-import { SignupForm } from "@/features/auth/signup/SignupForm";
+import { SignupForm } from "@/components/auth/SignupForm";
 
 export default async function SignupPage({
   searchParams,
@@ -2004,10 +2274,10 @@ git commit -m "feat: add login and signup screens"
 
 ---
 
-## Task 8: ログアウトとトップページの保護
+## Task 9: ログアウトとトップページの保護
 
 **Files:**
-- Create: `src/features/auth/logout/LogoutButton.tsx`
+- Create: `src/components/auth/LogoutButton.tsx`
 - Modify: `src/app/page.tsx`
 
 **Interfaces:**
@@ -2016,7 +2286,7 @@ git commit -m "feat: add login and signup screens"
 
 - [ ] **Step 1: ログアウトボタンを作る**
 
-`src/features/auth/logout/LogoutButton.tsx`:
+`src/components/auth/LogoutButton.tsx`:
 
 ```tsx
 "use client";
@@ -2056,11 +2326,11 @@ export function LogoutButton() {
 冒頭のガードとヘッダーのユーザー表示だけを足す。
 
 ```tsx
-import { LogoutButton } from "@/features/auth/logout/LogoutButton";
-import { TournamentFlow } from "@/features/tournament/components/TournamentFlow";
-import { layoutBracket } from "@/features/tournament/lib/layout-bracket";
-import { resolveBracket } from "@/features/tournament/lib/resolve-bracket";
-import { toFlowElements } from "@/features/tournament/lib/to-flow-elements";
+import { LogoutButton } from "@/components/auth/LogoutButton";
+import { TournamentFlow } from "@/components/tournament/TournamentFlow";
+import { layoutBracket } from "@/features/tournament/layout-bracket";
+import { resolveBracket } from "@/features/tournament/resolve-bracket";
+import { toFlowElements } from "@/features/tournament/to-flow-elements";
 import { mockBracket } from "@/features/tournament/mock/bracket";
 import { mockParticipants } from "@/features/tournament/mock/participants";
 import { mockResults } from "@/features/tournament/mock/results";
@@ -2148,7 +2418,7 @@ git commit -m "feat: require login for the tournament page and add logout"
 
 ---
 
-## Task 9: ドキュメントと最終検証
+## Task 10: ドキュメントと最終検証
 
 **Files:**
 - Modify: `README.md`
