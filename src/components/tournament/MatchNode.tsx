@@ -3,7 +3,7 @@ import {
   Position as HandlePosition,
   type NodeProps,
 } from "@xyflow/react";
-import type { MatchFlowNode } from "../lib/to-flow-elements";
+import type { MatchFlowNode } from "@/features/tournament/to-flow-elements";
 import { MatchCard } from "./MatchCard";
 
 export function MatchNode({ data }: NodeProps<MatchFlowNode>) {

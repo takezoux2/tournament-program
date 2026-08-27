@@ -42,5 +42,121 @@
         "organizeImports": "on"
       }
     }
-  }
+  },
+  "overrides": [
+    {
+      "includes": ["src/features/auth/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": [
+                      "@/features/tournament/**",
+                      "@/components/**",
+                      "@/app/**"
+                    ],
+                    "message": "features/auth は他の機能・UI・app に依存できません。共通処理は src/shared に置いてください。"
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": ["src/features/auth/login/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": [
+                      "@/features/tournament/**",
+                      "@/components/**",
+                      "@/app/**"
+                    ],
+                    "message": "features/auth は他の機能・UI・app に依存できません。共通処理は src/shared に置いてください。"
+                  },
+                  {
+                    "group": [
+                      "@/features/auth/signup/**",
+                      "@/features/auth/logout/**",
+                      "../signup/**",
+                      "../logout/**"
+                    ],
+                    "message": "同列のスライスには依存できません。共有するものは features/auth 直下か src/shared へ。"
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": ["src/features/auth/signup/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": [
+                      "@/features/tournament/**",
+                      "@/components/**",
+                      "@/app/**"
+                    ],
+                    "message": "features/auth は他の機能・UI・app に依存できません。共通処理は src/shared に置いてください。"
+                  },
+                  {
+                    "group": [
+                      "@/features/auth/login/**",
+                      "@/features/auth/logout/**",
+                      "../login/**",
+                      "../logout/**"
+                    ],
+                    "message": "同列のスライスには依存できません。共有するものは features/auth 直下か src/shared へ。"
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": ["src/features/tournament/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": [
+                      "@/features/auth/**",
+                      "@/components/**",
+                      "@/app/**"
+                    ],
+                    "message": "features/tournament は他の機能・UI・app に依存できません。"
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
 }

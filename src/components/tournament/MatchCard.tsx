@@ -1,5 +1,5 @@
-import { NODE_HEIGHT, NODE_WIDTH } from "../lib/layout-bracket";
-import type { ResolvedMatch, ResolvedSlot } from "../types";
+import { NODE_HEIGHT, NODE_WIDTH } from "@/features/tournament/layout-bracket";
+import type { ResolvedMatch, ResolvedSlot } from "@/features/tournament/types";
 
 function slotLabel(slot: ResolvedSlot): string {
   if (slot.state === "bye") return "BYE";

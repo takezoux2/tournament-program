@@ -1,6 +1,6 @@
 import type { Edge, Node } from "@xyflow/react";
-import type { ResolvedMatch } from "../types";
 import type { Position } from "./layout-bracket";
+import type { ResolvedMatch } from "./types";
 
 export type MatchNodeData = { match: ResolvedMatch };
 export type MatchFlowNode = Node<MatchNodeData, "match">;

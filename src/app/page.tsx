@@ -1,10 +1,10 @@
-import { TournamentFlow } from "@/features/tournament/components/TournamentFlow";
-import { layoutBracket } from "@/features/tournament/lib/layout-bracket";
-import { resolveBracket } from "@/features/tournament/lib/resolve-bracket";
-import { toFlowElements } from "@/features/tournament/lib/to-flow-elements";
+import { TournamentFlow } from "@/components/tournament/TournamentFlow";
+import { layoutBracket } from "@/features/tournament/layout-bracket";
 import { mockBracket } from "@/features/tournament/mock/bracket";
 import { mockParticipants } from "@/features/tournament/mock/participants";
 import { mockResults } from "@/features/tournament/mock/results";
+import { resolveBracket } from "@/features/tournament/resolve-bracket";
+import { toFlowElements } from "@/features/tournament/to-flow-elements";
 
 export default function Home() {
   const resolved = resolveBracket(mockParticipants, mockBracket, mockResults);
