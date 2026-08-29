@@ -2,7 +2,7 @@
 
 import { Background, Controls, type Edge, ReactFlow } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
-import type { MatchFlowNode } from "@/features/tournament/to-flow-elements";
+import type { MatchFlowNode } from "@/features/bracket/to-flow-elements";
 import { MatchNode } from "./MatchNode";
 
 const nodeTypes = { match: MatchNode };

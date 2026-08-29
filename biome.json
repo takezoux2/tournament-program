@@ -106,9 +106,9 @@
                 "patterns": [
                   {
                     "group": [
-                      "@/features/tournament/**",
-                      "@/features/tournament",
-                      "**/tournament/**",
+                      "@/features/bracket/**",
+                      "@/features/bracket",
+                      "**/bracket/**",
                       "@/components/**",
                       "**/components/**",
                       "@/app/**",
@@ -145,9 +145,9 @@
                 "patterns": [
                   {
                     "group": [
-                      "@/features/tournament/**",
-                      "@/features/tournament",
-                      "**/tournament/**",
+                      "@/features/bracket/**",
+                      "@/features/bracket",
+                      "**/bracket/**",
                       "@/components/**",
                       "**/components/**",
                       "@/app/**",
@@ -184,9 +184,9 @@
                 "patterns": [
                   {
                     "group": [
-                      "@/features/tournament/**",
-                      "@/features/tournament",
-                      "**/tournament/**",
+                      "@/features/bracket/**",
+                      "@/features/bracket",
+                      "**/bracket/**",
                       "@/components/**",
                       "**/components/**",
                       "@/app/**",
@@ -213,7 +213,7 @@
       }
     },
     {
-      "includes": ["src/features/tournament/**"],
+      "includes": ["src/features/bracket/**"],
       "linter": {
         "rules": {
           "style": {
@@ -231,15 +231,15 @@
                       "@/app/**",
                       "**/app/**"
                     ],
-                    "message": "features/tournament は他の機能・UI・app に依存できません。"
+                    "message": "features/bracket は他の機能・UI・app に依存できません。"
                   },
                   {
                     "group": [
-                      "@/features/tournament/mock/**",
-                      "@/features/tournament/mock",
+                      "@/features/bracket/mock/**",
+                      "@/features/bracket/mock",
                       "**/mock/**"
                     ],
-                    "message": "features/tournament 直下から下位スライス（mock）に依存することはできません。祖先方向の参照のみ許可されます。"
+                    "message": "features/bracket 直下から下位スライス（mock）に依存することはできません。祖先方向の参照のみ許可されます。"
                   }
                 ]
               }

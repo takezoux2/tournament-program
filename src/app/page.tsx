@@ -1,11 +1,11 @@
 import { LogoutButton } from "@/components/auth/LogoutButton";
 import { TournamentFlow } from "@/components/tournament/TournamentFlow";
-import { layoutBracket } from "@/features/tournament/layout-bracket";
-import { mockBracket } from "@/features/tournament/mock/bracket";
-import { mockParticipants } from "@/features/tournament/mock/participants";
-import { mockResults } from "@/features/tournament/mock/results";
-import { resolveBracket } from "@/features/tournament/resolve-bracket";
-import { toFlowElements } from "@/features/tournament/to-flow-elements";
+import { layoutBracket } from "@/features/bracket/layout-bracket";
+import { mockBracket } from "@/features/bracket/mock/bracket";
+import { mockParticipants } from "@/features/bracket/mock/participants";
+import { mockResults } from "@/features/bracket/mock/results";
+import { resolveBracket } from "@/features/bracket/resolve-bracket";
+import { toFlowElements } from "@/features/bracket/to-flow-elements";
 import { requireSession } from "@/shared/middleware/require-session";
 
 export default async function Home() {
