@@ -49,6 +49,7 @@
 | `src/features/organization/errors.ts` | `OrganizationError` と `toOrganizationError`（Prisma の P2002 → `SlugTaken`） |
 | `src/features/organization/messages.ts` | エラー → 日本語文言。`Match.exhaustive` と `Record` で網羅性を保証 |
 | `src/features/organization/state.ts` | `OrganizationFormState`。handler と components が共有する型 |
+| `src/features/organization/schema-parts.ts` | `organizationNameSchema`。create / update の両スライスが使う Zod 部品 |
 | `src/features/organization/repository.ts` | `listOrganizationsForUser` |
 | `src/features/organization/create/{schema,repository,usecase,handler}.ts` | 組織の作成 |
 | `src/features/organization/update/{schema,repository,usecase,handler}.ts` | 組織の編集 |
@@ -56,6 +57,7 @@
 | `src/features/tournament/errors.ts` | `TournamentError` と `toTournamentError` |
 | `src/features/tournament/messages.ts` | エラー → 日本語文言 |
 | `src/features/tournament/state.ts` | `TournamentFormState` |
+| `src/features/tournament/schema-parts.ts` | `tournamentNameSchema` / `startsAtSchema`。create / update の両スライスが使う Zod 部品 |
 | `src/features/tournament/status.ts` | `TOURNAMENT_STATUS_LABELS` |
 | `src/features/tournament/format.ts` | `formatStartsAt` / `toDateTimeLocalValue` |
 | `src/features/tournament/repository.ts` | `listTournamentsInOrganization` / `findTournamentInOrganization` |
@@ -835,6 +837,7 @@ git commit -m "feat: add requireOrganization authorization boundary"
 - Create: `src/features/organization/domain.ts`
 - Create: `src/features/organization/errors.ts`
 - Create: `src/features/organization/messages.ts`
+- Create: `src/features/organization/schema-parts.ts`
 - Create: `src/features/organization/state.ts`
 - Test: `src/features/organization/domain.test.ts`
 - Test: `src/features/organization/errors.test.ts`
@@ -850,6 +853,7 @@ git commit -m "feat: add requireOrganization authorization boundary"
   - `toOrganizationError(reason: unknown, slug: string): OrganizationError`
   - `organizationErrorMessage(error: OrganizationError): string`
   - `slugViolationMessage(violation: SlugViolation): string`
+  - `organizationNameSchema`（create / update の両スライスが使う Zod 部品）
   - `type OrganizationFormState = { error: string | null }` / `INITIAL_ORGANIZATION_FORM_STATE`
 
 - [ ] **Step 1: `domain.ts` の失敗するテストを書く**
@@ -1160,7 +1164,28 @@ export const slugViolationMessage = (violation: SlugViolation): string =>
 Run: `pnpm test src/features/organization/messages.test.ts`
 Expected: PASS（4 件）
 
-- [ ] **Step 13: `state.ts` を作る**
+- [ ] **Step 13: `schema-parts.ts` と `state.ts` を作る**
+
+Create `src/features/organization/schema-parts.ts`:
+
+```ts
+import { z } from "zod";
+
+/**
+ * 組織名の検証。create / update の両スライスが使う。
+ * スライス同士は依存できないが祖先方向は許可されているため、
+ * カテゴリ直下に置いて両方から参照する。
+ */
+export const organizationNameSchema = z
+  .string()
+  .transform((raw) => raw.trim())
+  .pipe(
+    z
+      .string()
+      .min(1, "組織名を入力してください")
+      .max(100, "組織名は100文字以内で入力してください"),
+  );
+```
 
 Create `src/features/organization/state.ts`:
 
@@ -1572,17 +1597,10 @@ Create `src/features/organization/create/schema.ts`:
 import { z } from "zod";
 import { validateSlug } from "../domain";
 import { slugViolationMessage } from "../messages";
+import { organizationNameSchema } from "../schema-parts";
 
 export const createOrganizationSchema = z.object({
-  name: z
-    .string()
-    .transform((raw) => raw.trim())
-    .pipe(
-      z
-        .string()
-        .min(1, "組織名を入力してください")
-        .max(100, "組織名は100文字以内で入力してください"),
-    ),
+  name: organizationNameSchema,
   slug: z
     .string()
     .transform((raw) => raw.trim())
@@ -2480,6 +2498,7 @@ Create `src/features/organization/update/schema.ts`:
 
 ```ts
 import { z } from "zod";
+import { organizationNameSchema } from "../schema-parts";
 
 /**
  * slug を含めないのは、変更させないため。URL が変わると共有済みリンクと
@@ -2487,15 +2506,7 @@ import { z } from "zod";
  * handler が requireOrganization へ渡す。
  */
 export const updateOrganizationSchema = z.object({
-  name: z
-    .string()
-    .transform((raw) => raw.trim())
-    .pipe(
-      z
-        .string()
-        .min(1, "組織名を入力してください")
-        .max(100, "組織名は100文字以内で入力してください"),
-    ),
+  name: organizationNameSchema,
 });
 
 export type UpdateOrganizationInput = z.infer<typeof updateOrganizationSchema>;
@@ -3077,6 +3088,7 @@ git commit -m "feat: add organization edit and delete"
 **Files:**
 - Create: `src/features/tournament/errors.ts`
 - Create: `src/features/tournament/messages.ts`
+- Create: `src/features/tournament/schema-parts.ts`
 - Create: `src/features/tournament/state.ts`
 - Test: `src/features/tournament/errors.test.ts`
 - Test: `src/features/tournament/messages.test.ts`
@@ -3092,6 +3104,7 @@ git commit -m "feat: add organization edit and delete"
 - Produces:
   - `class UnexpectedTournamentError` / `type TournamentError` / `toTournamentError(reason: unknown): TournamentError`
   - `tournamentErrorMessage(error: TournamentError): string`
+  - `tournamentNameSchema` / `startsAtSchema`（create / update の両スライスが使う Zod 部品）
   - `type TournamentFormState = { error: string | null }` / `INITIAL_TOURNAMENT_FORM_STATE` / `type TournamentFormAction`
   - `createTournamentSchema` / `type CreateTournamentInput = { name: string; startsAt: Date | null }`
   - `type CreateTournamentPort = (input: CreateTournamentInput & { organizationId: string }) => Effect.Effect<{ id: string }, TournamentError>`
@@ -3167,6 +3180,41 @@ export const tournamentErrorMessage: (error: TournamentError) => string =
     ),
     Match.exhaustive,
   );
+```
+
+Create `src/features/tournament/schema-parts.ts`:
+
+```ts
+import { z } from "zod";
+
+/**
+ * 大会名と開始日時の検証。create / update の両スライスが使う。
+ * スライス同士は依存できないが祖先方向は許可されているため、
+ * カテゴリ直下に置いて両方から参照する。
+ */
+export const tournamentNameSchema = z
+  .string()
+  .transform((raw) => raw.trim())
+  .pipe(
+    z
+      .string()
+      .min(1, "大会名を入力してください")
+      .max(100, "大会名は100文字以内で入力してください"),
+  );
+
+/**
+ * 開始日時は任意。<input type="datetime-local"> は未入力を空文字で送ってくるため、
+ * 空文字を null に畳んでから Date にする。Date.parse はローカル時刻として
+ * 解釈するので、表示側の toDateTimeLocalValue と対になる。
+ */
+export const startsAtSchema = z
+  .string()
+  .transform((raw) => raw.trim())
+  .refine(
+    (value) => value === "" || !Number.isNaN(Date.parse(value)),
+    "開始日時の形式が正しくありません",
+  )
+  .transform((value) => (value === "" ? null : new Date(value)));
 ```
 
 Create `src/features/tournament/state.ts`:
@@ -3286,31 +3334,10 @@ Create `src/features/tournament/create/schema.ts`:
 
 ```ts
 import { z } from "zod";
-
-/**
- * 開始日時は任意。<input type="datetime-local"> は未入力を空文字で送ってくるため、
- * 空文字を null に畳んでから Date にする。Date.parse はローカル時刻として
- * 解釈するので、表示側の toDateTimeLocalValue と対になる。
- */
-const startsAtSchema = z
-  .string()
-  .transform((raw) => raw.trim())
-  .refine(
-    (value) => value === "" || !Number.isNaN(Date.parse(value)),
-    "開始日時の形式が正しくありません",
-  )
-  .transform((value) => (value === "" ? null : new Date(value)));
+import { startsAtSchema, tournamentNameSchema } from "../schema-parts";
 
 export const createTournamentSchema = z.object({
-  name: z
-    .string()
-    .transform((raw) => raw.trim())
-    .pipe(
-      z
-        .string()
-        .min(1, "大会名を入力してください")
-        .max(100, "大会名は100文字以内で入力してください"),
-    ),
+  name: tournamentNameSchema,
   startsAt: startsAtSchema,
 });
 
@@ -3976,31 +4003,15 @@ Create `src/features/tournament/update/schema.ts`:
 
 ```ts
 import { z } from "zod";
+import { startsAtSchema, tournamentNameSchema } from "../schema-parts";
 
 /**
- * 入力の形は作成時と同じ。スキーマを create から import しないのは、
- * 同列スライスへの依存を禁じているため。共通化するなら features/tournament
- * 直下へ引き上げることになるが、今のところ 2 箇所の重複で済むので置かない。
+ * 入力の形は作成時と同じだが、create から import はしない（同列スライスへの
+ * 依存は禁止）。共通の部品は features/tournament 直下の schema-parts.ts に置き、
+ * 両スライスがそこを祖先方向に参照する。
  */
-const startsAtSchema = z
-  .string()
-  .transform((raw) => raw.trim())
-  .refine(
-    (value) => value === "" || !Number.isNaN(Date.parse(value)),
-    "開始日時の形式が正しくありません",
-  )
-  .transform((value) => (value === "" ? null : new Date(value)));
-
 export const updateTournamentSchema = z.object({
-  name: z
-    .string()
-    .transform((raw) => raw.trim())
-    .pipe(
-      z
-        .string()
-        .min(1, "大会名を入力してください")
-        .max(100, "大会名は100文字以内で入力してください"),
-    ),
+  name: tournamentNameSchema,
   startsAt: startsAtSchema,
 });
 
