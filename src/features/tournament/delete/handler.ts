@@ -47,6 +47,11 @@ export const deleteTournamentAction = async (
     return tournamentErrorFormState(exit.cause);
   }
 
+  // 0 件は「この組織にその大会が無い」を意味する。存在を漏らさないよう 404。
+  if (exit.value.deleted === 0) {
+    notFound();
+  }
+
   revalidatePath(`/orgs/${slug}`);
   redirect(`/orgs/${slug}`);
 };

@@ -152,4 +152,20 @@ describe("deleteTournamentAction", () => {
     expect(notFound).toHaveBeenCalled();
     expect(deleteTournamentInDb).not.toHaveBeenCalled();
   });
+
+  it("削除件数が 0 件なら、事前チェックをすり抜けた競合でも成功扱いにせず notFound で打ち切る", async () => {
+    // 事前の findTournamentInOrganization チェックと deleteMany の間で
+    // 大会が消えるレースを模す。deleteMany 自体は成功として返るが件数は 0。
+    deleteTournamentInDb.mockReturnValue(Effect.succeed({ deleted: 0 }));
+
+    await expect(
+      deleteTournamentAction(
+        INITIAL_TOURNAMENT_FORM_STATE,
+        buildFormData("春季大会"),
+      ),
+    ).rejects.toThrow("NEXT_NOT_FOUND");
+
+    expect(notFound).toHaveBeenCalled();
+    expect(redirect).not.toHaveBeenCalled();
+  });
 });
