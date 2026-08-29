@@ -301,7 +301,10 @@
                       "@/features/organization/update/**",
                       "@/features/organization/update",
                       "@/features/organization/delete/**",
-                      "@/features/organization/delete"
+                      "@/features/organization/delete",
+                      "./create/**",
+                      "./update/**",
+                      "./delete/**"
                     ],
                     "message": "features/organization 直下から下位スライス（create・update・delete）に依存することはできません。祖先方向の参照のみ許可されます。共有するものは features/organization 直下か src/shared へ置いてください。"
                   }
@@ -478,7 +481,10 @@
                       "@/features/tournament/update/**",
                       "@/features/tournament/update",
                       "@/features/tournament/delete/**",
-                      "@/features/tournament/delete"
+                      "@/features/tournament/delete",
+                      "./create/**",
+                      "./update/**",
+                      "./delete/**"
                     ],
                     "message": "features/tournament 直下から下位スライス（create・update・delete）に依存することはできません。祖先方向の参照のみ許可されます。共有するものは features/tournament 直下か src/shared へ置いてください。"
                   }
