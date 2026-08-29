@@ -49,6 +49,26 @@ describe("DeleteOrganizationForm", () => {
     expect(button).toBeEnabled();
   });
 
+  it("末尾に空白が付いた入力は一致とみなさずボタンを押せない", () => {
+    // 判定はクライアント側の厳密な文字列比較で、trim はしない。
+    // 見た目上は一致して見える入力でボタンが活性化しないことを確認する。
+    render(
+      <DeleteOrganizationForm
+        action={noop}
+        organizationName="テニス部"
+        slug="tennis"
+      />,
+    );
+
+    fireEvent.change(screen.getByLabelText("確認のため組織名を入力"), {
+      target: { value: "テニス部 " },
+    });
+
+    expect(
+      screen.getByRole("button", { name: "この組織を削除する" }),
+    ).toBeDisabled();
+  });
+
   it("送信すると slug と入力値を action に渡す", async () => {
     const action = vi.fn(
       async (_state: OrganizationFormState, formData: FormData) => {

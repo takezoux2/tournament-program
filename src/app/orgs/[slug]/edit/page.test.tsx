@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // LogoutButton は authClient / useRouter に依存するクライアントコンポーネントで、
@@ -80,5 +80,37 @@ describe("EditOrganizationPage", () => {
     expect(
       screen.getByRole("button", { name: "この組織を削除する" }),
     ).toBeInTheDocument();
+  });
+
+  it("更新フォームと削除フォームで action が入れ替わっていない", async () => {
+    // OrganizationFormAction は両方の action で同じ型なので、
+    // action props を取り違えても型チェックでは検知できない。
+    // 実際に送信して、どちらのモックが呼ばれたかで見分ける。
+    const { updateOrganizationAction } = await import(
+      "@/features/organization/update/handler"
+    );
+    const { deleteOrganizationAction } = await import(
+      "@/features/organization/delete/handler"
+    );
+    vi.mocked(updateOrganizationAction).mockClear();
+    vi.mocked(deleteOrganizationAction).mockClear();
+    vi.mocked(updateOrganizationAction).mockResolvedValue({ error: null });
+    vi.mocked(deleteOrganizationAction).mockResolvedValue({ error: null });
+
+    const element = await EditOrganizationPage(pageProps("tennis"));
+    const { container } = render(element);
+    const forms = container.querySelectorAll("form");
+
+    // OrganizationForm(更新)側のフォームを送信 → update だけが呼ばれる
+    fireEvent.submit(forms[0]);
+    await waitFor(() => expect(updateOrganizationAction).toHaveBeenCalled());
+    expect(deleteOrganizationAction).not.toHaveBeenCalled();
+
+    vi.mocked(updateOrganizationAction).mockClear();
+
+    // DeleteOrganizationForm 側のフォームを送信 → delete だけが呼ばれる
+    fireEvent.submit(forms[1]);
+    await waitFor(() => expect(deleteOrganizationAction).toHaveBeenCalled());
+    expect(updateOrganizationAction).not.toHaveBeenCalled();
   });
 });
