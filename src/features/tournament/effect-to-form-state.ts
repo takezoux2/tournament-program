@@ -4,8 +4,9 @@ import { tournamentErrorMessage } from "./messages";
 import type { TournamentFormState } from "./state";
 
 /**
- * create・update の各スライスが同じ Exit-failure → 日本語文言の変換を持つため、
- * スライス同士は依存できないことから、共有先として features/tournament 直下に置く。
+ * create スライスが使う Exit-failure → 日本語文言の変換。今後 update スライスからも
+ * 同様に使う想定だが、スライス同士は依存できないため、共有先として features/tournament
+ * 直下に置く。
  */
 export const tournamentErrorFormState = (
   cause: Cause.Cause<TournamentError>,
