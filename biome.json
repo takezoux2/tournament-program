@@ -109,6 +109,11 @@
                       "@/features/bracket/**",
                       "@/features/bracket",
                       "**/bracket/**",
+                      "@/features/organization/**",
+                      "@/features/organization",
+                      "@/features/tournament/**",
+                      "@/features/tournament",
+                      "**/organization/**",
                       "@/components/**",
                       "**/components/**",
                       "@/app/**",
@@ -148,6 +153,11 @@
                       "@/features/bracket/**",
                       "@/features/bracket",
                       "**/bracket/**",
+                      "@/features/organization/**",
+                      "@/features/organization",
+                      "@/features/tournament/**",
+                      "@/features/tournament",
+                      "**/organization/**",
                       "@/components/**",
                       "**/components/**",
                       "@/app/**",
@@ -187,6 +197,11 @@
                       "@/features/bracket/**",
                       "@/features/bracket",
                       "**/bracket/**",
+                      "@/features/organization/**",
+                      "@/features/organization",
+                      "@/features/tournament/**",
+                      "@/features/tournament",
+                      "**/organization/**",
                       "@/components/**",
                       "**/components/**",
                       "@/app/**",
@@ -226,6 +241,11 @@
                       "@/features/auth/**",
                       "@/features/auth",
                       "**/auth/**",
+                      "@/features/organization/**",
+                      "@/features/organization",
+                      "@/features/tournament/**",
+                      "@/features/tournament",
+                      "**/organization/**",
                       "@/components/**",
                       "**/components/**",
                       "@/app/**",
@@ -240,6 +260,362 @@
                       "**/mock/**"
                     ],
                     "message": "features/bracket 直下から下位スライス（mock）に依存することはできません。祖先方向の参照のみ許可されます。"
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": ["src/features/organization/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": [
+                      "@/features/auth/**",
+                      "@/features/auth",
+                      "@/features/bracket/**",
+                      "@/features/bracket",
+                      "@/features/tournament/**",
+                      "@/features/tournament",
+                      "**/auth/**",
+                      "**/bracket/**",
+                      "@/components/**",
+                      "**/components/**",
+                      "@/app/**",
+                      "**/app/**"
+                    ],
+                    "message": "features/organization は他の機能・UI・app に依存できません。共通処理は src/shared に置いてください。"
+                  },
+                  {
+                    "group": [
+                      "@/features/organization/create/**",
+                      "@/features/organization/create",
+                      "@/features/organization/update/**",
+                      "@/features/organization/update",
+                      "@/features/organization/delete/**",
+                      "@/features/organization/delete"
+                    ],
+                    "message": "features/organization 直下から下位スライス（create・update・delete）に依存することはできません。祖先方向の参照のみ許可されます。共有するものは features/organization 直下か src/shared へ置いてください。"
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": ["src/features/organization/create/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": [
+                      "@/features/auth/**",
+                      "@/features/auth",
+                      "@/features/bracket/**",
+                      "@/features/bracket",
+                      "@/features/tournament/**",
+                      "@/features/tournament",
+                      "**/auth/**",
+                      "**/bracket/**",
+                      "@/components/**",
+                      "**/components/**",
+                      "@/app/**",
+                      "**/app/**"
+                    ],
+                    "message": "features/organization は他の機能・UI・app に依存できません。共通処理は src/shared に置いてください。"
+                  },
+                  {
+                    "group": [
+                      "@/features/organization/update/**",
+                      "@/features/organization/update",
+                      "@/features/organization/delete/**",
+                      "@/features/organization/delete",
+                      "../update/**",
+                      "../delete/**"
+                    ],
+                    "message": "同列のスライスには依存できません。共有するものは features/organization 直下か src/shared へ。"
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": ["src/features/organization/update/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": [
+                      "@/features/auth/**",
+                      "@/features/auth",
+                      "@/features/bracket/**",
+                      "@/features/bracket",
+                      "@/features/tournament/**",
+                      "@/features/tournament",
+                      "**/auth/**",
+                      "**/bracket/**",
+                      "@/components/**",
+                      "**/components/**",
+                      "@/app/**",
+                      "**/app/**"
+                    ],
+                    "message": "features/organization は他の機能・UI・app に依存できません。共通処理は src/shared に置いてください。"
+                  },
+                  {
+                    "group": [
+                      "@/features/organization/create/**",
+                      "@/features/organization/create",
+                      "@/features/organization/delete/**",
+                      "@/features/organization/delete",
+                      "../create/**",
+                      "../delete/**"
+                    ],
+                    "message": "同列のスライスには依存できません。共有するものは features/organization 直下か src/shared へ。"
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": ["src/features/organization/delete/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": [
+                      "@/features/auth/**",
+                      "@/features/auth",
+                      "@/features/bracket/**",
+                      "@/features/bracket",
+                      "@/features/tournament/**",
+                      "@/features/tournament",
+                      "**/auth/**",
+                      "**/bracket/**",
+                      "@/components/**",
+                      "**/components/**",
+                      "@/app/**",
+                      "**/app/**"
+                    ],
+                    "message": "features/organization は他の機能・UI・app に依存できません。共通処理は src/shared に置いてください。"
+                  },
+                  {
+                    "group": [
+                      "@/features/organization/create/**",
+                      "@/features/organization/create",
+                      "@/features/organization/update/**",
+                      "@/features/organization/update",
+                      "../create/**",
+                      "../update/**"
+                    ],
+                    "message": "同列のスライスには依存できません。共有するものは features/organization 直下か src/shared へ。"
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": ["src/features/tournament/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": [
+                      "@/features/auth/**",
+                      "@/features/auth",
+                      "@/features/bracket/**",
+                      "@/features/bracket",
+                      "@/features/organization/**",
+                      "@/features/organization",
+                      "**/auth/**",
+                      "**/bracket/**",
+                      "**/organization/**",
+                      "@/components/**",
+                      "**/components/**",
+                      "@/app/**",
+                      "**/app/**"
+                    ],
+                    "message": "features/tournament は他の機能・UI・app に依存できません。共通処理は src/shared に置いてください。"
+                  },
+                  {
+                    "group": [
+                      "@/features/tournament/create/**",
+                      "@/features/tournament/create",
+                      "@/features/tournament/update/**",
+                      "@/features/tournament/update",
+                      "@/features/tournament/delete/**",
+                      "@/features/tournament/delete"
+                    ],
+                    "message": "features/tournament 直下から下位スライス（create・update・delete）に依存することはできません。祖先方向の参照のみ許可されます。共有するものは features/tournament 直下か src/shared へ置いてください。"
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": ["src/features/tournament/create/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": [
+                      "@/features/auth/**",
+                      "@/features/auth",
+                      "@/features/bracket/**",
+                      "@/features/bracket",
+                      "@/features/organization/**",
+                      "@/features/organization",
+                      "**/auth/**",
+                      "**/bracket/**",
+                      "**/organization/**",
+                      "@/components/**",
+                      "**/components/**",
+                      "@/app/**",
+                      "**/app/**"
+                    ],
+                    "message": "features/tournament は他の機能・UI・app に依存できません。共通処理は src/shared に置いてください。"
+                  },
+                  {
+                    "group": [
+                      "@/features/tournament/update/**",
+                      "@/features/tournament/update",
+                      "@/features/tournament/delete/**",
+                      "@/features/tournament/delete",
+                      "../update/**",
+                      "../delete/**"
+                    ],
+                    "message": "同列のスライスには依存できません。共有するものは features/tournament 直下か src/shared へ。"
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": ["src/features/tournament/update/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": [
+                      "@/features/auth/**",
+                      "@/features/auth",
+                      "@/features/bracket/**",
+                      "@/features/bracket",
+                      "@/features/organization/**",
+                      "@/features/organization",
+                      "**/auth/**",
+                      "**/bracket/**",
+                      "**/organization/**",
+                      "@/components/**",
+                      "**/components/**",
+                      "@/app/**",
+                      "**/app/**"
+                    ],
+                    "message": "features/tournament は他の機能・UI・app に依存できません。共通処理は src/shared に置いてください。"
+                  },
+                  {
+                    "group": [
+                      "@/features/tournament/create/**",
+                      "@/features/tournament/create",
+                      "@/features/tournament/delete/**",
+                      "@/features/tournament/delete",
+                      "../create/**",
+                      "../delete/**"
+                    ],
+                    "message": "同列のスライスには依存できません。共有するものは features/tournament 直下か src/shared へ。"
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": ["src/features/tournament/delete/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": [
+                      "@/features/auth/**",
+                      "@/features/auth",
+                      "@/features/bracket/**",
+                      "@/features/bracket",
+                      "@/features/organization/**",
+                      "@/features/organization",
+                      "**/auth/**",
+                      "**/bracket/**",
+                      "**/organization/**",
+                      "@/components/**",
+                      "**/components/**",
+                      "@/app/**",
+                      "**/app/**"
+                    ],
+                    "message": "features/tournament は他の機能・UI・app に依存できません。共通処理は src/shared に置いてください。"
+                  },
+                  {
+                    "group": [
+                      "@/features/tournament/create/**",
+                      "@/features/tournament/create",
+                      "@/features/tournament/update/**",
+                      "@/features/tournament/update",
+                      "../create/**",
+                      "../update/**"
+                    ],
+                    "message": "同列のスライスには依存できません。共有するものは features/tournament 直下か src/shared へ。"
                   }
                 ]
               }
