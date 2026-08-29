@@ -42,3 +42,14 @@ src/
 このため、スライス側に置くと委譲するだけの空ファイルになる。
 `features/auth` には `schema.ts` / `domain.ts` / `usecase.ts` のみを置き、画面のコンポーネントは
 `src/components/auth/` に置く（`src/features/` 配下に `.tsx` は置かない）。
+
+## features/bracket と features/tournament の違い
+
+`features/bracket` はブラケット（トーナメント表）の描画に閉じた純粋ロジックを持つ。
+参加者・組み合わせ・勝敗の 3 データを突き合わせて座標付きの描画要素にするところまでで、
+永続化には関わらない。
+
+`features/tournament` は `Tournament` エンティティの CRUD を持つ。
+DB への読み書きが責務であり、描画には関わらない。
+
+粒度も更新頻度も違うため、同じカテゴリに置かない。
