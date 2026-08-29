@@ -20,6 +20,22 @@ describe("TournamentDetailView", () => {
     expect(screen.getByText("準備中")).toBeInTheDocument();
   });
 
+  it.each([
+    ["IN_PROGRESS", "進行中"],
+    ["COMPLETED", "完了"],
+  ] as const)("ステータスが %s なら「%s」と表示する", (status, label) => {
+    // DRAFT だけで検証していると、IN_PROGRESS と COMPLETED の文言を
+    // 入れ替えても他のテストは全部通ってしまう。
+    render(
+      <TournamentDetailView
+        slug="tennis"
+        tournament={{ ...tournament, status }}
+      />,
+    );
+
+    expect(screen.getByText(label)).toBeInTheDocument();
+  });
+
   it("開始日時が未設定なら「未設定」と出す", () => {
     render(
       <TournamentDetailView
