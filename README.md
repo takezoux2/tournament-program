@@ -48,6 +48,7 @@ Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/bui
 | `BETTER_AUTH_URL` | アプリの URL。開発時は `http://localhost:3000`。**実際に配信されているオリジン（ポート番号含む）と必ず一致させること**。`next dev` が 3000番ポートの使用中により別のポートへフォールバックした場合も追従して変更する。ずれていると、Cookie を送らない curl 等の疎通確認は通る一方、ログイン後のブラウザ操作（ログアウトなど）だけが `403 INVALID_ORIGIN` で失敗し、原因に気づきにくい |
 | `GOOGLE_CLIENT_ID` | 下記の手順で発行する |
 | `GOOGLE_CLIENT_SECRET` | 下記の手順で発行する |
+| `BYPASS_AUTH` | 開発用の認証バイパス。`"1"` のときだけ有効になる。**本番環境では絶対に設定しないこと**（下記参照） |
 
 ### Google OAuth クライアントの発行
 
@@ -68,6 +69,8 @@ Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/bui
 | --- | --- |
 | `src/shared/lib/auth.ts` | Better Auth のサーバー設定 |
 | `src/shared/lib/auth-client.ts` | ブラウザ側のクライアント |
+| `src/shared/lib/auth-bypass.ts` | 開発用バイパスの純粋な部分（Cookie 名・有効判定・セッション組み立て） |
+| `src/shared/lib/auth-bypass-session.ts` | 同バイパスの副作用側（Cookie 読み取り・`User` の引き当て） |
 | `src/shared/middleware/require-session.ts` | **認証の実際の境界。** 保護するページ・Server Action の冒頭で呼ぶ |
 | `src/proxy.ts` | 未ログインを `/login` へ送る最適化。Cookie の有無しか見ておらず、境界ではない |
 | `src/features/auth/domain.ts` | `safeRedirectPath`。ログイン後の遷移先を同一オリジンに限定するオープンリダイレクト対策 |
@@ -77,6 +80,26 @@ Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/bui
 
 新しく保護したいページを追加するときは、`requireSession()` を呼ぶこと。
 `src/proxy.ts` の matcher を通ったことは認証済みを意味しない。
+
+### 開発用の認証バイパス（`BYPASS_AUTH=1`）
+
+動作確認で任意のユーザーになりたいときのための裏口。
+`BYPASS_AUTH=1` を設定した状態で `USER_ID` Cookie に `User.id` を入れると、
+そのユーザーがログイン中として扱われる。
+
+```
+# ブラウザの DevTools コンソールで（http://localhost:3000 を開いた状態）
+document.cookie = "USER_ID=<User.id>; path=/";
+```
+
+- **本番環境では絶対に設定しないこと。** セッショントークンの署名検証も
+  パスワード確認も一切行わず、Cookie に ID を書けるだけで誰にでもなりすませる。
+  スイッチは環境変数ひとつだけで、`NODE_ENV` によるガードはあえて入れていない。
+- Cookie の値は `User.id`（メールアドレスや名前ではない）。DB に存在しない ID なら
+  バイパスは成立せず、通常の認証へフォールバックする。
+- バイパス中はログアウトボタンを押してもセッションは終わらない。
+  Better Auth のセッションを消すだけで `USER_ID` Cookie は残るため、
+  抜けるには Cookie を自分で削除する（または `BYPASS_AUTH` を外す）。
 
 ### 既知のリスク: アカウント事前乗っ取り
 

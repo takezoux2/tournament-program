@@ -1,5 +1,9 @@
 import { getSessionCookie } from "better-auth/cookies";
 import { type NextRequest, NextResponse } from "next/server";
+import {
+  BYPASS_USER_ID_COOKIE,
+  isAuthBypassEnabled,
+} from "@/shared/lib/auth-bypass";
 
 /**
  * 未ログインのまま保護ページを開いたときに、レンダリングを始める前に
@@ -10,6 +14,13 @@ import { type NextRequest, NextResponse } from "next/server";
  */
 export function proxy(request: NextRequest) {
   if (getSessionCookie(request)) {
+    return NextResponse.next();
+  }
+
+  // 開発用バイパス（BYPASS_AUTH=1）。requireSession() 側で USER_ID を
+  // 引き当てるので、ここでは Cookie の存在だけ見て素通しする。
+  // 存在しないユーザー ID なら requireSession() が /login へ送る。
+  if (isAuthBypassEnabled() && request.cookies.get(BYPASS_USER_ID_COOKIE)) {
     return NextResponse.next();
   }
 
