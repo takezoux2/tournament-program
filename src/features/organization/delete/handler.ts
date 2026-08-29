@@ -1,10 +1,10 @@
 "use server";
 
-import { Cause, Effect, Exit, Option } from "effect";
+import { Effect, Exit } from "effect";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireOrganization } from "@/shared/middleware/require-organization";
-import { organizationErrorMessage } from "../messages";
+import { organizationErrorFormState } from "../effect-to-form-state";
 import type { OrganizationFormState } from "../state";
 import { deleteOrganizationInDb } from "./repository";
 import { deleteOrganizationSchema } from "./schema";
@@ -35,12 +35,7 @@ export const deleteOrganizationAction = async (
   );
 
   if (Exit.isFailure(exit)) {
-    const failure = Cause.failureOption(exit.cause);
-    return {
-      error: Option.isSome(failure)
-        ? organizationErrorMessage(failure.value)
-        : "処理に失敗しました。時間をおいて再度お試しください",
-    };
+    return organizationErrorFormState(exit.cause);
   }
 
   revalidatePath("/");
