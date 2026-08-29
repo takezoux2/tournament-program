@@ -303,8 +303,11 @@
                       "@/features/organization/delete/**",
                       "@/features/organization/delete",
                       "./create/**",
+                      "./create",
                       "./update/**",
-                      "./delete/**"
+                      "./update",
+                      "./delete/**",
+                      "./delete"
                     ],
                     "message": "features/organization 直下から下位スライス（create・update・delete）に依存することはできません。祖先方向の参照のみ許可されます。共有するものは features/organization 直下か src/shared へ置いてください。"
                   }
@@ -348,7 +351,9 @@
                       "@/features/organization/delete/**",
                       "@/features/organization/delete",
                       "../update/**",
-                      "../delete/**"
+                      "../update",
+                      "../delete/**",
+                      "../delete"
                     ],
                     "message": "同列のスライスには依存できません。共有するものは features/organization 直下か src/shared へ。"
                   }
@@ -392,7 +397,9 @@
                       "@/features/organization/delete/**",
                       "@/features/organization/delete",
                       "../create/**",
-                      "../delete/**"
+                      "../create",
+                      "../delete/**",
+                      "../delete"
                     ],
                     "message": "同列のスライスには依存できません。共有するものは features/organization 直下か src/shared へ。"
                   }
@@ -436,7 +443,9 @@
                       "@/features/organization/update/**",
                       "@/features/organization/update",
                       "../create/**",
-                      "../update/**"
+                      "../create",
+                      "../update/**",
+                      "../update"
                     ],
                     "message": "同列のスライスには依存できません。共有するものは features/organization 直下か src/shared へ。"
                   }
@@ -483,8 +492,11 @@
                       "@/features/tournament/delete/**",
                       "@/features/tournament/delete",
                       "./create/**",
+                      "./create",
                       "./update/**",
-                      "./delete/**"
+                      "./update",
+                      "./delete/**",
+                      "./delete"
                     ],
                     "message": "features/tournament 直下から下位スライス（create・update・delete）に依存することはできません。祖先方向の参照のみ許可されます。共有するものは features/tournament 直下か src/shared へ置いてください。"
                   }
@@ -529,7 +541,9 @@
                       "@/features/tournament/delete/**",
                       "@/features/tournament/delete",
                       "../update/**",
-                      "../delete/**"
+                      "../update",
+                      "../delete/**",
+                      "../delete"
                     ],
                     "message": "同列のスライスには依存できません。共有するものは features/tournament 直下か src/shared へ。"
                   }
@@ -574,7 +588,9 @@
                       "@/features/tournament/delete/**",
                       "@/features/tournament/delete",
                       "../create/**",
-                      "../delete/**"
+                      "../create",
+                      "../delete/**",
+                      "../delete"
                     ],
                     "message": "同列のスライスには依存できません。共有するものは features/tournament 直下か src/shared へ。"
                   }
@@ -619,7 +635,9 @@
                       "@/features/tournament/update/**",
                       "@/features/tournament/update",
                       "../create/**",
-                      "../update/**"
+                      "../create",
+                      "../update/**",
+                      "../update"
                     ],
                     "message": "同列のスライスには依存できません。共有するものは features/tournament 直下か src/shared へ。"
                   }
