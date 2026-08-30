@@ -1,37 +1,29 @@
-import { LogoutButton } from "@/components/auth/LogoutButton";
-import { TournamentFlow } from "@/components/tournament/TournamentFlow";
-import { layoutBracket } from "@/features/tournament/layout-bracket";
-import { mockBracket } from "@/features/tournament/mock/bracket";
-import { mockParticipants } from "@/features/tournament/mock/participants";
-import { mockResults } from "@/features/tournament/mock/results";
-import { resolveBracket } from "@/features/tournament/resolve-bracket";
-import { toFlowElements } from "@/features/tournament/to-flow-elements";
+import Link from "next/link";
+import { AppHeader } from "@/components/layout/AppHeader";
+import { OrganizationList } from "@/components/organization/OrganizationList";
+import { listOrganizationsForUser } from "@/features/organization/repository";
 import { requireSession } from "@/shared/middleware/require-session";
 
 export default async function Home() {
   const session = await requireSession();
-
-  const resolved = resolveBracket(mockParticipants, mockBracket, mockResults);
-  const { nodes, edges } = toFlowElements(resolved, layoutBracket(resolved));
+  const organizations = await listOrganizationsForUser(session.user.id);
 
   return (
-    <main className="flex h-screen flex-col bg-slate-50">
-      <header className="flex items-center justify-between border-b border-slate-200 bg-white px-6 py-3">
-        <div>
-          <h1 className="text-lg font-bold text-slate-800">
-            {mockBracket.name}
-          </h1>
-          <p className="text-xs text-slate-500">
-            シングルエリミネーション / 参加者 {mockParticipants.length} 名
-          </p>
+    <main className="min-h-screen bg-slate-50">
+      <AppHeader crumbs={[{ label: "組織" }]} userName={session.user.name} />
+
+      <div className="mx-auto max-w-2xl space-y-4 px-6 py-8">
+        <div className="flex items-center justify-between">
+          <h1 className="text-lg font-bold text-slate-800">組織</h1>
+          <Link
+            href="/orgs/new"
+            className="rounded bg-slate-800 px-4 py-2 text-sm font-medium text-white"
+          >
+            組織を作成
+          </Link>
         </div>
-        <div className="flex items-center gap-3">
-          <span className="text-sm text-slate-700">{session.user.name}</span>
-          <LogoutButton />
-        </div>
-      </header>
-      <div className="flex-1">
-        <TournamentFlow nodes={nodes} edges={edges} />
+
+        <OrganizationList organizations={organizations} />
       </div>
     </main>
   );

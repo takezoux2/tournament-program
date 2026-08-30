@@ -72,6 +72,7 @@ Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/bui
 | `src/shared/lib/auth-bypass.ts` | 開発用バイパスの純粋な部分（Cookie 名・有効判定・セッション組み立て） |
 | `src/shared/lib/auth-bypass-session.ts` | 同バイパスの副作用側（Cookie 読み取り・`User` の引き当て） |
 | `src/shared/middleware/require-session.ts` | **認証の実際の境界。** 保護するページ・Server Action の冒頭で呼ぶ |
+| `src/shared/middleware/require-organization.ts` | **組織スコープの実際の境界。** `/orgs/[slug]` 配下のページ・Server Action の冒頭で呼ぶ。非所属は 403 ではなく 404 にし、組織の存在自体を漏らさない |
 | `src/proxy.ts` | 未ログインを `/login` へ送る最適化。Cookie の有無しか見ておらず、境界ではない |
 | `src/features/auth/domain.ts` | `safeRedirectPath`。ログイン後の遷移先を同一オリジンに限定するオープンリダイレクト対策 |
 | `src/features/auth/messages.ts` | `AuthError` → 日本語文言。`Match.exhaustive` によりタグを足して文言を忘れるとコンパイルエラーになる |

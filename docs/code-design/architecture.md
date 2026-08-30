@@ -42,3 +42,26 @@ src/
 このため、スライス側に置くと委譲するだけの空ファイルになる。
 `features/auth` には `schema.ts` / `domain.ts` / `usecase.ts` のみを置き、画面のコンポーネントは
 `src/components/auth/` に置く（`src/features/` 配下に `.tsx` は置かない）。
+
+## features/bracket と features/tournament の違い
+
+`features/bracket` はブラケット（トーナメント表）の描画に閉じた純粋ロジックを持つ。
+参加者・組み合わせ・勝敗の 3 データを突き合わせて座標付きの描画要素にするところまでで、
+永続化には関わらない。
+
+`features/tournament` は `Tournament` エンティティの CRUD を持つ。
+DB への読み書きが責務であり、描画には関わらない。
+
+粒度も更新頻度も違うため、同じカテゴリに置かない。
+
+## テナント分離の 2 原則
+
+`features/organization` と `features/tournament` は組織単位のテナント分離が要る。次の 2 点は
+次のスライスを書くときに必ず守る。
+
+* 認可境界（`requireOrganization`）はページの冒頭だけでなく、**Server Action の冒頭でも独立に呼ぶ**。
+  Server Action はページを経由せず直接叩ける、別のエントリポイントだから。
+* 所有権のチェックはクエリの `where` に入れる。取得してから条件で弾く形にはしない。
+  これが `update` / `delete` ではなく `updateMany` / `deleteMany` を使う理由で、Prisma の単数形は
+  一意な `where` しか受け付けず `organizationId` を残せない。複数形なら件数が返るため、
+  0 件は「この組織にその対象が無い」と読める。存在を漏らさないよう `notFound()` にする。

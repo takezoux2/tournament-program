@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import type { ResolvedMatch, ResolvedSlot } from "@/features/tournament/types";
+import type { ResolvedMatch, ResolvedSlot } from "@/features/bracket/types";
 import { MatchCard } from "./MatchCard";
 
 const confirmed = (
