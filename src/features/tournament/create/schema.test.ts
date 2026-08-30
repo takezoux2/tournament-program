@@ -39,6 +39,23 @@ describe("createTournamentSchema", () => {
     }
   });
 
+  it.each([
+    // Date.parse は通すが datetime-local の出力形式ではない値。
+    // 日付のみは UTC 深夜として解釈されるため、意図しない時刻になり得る。
+    ["2026-08-29"],
+    ["Aug 29 2026"],
+    ["2026-08-29T10:05:00Z"],
+    ["2026/08/29 10:05"],
+  ])('datetime-local の形式でない "%s" を弾く', (startsAt) => {
+    const result = parse({ name: "春季大会", startsAt });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues[0].message).toBe(
+        "開始日時の形式が正しくありません",
+      );
+    }
+  });
+
   it("空の大会名を弾く", () => {
     const result = parse({ name: "   ", startsAt: "" });
     expect(result.success).toBe(false);
