@@ -15,3 +15,9 @@ During implementation, use a sub-agent and create a worktree to proceed with the
 # package manager
 
 Use "pnpm" for package management (install, add, scripts) in this project.
+
+
+# ローカル実行時のテスト
+
+BYPASS_AUTH=1 を設定している場合、CookieにUSER_IDを設定してテストする。
+その際のUSER_IDは、`1`を使用する。
