@@ -60,7 +60,8 @@ src/components/division/
 ├── DivisionReorderButtons.tsx ↑↓ の Server Action フォーム
 ├── DivisionForm.tsx           作成・編集の共用フォーム
 ├── DeleteDivisionForm.tsx     部門名入力による削除確認
-└── DivisionDetail.tsx         詳細のメタ情報
+├── DivisionDetail.tsx         詳細のメタ情報
+└── DivisionBracket.tsx        詳細のブラケット描画（未対応・未作成の案内を含む）
 
 src/features/bracket/
 └── from-division.ts           Division の Json → bracket 型 のアダプタ（新規）
@@ -181,12 +182,19 @@ join して解決し、解決済みの形で渡す。`fromDivision` 自体は DB
 * `MatchResultRecord.winnerEntryId` が `null`（引き分け）の場合、`SINGLE_ELIMINATION` では
   起こらない想定だが、来たらその試合の結果を捨てて未決として扱う（`MatchResult` を作らない）。
 
-`null` のとき詳細ページは、理由に応じて「組み合わせが未作成です」または
-「この形式のブラケット表示はまだ対応していません」と案内する。
+描けないときの案内は `DivisionBracket.tsx` が理由ごとに出し分ける。
+
+| 状況 | 文言 |
+| --- | --- |
+| `matchingConfig.matches` が空 | 組み合わせが未作成です |
+| `format` が `SINGLE_ELIMINATION` 以外 | 「〈形式名〉」のブラケット表示はまだ対応していません |
+| `fromDivision` が上記以外の理由で `null` | この組み合わせはまだ表示に対応していません |
+| Json のパースに失敗 | ブラケットのデータを読み込めませんでした |
+| `resolveBracket` / `layoutBracket` が例外 | ブラケットを組み立てられませんでした |
 
 Json のパースは既存の `parseDivisionEntries` / `parseMatchingConfig` / `parseDivisionResults` を使う。
-`DivisionJsonError` は詳細ページで捕捉し、描画の代わりに「データの形式が不正です」を出す。
-ページ全体を落とさない。
+`DivisionJsonError` も `resolveBracket` / `layoutBracket` の例外も `DivisionBracket.tsx` の中で
+捕捉し、その区画だけを案内文に差し替える。ページ全体は落とさない。
 
 ## 削除
 
