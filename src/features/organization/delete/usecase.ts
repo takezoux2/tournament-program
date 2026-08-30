@@ -5,4 +5,5 @@ import type { DeleteOrganizationPort } from "./repository";
 export const deleteOrganization = (
   port: DeleteOrganizationPort,
   organizationId: string,
-): Effect.Effect<void, OrganizationError> => port({ organizationId });
+): Effect.Effect<{ deleted: number }, OrganizationError> =>
+  port({ organizationId });

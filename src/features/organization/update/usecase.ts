@@ -7,5 +7,5 @@ export const updateOrganization = (
   port: UpdateOrganizationPort,
   input: UpdateOrganizationInput,
   organizationId: string,
-): Effect.Effect<void, OrganizationError> =>
+): Effect.Effect<{ updated: number }, OrganizationError> =>
   port({ organizationId, name: input.name });

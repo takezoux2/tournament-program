@@ -5,6 +5,11 @@ import { INITIAL_ORGANIZATION_FORM_STATE } from "../state";
 const requireOrganization = vi.fn();
 const deleteOrganizationInDb = vi.fn();
 const revalidatePath = vi.fn();
+const notFound = vi.fn(() => {
+  // next/navigation の notFound は例外を投げて制御を打ち切る。
+  // require-organization.test.ts と同じ形で模す。
+  throw new Error("NEXT_NOT_FOUND");
+});
 const redirect = vi.fn((_path: string) => {
   // next/navigation の redirect は例外を投げて制御を打ち切る。
   // require-organization.test.ts の notFound と同じ形で模す。
@@ -24,6 +29,7 @@ vi.mock("next/cache", () => ({
 }));
 
 vi.mock("next/navigation", () => ({
+  notFound: () => notFound(),
   redirect: (path: string) => redirect(path),
 }));
 
@@ -51,6 +57,7 @@ describe("deleteOrganizationAction", () => {
     requireOrganization.mockReset();
     deleteOrganizationInDb.mockReset();
     revalidatePath.mockClear();
+    notFound.mockClear();
     redirect.mockClear();
     requireOrganization.mockResolvedValue({
       session: { user: { id: "u1", name: "竹添" } },
@@ -72,7 +79,7 @@ describe("deleteOrganizationAction", () => {
   });
 
   it("組織名が一致すれば削除処理へ進む", async () => {
-    deleteOrganizationInDb.mockReturnValue(Effect.void);
+    deleteOrganizationInDb.mockReturnValue(Effect.succeed({ deleted: 1 }));
 
     // 成功時は redirect が例外として制御を奪うので、通常の return ではなく
     // 例外側で成功を確認する。
@@ -87,6 +94,22 @@ describe("deleteOrganizationAction", () => {
       organizationId: "o1",
     });
     expect(revalidatePath).toHaveBeenCalledWith("/");
+  });
+
+  it("削除件数が 0 件なら、確認フォーム表示後に組織が消えた競合とみなし notFound で打ち切る", async () => {
+    // 確認フォーム表示と deleteMany の間に組織が消えるレースを模す。
+    // deleteMany 自体は成功として返るが件数は 0。
+    deleteOrganizationInDb.mockReturnValue(Effect.succeed({ deleted: 0 }));
+
+    await expect(
+      deleteOrganizationAction(
+        INITIAL_ORGANIZATION_FORM_STATE,
+        buildFormData("テニス部"),
+      ),
+    ).rejects.toThrow("NEXT_NOT_FOUND");
+
+    expect(notFound).toHaveBeenCalled();
+    expect(redirect).not.toHaveBeenCalled();
   });
 
   it("所属していなければ requireOrganization の時点で打ち切られ、比較にもリポジトリにも進まない", async () => {

@@ -7,11 +7,16 @@ import { deleteOrganization } from "./usecase";
 
 describe("deleteOrganization", () => {
   it("組織 id を port に渡す", async () => {
-    const port = vi.fn(() => Effect.void) as unknown as DeleteOrganizationPort;
+    const port = vi.fn(() =>
+      Effect.succeed({ deleted: 1 }),
+    ) as unknown as DeleteOrganizationPort;
 
     const exit = await Effect.runPromiseExit(deleteOrganization(port, "o1"));
 
     expect(Exit.isSuccess(exit)).toBe(true);
+    if (Exit.isSuccess(exit)) {
+      expect(exit.value).toEqual({ deleted: 1 });
+    }
     expect(port).toHaveBeenCalledWith({ organizationId: "o1" });
   });
 

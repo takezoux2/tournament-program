@@ -2,7 +2,7 @@
 
 import { Effect, Exit } from "effect";
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { requireOrganization } from "@/shared/middleware/require-organization";
 import { organizationErrorFormState } from "../effect-to-form-state";
 import type { OrganizationFormState } from "../state";
@@ -36,6 +36,11 @@ export const deleteOrganizationAction = async (
 
   if (Exit.isFailure(exit)) {
     return organizationErrorFormState(exit.cause);
+  }
+
+  // 0 件は確認フォーム表示後に組織が消えたことを意味する。存在を漏らさないよう 404。
+  if (exit.value.deleted === 0) {
+    notFound();
   }
 
   revalidatePath("/");
