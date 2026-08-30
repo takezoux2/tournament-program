@@ -8,7 +8,7 @@ import { resolveBracket } from "@/features/bracket/resolve-bracket";
 import { toFlowElements } from "@/features/bracket/to-flow-elements";
 import { requireSession } from "@/shared/middleware/require-session";
 
-export default async function Home() {
+export default async function MockBracketPage() {
   const session = await requireSession();
 
   const resolved = resolveBracket(mockParticipants, mockBracket, mockResults);
