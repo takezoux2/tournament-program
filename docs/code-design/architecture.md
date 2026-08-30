@@ -53,3 +53,15 @@ src/
 DB への読み書きが責務であり、描画には関わらない。
 
 粒度も更新頻度も違うため、同じカテゴリに置かない。
+
+## テナント分離の 2 原則
+
+`features/organization` と `features/tournament` は組織単位のテナント分離が要る。次の 2 点は
+次のスライスを書くときに必ず守る。
+
+* 認可境界（`requireOrganization`）はページの冒頭だけでなく、**Server Action の冒頭でも独立に呼ぶ**。
+  Server Action はページを経由せず直接叩ける、別のエントリポイントだから。
+* 所有権のチェックはクエリの `where` に入れる。取得してから条件で弾く形にはしない。
+  これが `update` / `delete` ではなく `updateMany` / `deleteMany` を使う理由で、Prisma の単数形は
+  一意な `where` しか受け付けず `organizationId` を残せない。複数形なら件数が返るため、
+  0 件は「この組織にその対象が無い」と読める。存在を漏らさないよう `notFound()` にする。
