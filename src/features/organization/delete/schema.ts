@@ -7,5 +7,3 @@ import { z } from "zod";
 export const deleteOrganizationSchema = z.object({
   confirmName: z.string().transform((raw) => raw.trim()),
 });
-
-export type DeleteOrganizationInput = z.infer<typeof deleteOrganizationSchema>;
