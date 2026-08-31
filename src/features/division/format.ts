@@ -1,4 +1,4 @@
-import type { DivisionFormat } from "@/generated/prisma/enums";
+import { DivisionFormat } from "@/generated/prisma/enums";
 
 /**
  * Record のキーを DivisionFormat に固定しているため、enum に値を足して
@@ -11,7 +11,8 @@ export const DIVISION_FORMAT_LABELS: Record<DivisionFormat, string> = {
   ROUND_ROBIN: "リーグ（総当たり）",
 };
 
-/** 選択肢の描画順。ラベルのキー順＝スキーマの宣言順に従う。 */
-export const DIVISION_FORMATS = Object.keys(
-  DIVISION_FORMAT_LABELS,
-) as DivisionFormat[];
+/**
+ * 選択肢の描画順。ラベル側は手書きのオブジェクトで順序が保証されないため、
+ * enum 定義そのもの（スキーマの宣言順）から並び順を取る。
+ */
+export const DIVISION_FORMATS = Object.values(DivisionFormat);

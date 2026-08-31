@@ -14,4 +14,16 @@ describe("DIVISION_FORMAT_LABELS", () => {
       Object.values(DivisionFormat).sort(),
     );
   });
+
+  it("DIVISION_FORMATS の並び順はスキーマの宣言順そのもの", () => {
+    // ソートせず順序まで固定する。ここを手書きの配列に戻したり、
+    // アルファベット順などに並べ替えたりする変更を検出するため、
+    // 期待値はスキーマの宣言順を書き写した固定値にする(実装からの逆算にしない)。
+    expect(DIVISION_FORMATS).toEqual([
+      "SINGLE_ELIMINATION",
+      "DOUBLE_ELIMINATION_GRAND_FINAL",
+      "DOUBLE_ELIMINATION_THIRD_PLACE",
+      "ROUND_ROBIN",
+    ]);
+  });
 });

@@ -28,7 +28,8 @@ export type DivisionParticipant = {
 };
 
 /**
- * 部門一覧。order は連番で欠番なく採番しているため、そのまま昇順で並べる。
+ * 部門一覧。order 昇順で並べて返す。削除は order を詰め直さないため、
+ * 欠番があることは前提として扱う（reorder/domain.ts 参照）。
  * where を tournament 経由にすることで、組織と大会の所有権を 1 クエリで担保する。
  */
 export const listDivisionsInTournament = (

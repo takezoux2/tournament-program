@@ -79,7 +79,7 @@ describe("createDivisionAction", () => {
     expect(requireOrganization).toHaveBeenCalledWith("tennis-club");
   });
 
-  it("成功したら部門詳細へ送り、一覧と詳細を再検証する", async () => {
+  it("成功したら部門詳細へ送り、大会ページを再検証する", async () => {
     createDivisionInDb.mockReturnValue(Effect.succeed({ id: "d1" }));
 
     await expect(
