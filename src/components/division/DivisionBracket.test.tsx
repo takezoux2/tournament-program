@@ -135,4 +135,52 @@ describe("DivisionBracket", () => {
       screen.getByText("ブラケットのデータを読み込めませんでした"),
     ).toBeInTheDocument();
   });
+
+  // e3 は部門にエントリーしているが、m1 の対戦カード（e1 対 e2）には含まれて
+  // いない。fromDivision は winnerEntryId を対戦カードのスロットと突き合わせ
+  // ないため、この不整合な結果はそのまま resolveBracket まで素通りし、
+  // 「勝者がどちらのスロットにもいない」例外を投げる。
+  it("勝者が対戦カードのどちらのスロットでもない結果はブラケットを組み立てられない案内をする", () => {
+    render(
+      <DivisionBracket
+        division={buildDivision({
+          entries: {
+            version: 1,
+            entries: [
+              { id: "e1", participantId: "p1", seed: 0 },
+              { id: "e2", participantId: "p2", seed: 1 },
+              { id: "e3", participantId: "p3", seed: 2 },
+            ],
+          },
+          results: {
+            version: 1,
+            matches: [{ matchId: "m1", winnerEntryId: "e3" }],
+          },
+        })}
+        participants={[...participants, { id: "p3", name: "高橋 澪" }]}
+      />,
+    );
+
+    expect(
+      screen.getByText("ブラケットを組み立てられませんでした"),
+    ).toBeInTheDocument();
+    expect(screen.queryByTestId("flow")).toBeNull();
+  });
+
+  // matchingConfig が空なら、format が何であってもまず「未作成」を案内すべき。
+  // ROUND_ROBIN と組み合わせることで、未作成チェックが形式チェックより先に
+  // 効いていることを確かめる（形式名の案内が先に出てしまわないか）。
+  it("未設定のリーグ戦は形式ではなく未作成として案内する", () => {
+    render(
+      <DivisionBracket
+        division={buildDivision({
+          format: "ROUND_ROBIN",
+          matchingConfig: { version: 1, matches: [] },
+        })}
+        participants={participants}
+      />,
+    );
+
+    expect(screen.getByText("組み合わせが未作成です")).toBeInTheDocument();
+  });
 });
