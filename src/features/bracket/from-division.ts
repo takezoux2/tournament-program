@@ -80,12 +80,14 @@ export function fromDivision(
   // entries に現れるものだけを描画対象にする。大会には他の部門にしか出ない
   // 参加者も居るため、そのまま全員を渡すと関係のない名前が混ざる。
   const participants: Participant[] = [];
+  const entryIds = new Set<string>();
   for (const entry of input.entries.entries) {
     const source = sourceById.get(entry.participantId);
     if (!source) {
       // エントリーの参照先が欠けている＝データ不整合。描かない。
       return null;
     }
+    entryIds.add(entry.id);
     participants.push({
       id: entry.id,
       name: source.name,
@@ -95,10 +97,24 @@ export function fromDivision(
     });
   }
 
+  // resolveBracket が winnerOf の参照先を解決できることを、結果を作る前に
+  // 保証しておく。壊れたデータを渡すと resolveBracket 側が例外を投げる。
+  const matchIds = new Set(input.matchingConfig.matches.map((m) => m.id));
+
   const matches: Match[] = [];
   for (const source of input.matchingConfig.matches) {
     if (source.bracket !== "winners") {
       return null;
+    }
+    for (const slot of source.slots) {
+      if (slot.kind === "winnerOf" && !matchIds.has(slot.matchId)) {
+        // 存在しない試合を参照している＝データ不整合。描かない。
+        return null;
+      }
+      if (slot.kind === "entry" && !entryIds.has(slot.entryId)) {
+        // matchingConfig 生成後にエントリーが削除された等の不整合。描かない。
+        return null;
+      }
     }
     const first = toSlotSource(source.slots[0]);
     const second = toSlotSource(source.slots[1]);

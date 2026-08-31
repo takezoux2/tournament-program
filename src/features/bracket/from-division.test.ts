@@ -146,6 +146,18 @@ describe("fromDivision", () => {
     );
 
     expect(result?.results).toEqual([]);
+    // 結果を捨てても試合そのものは残る（未決として描く）。
+    expect(result?.bracket.matches).toEqual([
+      {
+        id: "m1",
+        round: 1,
+        order: 0,
+        slots: [
+          { kind: "participant", participantId: "e1" },
+          { kind: "participant", participantId: "e2" },
+        ],
+      },
+    ]);
   });
 
   it("SINGLE_ELIMINATION 以外は null", () => {
@@ -212,6 +224,54 @@ describe("fromDivision", () => {
   it("エントリーの参照先の参加者が居なければ null", () => {
     expect(
       fromDivision(buildInput({ participants: [participants[0]] })),
+    ).toBeNull();
+  });
+
+  it("winnerOf が matchingConfig に無い試合 id を指すなら null", () => {
+    expect(
+      fromDivision(
+        buildInput({
+          matchingConfig: {
+            version: 1,
+            matches: [
+              {
+                id: "m2",
+                bracket: "winners",
+                round: 2,
+                order: 0,
+                slots: [
+                  { kind: "winnerOf", matchId: "m1" },
+                  { kind: "entry", entryId: "e2" },
+                ],
+              },
+            ],
+          },
+        }),
+      ),
+    ).toBeNull();
+  });
+
+  it("試合スロットの entryId が entries に無いなら null", () => {
+    expect(
+      fromDivision(
+        buildInput({
+          matchingConfig: {
+            version: 1,
+            matches: [
+              {
+                id: "m1",
+                bracket: "winners",
+                round: 1,
+                order: 0,
+                slots: [
+                  { kind: "entry", entryId: "e1" },
+                  { kind: "entry", entryId: "e999" },
+                ],
+              },
+            ],
+          },
+        }),
+      ),
     ).toBeNull();
   });
 
