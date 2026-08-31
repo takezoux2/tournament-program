@@ -54,10 +54,15 @@ DB への読み書きが責務であり、描画には関わらない。
 
 粒度も更新頻度も違うため、同じカテゴリに置かない。
 
+`features/bracket/from-division.ts` は `lib/division` の永続化型を描画型へ変換する
+アダプタ。`features/division` 側に置くと同列スライスへの依存になるため、
+`features/bracket` から下位共通層の `lib/division` を参照する向きにしてある。
+対応するのは `SINGLE_ELIMINATION` のみで、それ以外は `null` を返す。
+
 ## テナント分離の 2 原則
 
-`features/organization` と `features/tournament` は組織単位のテナント分離が要る。次の 2 点は
-次のスライスを書くときに必ず守る。
+`features/organization` と `features/tournament` と `features/division` は組織単位の
+テナント分離が要る。次の 2 点は次のスライスを書くときに必ず守る。
 
 * 認可境界（`requireOrganization`）はページの冒頭だけでなく、**Server Action の冒頭でも独立に呼ぶ**。
   Server Action はページを経由せず直接叩ける、別のエントリポイントだから。
@@ -65,3 +70,9 @@ DB への読み書きが責務であり、描画には関わらない。
   これが `update` / `delete` ではなく `updateMany` / `deleteMany` を使う理由で、Prisma の単数形は
   一意な `where` しか受け付けず `organizationId` を残せない。複数形なら件数が返るため、
   0 件は「この組織にその対象が無い」と読める。存在を漏らさないよう `notFound()` にする。
+
+`features/division` は組織 → 大会 → 部門の 3 段になるが、原則は変わらない。
+リレーションフィルタを使って `where: { id: divisionId, tournament: { id: tournamentId,
+organizationId } }` と書き、3 段の所有権を 1 クエリで担保する。
+`create` だけは `where` を持てないため、同じトランザクションの中で大会の所属を
+別途確かめてから作る。

@@ -1,6 +1,10 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
+import { DivisionList } from "@/components/division/DivisionList";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { TournamentDetailView } from "@/components/tournament/TournamentDetail";
+import { reorderDivisionAction } from "@/features/division/reorder/handler";
+import { listDivisionsInTournament } from "@/features/division/repository";
 import { findTournamentInOrganization } from "@/features/tournament/repository";
 import { requireOrganization } from "@/shared/middleware/require-organization";
 
@@ -18,6 +22,11 @@ export default async function TournamentPage({
     notFound();
   }
 
+  const divisions = await listDivisionsInTournament(
+    organization.id,
+    tournamentId,
+  );
+
   return (
     <main className="min-h-screen bg-slate-50">
       <AppHeader
@@ -29,8 +38,25 @@ export default async function TournamentPage({
         userName={session.user.name}
       />
 
-      <div className="mx-auto max-w-2xl px-6 py-8">
+      <div className="mx-auto max-w-2xl space-y-4 px-6 py-8">
         <TournamentDetailView slug={slug} tournament={tournament} />
+
+        <div className="flex items-center justify-between pt-4">
+          <h2 className="text-sm font-bold text-slate-700">部門</h2>
+          <Link
+            href={`/orgs/${slug}/tournaments/${tournament.id}/divisions/new`}
+            className="rounded bg-slate-800 px-4 py-2 text-sm font-medium text-white"
+          >
+            部門を作成
+          </Link>
+        </div>
+
+        <DivisionList
+          slug={slug}
+          tournamentId={tournament.id}
+          divisions={divisions}
+          reorderAction={reorderDivisionAction}
+        />
       </div>
     </main>
   );

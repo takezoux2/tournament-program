@@ -30,6 +30,18 @@ vi.mock("@/features/tournament/repository", () => ({
   ) => findTournamentInOrganization(organizationId, tournamentId),
 }));
 
+const listDivisionsInTournament = vi.fn();
+
+vi.mock("@/features/division/repository", () => ({
+  listDivisionsInTournament: (organizationId: string, tournamentId: string) =>
+    listDivisionsInTournament(organizationId, tournamentId),
+}));
+
+// Server Action はページ本体の検証に関係しないので、素通しの関数へ差し替える。
+vi.mock("@/features/division/reorder/handler", () => ({
+  reorderDivisionAction: async () => ({ error: null }),
+}));
+
 const { default: Page } = await import("./page");
 
 const pageProps = (slug: string, tournamentId: string) => ({
@@ -67,6 +79,8 @@ describe("TournamentPage", () => {
       role: "OWNER",
     });
     findTournamentInOrganization.mockResolvedValue(tournament);
+    listDivisionsInTournament.mockReset();
+    listDivisionsInTournament.mockResolvedValue([]);
   });
 
   it("requireOrganization には params の slug をそのまま渡す", async () => {
@@ -107,5 +121,40 @@ describe("TournamentPage", () => {
     expect(
       screen.getByRole("heading", { name: "春季大会" }),
     ).toBeInTheDocument();
+  });
+
+  it("部門一覧も slug ではなく organization.id で絞り込む", async () => {
+    await Page(pageProps("tennis", "t1"));
+
+    expect(listDivisionsInTournament).toHaveBeenCalledWith("o1", "t1");
+  });
+
+  it("部門名を詳細ページへのリンクとして描画する", async () => {
+    listDivisionsInTournament.mockResolvedValue([
+      {
+        id: "d1",
+        name: "男子シングルス",
+        order: 0,
+        format: "SINGLE_ELIMINATION",
+      },
+    ]);
+
+    const element = await Page(pageProps("tennis", "t1"));
+    render(element);
+
+    expect(screen.getByRole("link", { name: "男子シングルス" })).toHaveAttribute(
+      "href",
+      "/orgs/tennis/tournaments/t1/divisions/d1",
+    );
+  });
+
+  it("部門の作成ページへの導線を出す", async () => {
+    const element = await Page(pageProps("tennis", "t1"));
+    render(element);
+
+    expect(screen.getByRole("link", { name: "部門を作成" })).toHaveAttribute(
+      "href",
+      "/orgs/tennis/tournaments/t1/divisions/new",
+    );
   });
 });
