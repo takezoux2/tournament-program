@@ -23,10 +23,13 @@ export default async function DivisionPage({
     notFound();
   }
 
-  const participants = await listParticipantsInTournament(
-    organization.id,
-    tournamentId,
-  );
+  // DivisionBracket は SINGLE_ELIMINATION 以外では participants を一切使わず
+  // 未対応の案内を出すだけ。他形式の詳細ページ表示のたびに参加者一覧を
+  // 引く必要はないので、使う形式のときだけクエリを投げる。
+  const participants =
+    division.format === "SINGLE_ELIMINATION"
+      ? await listParticipantsInTournament(organization.id, tournamentId)
+      : [];
 
   return (
     <main className="min-h-screen bg-slate-50">
