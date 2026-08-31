@@ -70,6 +70,9 @@ DB への読み書きが責務であり、描画には関わらない。
   これが `update` / `delete` ではなく `updateMany` / `deleteMany` を使う理由で、Prisma の単数形は
   一意な `where` しか受け付けず `organizationId` を残せない。複数形なら件数が返るため、
   0 件は「この組織にその対象が無い」と読める。存在を漏らさないよう `notFound()` にする。
+  例外は `features/division/reorder`：0 件は「端まで来ている」場合もあり得て、その場合はエラーではない。
+  かつ「その部門が無い」場合と応答が区別できないため、両方とも `{ swapped: false }` のまま
+  `{ error: null }` を返す（何も漏らさない点は変わらない）。
 
 `features/division` は組織 → 大会 → 部門の 3 段になるが、原則は変わらない。
 リレーションフィルタを使って `where: { id: divisionId, tournament: { id: tournamentId,
