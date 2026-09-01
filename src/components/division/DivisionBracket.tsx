@@ -1,0 +1,92 @@
+import { TournamentFlow } from "@/components/tournament/TournamentFlow";
+import { fromDivision } from "@/features/bracket/from-division";
+import { layoutBracket } from "@/features/bracket/layout-bracket";
+import { resolveBracket } from "@/features/bracket/resolve-bracket";
+import { toFlowElements } from "@/features/bracket/to-flow-elements";
+import { DIVISION_FORMAT_LABELS } from "@/features/division/format";
+import type {
+  DivisionDetail,
+  DivisionParticipant,
+} from "@/features/division/repository";
+import {
+  parseDivisionEntries,
+  parseDivisionResults,
+  parseMatchingConfig,
+} from "@/lib/division/parse";
+
+const Notice = ({ children }: { children: React.ReactNode }) => (
+  <p className="rounded border border-slate-200 bg-white px-4 py-6 text-center text-sm text-slate-600">
+    {children}
+  </p>
+);
+
+export function DivisionBracket({
+  division,
+  participants,
+}: {
+  division: DivisionDetail;
+  participants: DivisionParticipant[];
+}) {
+  // Json は DB の列で、アプリの外から壊れた値が入りうる。パースの失敗は
+  // この区画で受け止め、ページ全体は落とさない。
+  let parsed: {
+    entries: ReturnType<typeof parseDivisionEntries>;
+    matchingConfig: ReturnType<typeof parseMatchingConfig>;
+    results: ReturnType<typeof parseDivisionResults>;
+  };
+  try {
+    parsed = {
+      entries: parseDivisionEntries(division.entries),
+      matchingConfig: parseMatchingConfig(division.matchingConfig),
+      results: parseDivisionResults(division.results),
+    };
+  } catch {
+    return <Notice>ブラケットのデータを読み込めませんでした</Notice>;
+  }
+
+  if (parsed.matchingConfig.matches.length === 0) {
+    return <Notice>組み合わせが未作成です</Notice>;
+  }
+
+  if (division.format !== "SINGLE_ELIMINATION") {
+    return (
+      <Notice>
+        「{DIVISION_FORMAT_LABELS[division.format]}
+        」のブラケット表示はまだ対応していません
+      </Notice>
+    );
+  }
+
+  const converted = fromDivision({
+    id: division.id,
+    name: division.name,
+    format: division.format,
+    entries: parsed.entries,
+    matchingConfig: parsed.matchingConfig,
+    results: parsed.results,
+    participants,
+  });
+  if (converted === null) {
+    return <Notice>この組み合わせはまだ表示に対応していません</Notice>;
+  }
+
+  // resolveBracket / layoutBracket は矛盾したデータで例外を投げる設計。
+  // ここも同じくページを落とさず区画で受け止める。
+  let elements: ReturnType<typeof toFlowElements>;
+  try {
+    const resolved = resolveBracket(
+      converted.participants,
+      converted.bracket,
+      converted.results,
+    );
+    elements = toFlowElements(resolved, layoutBracket(resolved));
+  } catch {
+    return <Notice>ブラケットを組み立てられませんでした</Notice>;
+  }
+
+  return (
+    <div className="h-[28rem] rounded border border-slate-200 bg-white">
+      <TournamentFlow nodes={elements.nodes} edges={elements.edges} />
+    </div>
+  );
+}
