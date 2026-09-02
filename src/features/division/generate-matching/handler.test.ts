@@ -10,8 +10,14 @@ const notFound = vi.fn(() => {
   throw new Error("NEXT_NOT_FOUND");
 });
 
+// 関数呼び出しの順序を追跡するための配列
+let calls: string[] = [];
+
 vi.mock("@/shared/middleware/require-organization", () => ({
-  requireOrganization: (slug: string) => requireOrganization(slug),
+  requireOrganization: (slug: string) => {
+    calls.push("requireOrganization");
+    return requireOrganization(slug);
+  },
 }));
 vi.mock("next/navigation", () => ({ notFound: () => notFound() }));
 vi.mock("../revalidate", () => ({
@@ -22,7 +28,10 @@ vi.mock("../revalidate", () => ({
   ) => revalidateDivisionSetup(slug, tournamentId, divisionId),
 }));
 vi.mock("./repository", () => ({
-  generateMatchingInDb: (ids: unknown) => generateMatchingInDb(ids),
+  generateMatchingInDb: (ids: unknown) => {
+    calls.push("generateMatchingInDb");
+    return generateMatchingInDb(ids);
+  },
 }));
 
 const { generateMatchingAction } = await import("./handler");
@@ -36,6 +45,7 @@ const formData = () => {
 };
 
 beforeEach(() => {
+  calls = [];
   requireOrganization.mockReset();
   generateMatchingInDb.mockReset();
   revalidateDivisionSetup.mockReset();
@@ -52,6 +62,8 @@ describe("generateMatchingAction", () => {
     await generateMatchingAction(INITIAL_DIVISION_FORM_STATE, formData());
 
     expect(requireOrganization).toHaveBeenCalledWith("acme");
+    // データベース処理よりも前に認可チェックが必ず実行されることを確認
+    expect(calls).toEqual(["requireOrganization", "generateMatchingInDb"]);
   });
 
   it("成功したら再検証して通知を返す", async () => {
