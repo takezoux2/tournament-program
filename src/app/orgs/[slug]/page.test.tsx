@@ -109,4 +109,28 @@ describe("OrganizationPage", () => {
       "/orgs/tennis/tournaments/t1",
     );
   });
+
+  it("user.view を持てばユーザー管理へのリンクを出す", async () => {
+    const element = await OrganizationPage(pageProps("tennis"));
+    render(element);
+
+    expect(screen.getByRole("link", { name: "ユーザー管理" })).toHaveAttribute(
+      "href",
+      "/orgs/tennis/users",
+    );
+  });
+
+  it("user.view を持たなければユーザー管理へのリンクを出さない", async () => {
+    requireOrganization.mockResolvedValue({
+      session,
+      organization,
+      permissionCodes: [],
+      ability: defineAbilityFor([]),
+    });
+
+    const element = await OrganizationPage(pageProps("tennis"));
+    render(element);
+
+    expect(screen.queryByRole("link", { name: "ユーザー管理" })).toBeNull();
+  });
 });
