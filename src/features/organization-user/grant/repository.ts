@@ -31,15 +31,10 @@ export const grantPermissionsInDb: GrantPermissionsPort = (input) =>
           throw new NotAMember({ userId: input.userId });
         }
 
-        // codes が空なら該当する権限は無い。in: [] のまま問い合わせても
-        // 結果は空になるだけなので、往復を省いて直接空配列にする。
-        const permissions =
-          input.codes.length > 0
-            ? await tx.permission.findMany({
-                where: { code: { in: input.codes } },
-                select: { id: true, code: true },
-              })
-            : [];
+        const permissions = await tx.permission.findMany({
+          where: { code: { in: input.codes } },
+          select: { id: true, code: true },
+        });
 
         // 消して入れ直すのを 1 トランザクションに閉じる。分けると、
         // 権限が空のまま見える瞬間ができる。

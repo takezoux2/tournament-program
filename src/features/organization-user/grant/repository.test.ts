@@ -1,6 +1,16 @@
 import { Effect, Exit } from "effect";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { PERMISSION_CODES } from "@/shared/authz/ability";
 import { failureTag } from "@/shared/testing/exit";
+
+// 本物の DB の Permission テーブルを模した固定表。id は PERMISSION_CODES の
+// 並び順に 1 始まりで振る。findManyPermission はこの表から
+// where.code.in に含まれる行だけを返すことで、`where` 句の絞り込みが
+// 抜けたり間違ったりしたら失敗するテストを書けるようにする。
+const permissionTable = PERMISSION_CODES.map((code, index) => ({
+  id: index + 1,
+  code,
+}));
 
 const findFirstMembership = vi.fn();
 const findManyPermission = vi.fn();
@@ -44,10 +54,12 @@ describe("grantPermissionsInDb", () => {
     createManyGrant.mockReset();
     transaction.mockReset();
     findFirstMembership.mockResolvedValue({ userId: "u1" });
-    findManyPermission.mockResolvedValue([
-      { id: 1, code: "user.view" },
-      { id: 2, code: "user.add" },
-    ]);
+    findManyPermission.mockImplementation(
+      async (args: { where: { code: { in: string[] } } }) =>
+        permissionTable.filter((permission) =>
+          args.where.code.in.includes(permission.code),
+        ),
+    );
     deleteManyGrant.mockResolvedValue({ count: 3 });
     createManyGrant.mockResolvedValue({ count: 2 });
   });
@@ -73,6 +85,26 @@ describe("grantPermissionsInDb", () => {
     if (Exit.isSuccess(exit)) {
       expect(exit.value).toEqual({ updated: 1 });
     }
+  });
+
+  it("codes の一部だけを渡すと、その code だけを in 条件で問い合わせ、該当する permissionId だけ createMany する", async () => {
+    const subsetInput = { ...input, codes: ["user.remove", "org.delete"] };
+
+    await Effect.runPromiseExit(grantPermissionsInDb(subsetInput));
+
+    expect(findManyPermission).toHaveBeenCalledWith({
+      where: { code: { in: ["user.remove", "org.delete"] } },
+      select: { id: true, code: true },
+    });
+    // permissionTable 上で user.remove は id 3、org.delete は id 9。
+    // where 句が抜けたりミスタイプしたりすると、他の code の
+    // permissionId まで混ざるか、逆に絞り込みすぎて欠けるので検出できる。
+    expect(createManyGrant).toHaveBeenCalledWith({
+      data: [
+        { organizationId: "o1", userId: "u1", permissionId: 3 },
+        { organizationId: "o1", userId: "u1", permissionId: 9 },
+      ],
+    });
   });
 
   it("削除と挿入を 1 つのトランザクションで行う（権限が空のまま残る窓を作らない）", async () => {
