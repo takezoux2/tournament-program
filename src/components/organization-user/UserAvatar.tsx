@@ -15,9 +15,6 @@ export function UserAvatar({
       <img
         src={image}
         alt=""
-        // alt="" だけだと暗黙のロールが presentation になり、
-        // テストの getByRole("img") で拾えない。role を明示して上書きする。
-        role="img"
         className="h-9 w-9 shrink-0 rounded-full object-cover"
       />
     );

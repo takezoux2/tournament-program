@@ -6,7 +6,7 @@ describe("UserAvatar", () => {
   it("image があれば画像を表示する", () => {
     render(<UserAvatar name="竹添" image="https://example.com/a.png" />);
 
-    expect(screen.getByRole("img")).toHaveAttribute(
+    expect(screen.getByRole("presentation")).toHaveAttribute(
       "src",
       "https://example.com/a.png",
     );
@@ -16,12 +16,12 @@ describe("UserAvatar", () => {
     render(<UserAvatar name="竹添" image={null} />);
 
     expect(screen.getByText("竹")).toBeInTheDocument();
-    expect(screen.queryByRole("img")).not.toBeInTheDocument();
+    expect(screen.queryByRole("presentation")).not.toBeInTheDocument();
   });
 
   it("名前が空文字でも落ちない", () => {
     render(<UserAvatar name="" image={null} />);
 
-    expect(screen.queryByRole("img")).not.toBeInTheDocument();
+    expect(screen.queryByRole("presentation")).not.toBeInTheDocument();
   });
 });

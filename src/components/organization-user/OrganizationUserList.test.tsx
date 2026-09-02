@@ -1,5 +1,6 @@
 import { render, screen } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import userEvent from "@testing-library/user-event";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { OrganizationUserSummary } from "@/features/organization-user/repository";
 import { OrganizationUserList } from "./OrganizationUserList";
 
@@ -97,5 +98,31 @@ describe("OrganizationUserList", () => {
     expect(
       screen.getByText("この組織に所属しているユーザーはいません"),
     ).toBeInTheDocument();
+  });
+
+  describe("削除の確認ダイアログ", () => {
+    afterEach(() => {
+      vi.restoreAllMocks();
+    });
+
+    it("確認をキャンセルすると削除アクションを呼ばない", async () => {
+      vi.spyOn(window, "confirm").mockReturnValue(false);
+      const user = userEvent.setup();
+      renderList();
+
+      await user.click(screen.getByRole("button", { name: "山田 を削除" }));
+
+      expect(removeAction).not.toHaveBeenCalled();
+    });
+
+    it("確認を承諾すると削除アクションを呼ぶ", async () => {
+      vi.spyOn(window, "confirm").mockReturnValue(true);
+      const user = userEvent.setup();
+      renderList();
+
+      await user.click(screen.getByRole("button", { name: "山田 を削除" }));
+
+      expect(removeAction).toHaveBeenCalled();
+    });
   });
 });
