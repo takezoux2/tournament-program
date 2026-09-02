@@ -298,7 +298,10 @@ src/app/orgs/[slug]/tournaments/[tournamentId]/divisions/[divisionId]/setup/page
 
 ## 依存の追加
 
-`@dnd-kit/core` と `@dnd-kit/sortable` を `pnpm add` する。
+`@dnd-kit/core` を `pnpm add` する。
+
+`@dnd-kit/sortable` は入れない。ここで要るのは「並べ替え」ではなく
+「2 つのスロットの交換」で、`sortable` の並べ替えモデルとは挙動が違うため。
 
 ## 積み残し
 
