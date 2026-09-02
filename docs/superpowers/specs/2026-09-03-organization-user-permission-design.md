@@ -110,15 +110,32 @@ migration 内の INSERT で以下を投入する。
 新規に組織を作成したユーザー（旧 OWNER 相当）にも全 Permission を付与する
 （`features/organization/create` の repository を修正）。
 
-## 認可の仕組み
+## 認可の仕組み（CASL）
+
+認可ライブラリとして **CASL**（`@casl/ability`）を導入する（`pnpm add @casl/ability`）。
+
+Permission の code `"user.add"` は `<subject>.<action>` として解釈し、CASL の
+`can(action, subject)` に対応させる（例: `user.add` → `can("add", "user")`）。
+
+```
+src/shared/authz/
+├── ability.ts        defineAbilityFor(permissionCodes: string[]): AppAbility
+│                     code を "." で分割して can(action, subject) を積む純粋関数
+└── ability.test.ts
+```
 
 `src/shared/middleware/require-organization.ts` を変更する。
 
-* 戻り値の `role` を廃止し、`permissions: string[]`（code の配列）を返す
+* 戻り値の `role` を廃止し、`ability: AppAbility` を返す
+  （DB から引いた保有 Permission code 群を `defineAbilityFor` に通したもの）
 * `requirePermission(slug, code)` ヘルパーを追加する。
-  `requireOrganization` を呼んだうえで、指定 code を持たなければ `notFound()`
+  `requireOrganization` を呼んだうえで `ability.can(action, subject)` が false なら `notFound()`
   （権限の有無で存在を漏らさない方針は従来と同じ）
 * 従来どおり、ページ冒頭と Server Action 冒頭の**両方**で独立に呼ぶ
+* ページでの UI 出し分け（削除ボタンや追加フォームの表示制御）も同じ `ability` で判定する
+
+React 連携（`@casl/react`）は導入しない。判定はすべて Server Component / Server Action
+側で行い、クライアントには判定結果だけを渡すため不要。
 
 ## 画面構成
 
@@ -192,6 +209,7 @@ src/components/organization-user/
 * 追加: 正常系（全権限付与を含む）/ 所属済みの重複追加
 * 削除: 正常系 / 自分自身の削除拒否
 * 権限編集: 正常系 / 自分の `user.grant` 剥奪拒否
+* `defineAbilityFor`: code 群 → ability の変換（can / cannot の判定）
 * `requirePermission`: 権限あり / なし（notFound）
 * サインアップ: username 必須・重複エラー
 
