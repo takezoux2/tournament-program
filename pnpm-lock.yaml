@@ -8,6 +8,9 @@ dependencies:
   '@better-auth/prisma-adapter':
     specifier: ^1.7.2
     version: 1.7.2(@better-auth/core@1.7.2)(@better-auth/utils@0.4.2)(@prisma/client@7.10.0)(prisma@7.10.0)
+  '@casl/ability':
+    specifier: ^7.0.1
+    version: 7.0.1
   '@prisma/adapter-pg':
     specifier: ^7.10.0
     version: 7.10.0
@@ -358,6 +361,12 @@ packages:
     hasBin: true
     dependencies:
       css-tree: 3.2.1
+
+  /@casl/ability@7.0.1:
+    resolution: {integrity: sha512-krOW1zQGEie5lH6fpryrcsPvc5r2pe5Vn5xbthuzc5X9gwzHIyZgGGgw9dMoSLHXdjB4BIVxGG/HBkG+1NuyZQ==}
+    dependencies:
+      '@ucast/mongo2js': 2.0.0
+    dev: false
 
   /@csstools/color-helpers@6.1.1:
     resolution: {integrity: sha512-gLNsunvwf3mCi5u5o46/Z/JcJMnhbHSaZ69rkgPzNM3J4s8hWwpPUQB6/tt0EDFyCiWzxANlx+2LJwpYj4zS1w==}
@@ -1537,6 +1546,30 @@ packages:
     resolution: {integrity: sha512-AnzbBERsrLKtk2XSfTbYRLjQPdy116Sty4q+T+Bp3IC4l6jNBvreVPAHmpq9qhXQM7CXZPjLVmGMw9sy+hxQ3w==}
     dependencies:
       csstype: 3.2.3
+
+  /@ucast/core@2.0.0:
+    resolution: {integrity: sha512-4XVx6LzPXZGvnZO5jp39cm/G4UvuwvEdtmg+9+4+zl6uFkCcB7UJacvtMYeBE56GJVT99Zqy6Pii7dGJq3Kz9Q==}
+    dev: false
+
+  /@ucast/js@4.0.1:
+    resolution: {integrity: sha512-9O5xPBvwEWQk2WvO69Eh2WJB8QljVZ2vRVdFvfnKjlZwWXcYxp1lqLBhwXBU1AtuSgCvKhJPkXdjKJggUmAmQQ==}
+    dependencies:
+      '@ucast/core': 2.0.0
+    dev: false
+
+  /@ucast/mongo2js@2.0.0:
+    resolution: {integrity: sha512-vNBZzRnsfLr/TSxEoxz6W6hHQ5tmWsfEeC0nCq5z8RezC1AqIRy3cfHm8AGvlGtcn+cTSFQcZremfqnz6wm+nQ==}
+    dependencies:
+      '@ucast/core': 2.0.0
+      '@ucast/js': 4.0.1
+      '@ucast/mongo': 3.0.0
+    dev: false
+
+  /@ucast/mongo@3.0.0:
+    resolution: {integrity: sha512-kwuSH+kdB4GCR0LGhy/PEDm4PCflur89AlK82kNiYD0FvsA8A/p+0sx7m+/R8mMFAlmlkAd3VXp7sM/cLLYWYg==}
+    dependencies:
+      '@ucast/core': 2.0.0
+    dev: false
 
   /@visx/curve@4.0.1-alpha.0:
     resolution: {integrity: sha512-jRu61Uz274pV1zyioXmboyrLutYbnKsgjj4njSGCnhdXj5GkZvZbg+ThDb6oOzoAnJOBRLz4rzPlWvNJOzuVMg==}
