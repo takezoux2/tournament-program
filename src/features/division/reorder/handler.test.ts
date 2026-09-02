@@ -1,5 +1,6 @@
 import { Effect } from "effect";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { defineAbilityFor, PERMISSION_CODES } from "@/shared/authz/ability";
 import { INITIAL_DIVISION_FORM_STATE } from "../state";
 
 const requireOrganization = vi.fn();
@@ -41,7 +42,11 @@ beforeEach(() => {
   requireOrganization.mockReset();
   reorderDivisionInDb.mockReset();
   revalidatePath.mockReset();
-  requireOrganization.mockResolvedValue({ organization, role: "OWNER" });
+  requireOrganization.mockResolvedValue({
+    organization,
+    permissionCodes: [...PERMISSION_CODES],
+    ability: defineAbilityFor(PERMISSION_CODES),
+  });
 });
 
 describe("reorderDivisionAction", () => {

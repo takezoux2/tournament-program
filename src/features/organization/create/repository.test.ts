@@ -4,10 +4,12 @@ import { Prisma } from "@/generated/prisma/client";
 import { failureTag } from "@/shared/testing/exit";
 
 const create = vi.fn();
+const findManyPermission = vi.fn();
 
 vi.mock("@/shared/db/prisma", () => ({
   prisma: {
     organization: { create: (args: unknown) => create(args) },
+    permission: { findMany: (args: unknown) => findManyPermission(args) },
   },
 }));
 
@@ -20,23 +22,25 @@ const uniqueViolation = () =>
     clientVersion: "7.10.0",
   });
 
+const input = {
+  name: "テニス部",
+  slug: "tennis",
+  ownerUserId: "u1",
+};
+
 describe("createOrganizationInDb", () => {
   beforeEach(() => {
     create.mockReset();
+    findManyPermission.mockReset();
+    findManyPermission.mockResolvedValue([{ id: 1 }, { id: 2 }]);
   });
 
-  it("組織と OWNER 所属行を 1 回の nested write でまとめて作る（原子性の回帰テスト）", async () => {
-    // create が 2 回呼ばれる実装（組織作成→所属作成を別クエリに分ける）に
-    // 後退すると、片方だけ成功して誰にも見えない組織が残り得る。
+  it("組織・所属行・全権限を 1 回の nested write でまとめて作る（原子性の回帰テスト）", async () => {
+    // create が複数回に分かれる実装へ後退すると、権限だけ入らずに
+    // 誰も操作できない組織が残り得る。
     create.mockResolvedValue({ slug: "tennis" });
 
-    const exit = await Effect.runPromiseExit(
-      createOrganizationInDb({
-        name: "テニス部",
-        slug: "tennis",
-        ownerUserId: "u1",
-      }),
-    );
+    const exit = await Effect.runPromiseExit(createOrganizationInDb(input));
 
     expect(create).toHaveBeenCalledTimes(1);
     expect(create).toHaveBeenCalledWith(
@@ -44,7 +48,14 @@ describe("createOrganizationInDb", () => {
         data: {
           name: "テニス部",
           slug: "tennis",
-          users: { create: { userId: "u1", role: "OWNER" } },
+          users: {
+            create: {
+              userId: "u1",
+              permissions: {
+                create: [{ permissionId: 1 }, { permissionId: 2 }],
+              },
+            },
+          },
         },
       }),
     );
@@ -54,16 +65,27 @@ describe("createOrganizationInDb", () => {
     }
   });
 
+  it("Permission が 1 件も無ければ権限を付けずに作る（シード漏れでも組織作成は落とさない）", async () => {
+    findManyPermission.mockResolvedValue([]);
+    create.mockResolvedValue({ slug: "tennis" });
+
+    await Effect.runPromiseExit(createOrganizationInDb(input));
+
+    expect(create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          users: {
+            create: { userId: "u1", permissions: { create: [] } },
+          },
+        }),
+      }),
+    );
+  });
+
   it("P2002 は SlugTaken に写像し、試みたスラッグを保持する", async () => {
     create.mockRejectedValue(uniqueViolation());
 
-    const exit = await Effect.runPromiseExit(
-      createOrganizationInDb({
-        name: "テニス部",
-        slug: "tennis",
-        ownerUserId: "u1",
-      }),
-    );
+    const exit = await Effect.runPromiseExit(createOrganizationInDb(input));
 
     expect(failureTag(exit)).toBe("SlugTaken");
     if (Exit.isFailure(exit) && exit.cause._tag === "Fail") {
@@ -75,13 +97,7 @@ describe("createOrganizationInDb", () => {
     const cause = new Error("network");
     create.mockRejectedValue(cause);
 
-    const exit = await Effect.runPromiseExit(
-      createOrganizationInDb({
-        name: "テニス部",
-        slug: "tennis",
-        ownerUserId: "u1",
-      }),
-    );
+    const exit = await Effect.runPromiseExit(createOrganizationInDb(input));
 
     expect(failureTag(exit)).toBe("UnexpectedOrganizationError");
     if (Exit.isFailure(exit) && exit.cause._tag === "Fail") {

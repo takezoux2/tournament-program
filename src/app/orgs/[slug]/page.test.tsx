@@ -1,5 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { defineAbilityFor, PERMISSION_CODES } from "@/shared/authz/ability";
 
 // LogoutButton は authClient / useRouter に依存するクライアントコンポーネントで、
 // ここではページ本体の検証に集中したいので AppHeader.test.tsx と同じ方針で
@@ -55,7 +56,8 @@ describe("OrganizationPage", () => {
     requireOrganization.mockResolvedValue({
       session,
       organization,
-      role: "OWNER",
+      permissionCodes: [...PERMISSION_CODES],
+      ability: defineAbilityFor(PERMISSION_CODES),
     });
     listTournamentsInOrganization.mockResolvedValue([]);
   });
