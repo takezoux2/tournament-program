@@ -4,6 +4,7 @@ import { signupSchema } from "./schema";
 
 const valid = {
   name: "竹添",
+  username: "takezo",
   email: "user@example.com",
   password: "a".repeat(MIN_PASSWORD_LENGTH),
 };
@@ -52,5 +53,51 @@ describe("signupSchema", () => {
         password: "a".repeat(MIN_PASSWORD_LENGTH - 1),
       }).success,
     ).toBe(false);
+  });
+
+  it("username は前後の空白を落として受け取る", () => {
+    const parsed = signupSchema.safeParse({
+      name: "竹添",
+      username: "  takezo  ",
+      email: "takezo@example.com",
+      password: "password123",
+    });
+
+    expect(parsed.success).toBe(true);
+    if (parsed.success) {
+      expect(parsed.data.username).toBe("takezo");
+    }
+  });
+
+  it("username が空なら弾く", () => {
+    const parsed = signupSchema.safeParse({
+      name: "竹添",
+      username: "   ",
+      email: "takezo@example.com",
+      password: "password123",
+    });
+
+    expect(parsed.success).toBe(false);
+    if (!parsed.success) {
+      expect(parsed.error.issues[0].message).toBe(
+        "ユーザー名を入力してください",
+      );
+    }
+  });
+
+  it("username に使えない文字が含まれていれば弾く", () => {
+    const parsed = signupSchema.safeParse({
+      name: "竹添",
+      username: "take zo",
+      email: "takezo@example.com",
+      password: "password123",
+    });
+
+    expect(parsed.success).toBe(false);
+    if (!parsed.success) {
+      expect(parsed.error.issues[0].message).toBe(
+        "ユーザー名は半角英数字・アンダースコア・ハイフンのみ使えます",
+      );
+    }
   });
 });

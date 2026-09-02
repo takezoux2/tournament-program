@@ -25,6 +25,13 @@ export const auth = betterAuth({
       clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
     },
   },
+  user: {
+    // username は User テーブルの必須列。ここに宣言しないと signUp の
+    // 入力から落とされ、NOT NULL 制約で登録が失敗する。
+    additionalFields: {
+      username: { type: "string", required: true, input: true },
+    },
+  },
   account: {
     // Google は検証済みのメールアドレスを返すため、同じメールの既存ユーザーへ
     // メール確認を挟まずに連携してよい。

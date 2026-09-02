@@ -54,6 +54,7 @@ export const buildBypassSession = (
     id: user.id,
     email: user.email,
     name: user.name,
+    username: user.username,
     emailVerified: user.emailVerified,
     image: user.image,
     createdAt: user.createdAt,

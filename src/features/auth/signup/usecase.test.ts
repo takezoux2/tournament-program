@@ -6,6 +6,7 @@ import { signup } from "./usecase";
 
 const input = {
   name: "竹添",
+  username: "takezo",
   email: "user@example.com",
   password: "password123",
 };
