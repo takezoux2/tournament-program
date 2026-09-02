@@ -1,7 +1,17 @@
 import { describe, expect, it } from "vitest";
 import { Prisma } from "@/generated/prisma/client";
 import { DivisionJsonError } from "@/lib/division/parse";
-import { DivisionResultsRecordedError, toDivisionError } from "./errors";
+import {
+  DivisionDataError,
+  DivisionDuplicateEntryError,
+  DivisionEntryLimitError,
+  DivisionMemberNotFoundError,
+  DivisionNotEnoughEntriesError,
+  DivisionOrderConflictError,
+  DivisionResultsRecordedError,
+  toDivisionError,
+  UnexpectedDivisionError,
+} from "./errors";
 
 /** P2002（unique 制約違反）を模した Prisma のエラーを作る。organization/errors.test.ts と同じ組み立て方。 */
 const uniqueViolation = () =>
@@ -53,6 +63,40 @@ describe("toDivisionError（追加分）", () => {
     // トランザクションの中から投げたドメインエラーが
     // UnexpectedDivisionError に潰されないことを確かめる。
     const original = new DivisionResultsRecordedError({ divisionId: "d1" });
+    expect(toDivisionError(original, "t1")).toBe(original);
+  });
+});
+
+describe("toDivisionError（タグ判定の網羅性）", () => {
+  // instanceof の書き並べをタグ駆動の判定に置き換えたため、コンパイル時の
+  // 網羅性チェックは「型」で保証されていても、実際に判定が効いているかは
+  // 実行時に確かめるしかない。DivisionError の8タグすべてで
+  // identity pass-through（そのまま返る）ことを1件ずつ検証する。
+  it.each([
+    ["DivisionOrderConflictError", new DivisionOrderConflictError({ tournamentId: "t1" })],
+    [
+      "UnexpectedDivisionError",
+      new UnexpectedDivisionError({ reason: new Error("boom") }),
+    ],
+    [
+      "DivisionResultsRecordedError",
+      new DivisionResultsRecordedError({ divisionId: "d1" }),
+    ],
+    [
+      "DivisionNotEnoughEntriesError",
+      new DivisionNotEnoughEntriesError({ divisionId: "d1" }),
+    ],
+    ["DivisionDataError", new DivisionDataError({ reason: "broken" })],
+    ["DivisionEntryLimitError", new DivisionEntryLimitError({ divisionId: "d1" })],
+    [
+      "DivisionDuplicateEntryError",
+      new DivisionDuplicateEntryError({ divisionId: "d1" }),
+    ],
+    [
+      "DivisionMemberNotFoundError",
+      new DivisionMemberNotFoundError({ memberId: "m1" }),
+    ],
+  ])("%s はそのまま通す", (_tag, original) => {
     expect(toDivisionError(original, "t1")).toBe(original);
   });
 });

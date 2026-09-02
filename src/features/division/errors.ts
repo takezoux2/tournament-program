@@ -1,4 +1,4 @@
-import { Data } from "effect";
+import { Data, Predicate } from "effect";
 import { Prisma } from "@/generated/prisma/client";
 import { DivisionJsonError } from "@/lib/division/parse";
 
@@ -73,6 +73,39 @@ export type DivisionError =
   | DivisionMemberNotFoundError;
 
 /**
+ * DivisionError の全タグをコンパイラに列挙させるための対照表。
+ * Record<DivisionError["_tag"], true> という型注釈により、union に
+ * タグを追加してここへの追記を忘れるとコンパイルエラーになる（逆に
+ * union に無いタグを書いてもコンパイルエラーになる）。instanceof の
+ * 書き並べだと union とこの一覧が手作業のまま同期されるため、追記漏れが
+ * 静かにコンパイルを通ってしまう。この対照表とその key 集合を判定に
+ * 使うことで、union とタグ判定が構造的に乖離できないようにする。
+ */
+const divisionErrorTags: Record<DivisionError["_tag"], true> = {
+  DivisionOrderConflictError: true,
+  UnexpectedDivisionError: true,
+  DivisionResultsRecordedError: true,
+  DivisionNotEnoughEntriesError: true,
+  DivisionDataError: true,
+  DivisionEntryLimitError: true,
+  DivisionDuplicateEntryError: true,
+  DivisionMemberNotFoundError: true,
+};
+
+/**
+ * reason が DivisionError のいずれかであるかを、_tag が
+ * divisionErrorTags に載っているかどうかで判定する。instanceof を
+ * 使わないのは、判定対象のタグ集合を divisionErrorTags（＝union から
+ * コンパイラが強制した一覧）に一本化し、判定ロジックとタグ一覧が
+ * ずれる余地を無くすため。
+ */
+const isDivisionError = (reason: unknown): reason is DivisionError =>
+  Predicate.isRecord(reason) &&
+  Predicate.hasProperty(reason, "_tag") &&
+  typeof reason._tag === "string" &&
+  reason._tag in divisionErrorTags;
+
+/**
  * Prisma の例外をドメインのエラーに写像する。ここで写像しておくことで、
  * usecase より上の層に Prisma の型が漏れない。
  */
@@ -82,15 +115,7 @@ export const toDivisionError = (
 ): DivisionError => {
   // トランザクションの中から投げたドメインエラーは、ここで
   // UnexpectedDivisionError に潰さずそのまま通す。
-  if (
-    reason instanceof DivisionOrderConflictError ||
-    reason instanceof DivisionResultsRecordedError ||
-    reason instanceof DivisionNotEnoughEntriesError ||
-    reason instanceof DivisionDataError ||
-    reason instanceof DivisionEntryLimitError ||
-    reason instanceof DivisionDuplicateEntryError ||
-    reason instanceof DivisionMemberNotFoundError
-  ) {
+  if (isDivisionError(reason)) {
     return reason;
   }
   if (reason instanceof DivisionJsonError) {
