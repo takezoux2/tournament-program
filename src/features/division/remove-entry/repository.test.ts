@@ -72,11 +72,14 @@ describe("removeEntryInDb", () => {
 
   it("残りが 2 人未満になったら組み合わせを空にする", async () => {
     await Effect.runPromise(removeEntryInDb(ids, { entryId: "e2" }));
-    const { next } = await callMutate({
+    const { next, value } = await callMutate({
       entries: withEntries(2),
       matchingConfig: buildFromSlots(["e1", "e2"].map(entry)),
     });
 
+    // 除去前の状態では matches.length > 0 だったが、除去後に 1 人未満になるため matches が空になる。
+    // この状況でのみ除去前・後の状態が異なるため、regenerated フラグが除去前の状態に基づいていることを確認する。
+    expect(value).toEqual({ regenerated: true });
     expect(next.matchingConfig.matches).toEqual([]);
   });
 
