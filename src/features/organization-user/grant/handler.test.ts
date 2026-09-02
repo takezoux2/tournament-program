@@ -1,0 +1,137 @@
+import { Effect } from "effect";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+const requirePermission = vi.fn();
+const grantPermissionsInDb = vi.fn();
+const revalidatePath = vi.fn();
+const redirect = vi.fn((_path: string) => {
+  throw new Error("NEXT_REDIRECT");
+});
+const notFound = vi.fn(() => {
+  throw new Error("NEXT_NOT_FOUND");
+});
+
+vi.mock("@/shared/middleware/require-organization", () => ({
+  requirePermission: (slug: string, code: string) =>
+    requirePermission(slug, code),
+}));
+
+vi.mock("next/cache", () => ({
+  revalidatePath: (path: string) => revalidatePath(path),
+}));
+
+vi.mock("next/navigation", () => ({
+  redirect: (path: string) => redirect(path),
+  notFound: () => notFound(),
+}));
+
+vi.mock("./repository", () => ({
+  grantPermissionsInDb: (input: unknown) => grantPermissionsInDb(input),
+}));
+
+const { grantPermissionsAction } = await import("./handler");
+
+/** codes は同名で複数入るため、FormData を直接組み立てる。 */
+const formData = (
+  fields: { slug: string; userId: string },
+  codes: string[],
+) => {
+  const data = new FormData();
+  data.set("slug", fields.slug);
+  data.set("userId", fields.userId);
+  for (const code of codes) {
+    data.append("permissionCode", code);
+  }
+  return data;
+};
+
+const initial = { error: null };
+
+describe("grantPermissionsAction", () => {
+  beforeEach(() => {
+    requirePermission.mockReset();
+    grantPermissionsInDb.mockReset();
+    revalidatePath.mockReset();
+    redirect.mockClear();
+    notFound.mockClear();
+    requirePermission.mockResolvedValue({
+      session: { user: { id: "me" } },
+      organization: { id: "o1", slug: "tennis" },
+    });
+    // GrantPermissionsPort は Effect を返す契約なので、素の Promise を返すモックだと
+    // Effect.runPromiseExit が "Not a valid effect" で die してしまう。
+    grantPermissionsInDb.mockImplementation(() =>
+      Effect.succeed({ updated: 1 }),
+    );
+  });
+
+  it("user.grant を要求する", async () => {
+    await expect(
+      grantPermissionsAction(
+        initial,
+        formData({ slug: "tennis", userId: "u1" }, ["user.view"]),
+      ),
+    ).rejects.toThrow("NEXT_REDIRECT");
+
+    expect(requirePermission).toHaveBeenCalledWith("tennis", "user.grant");
+  });
+
+  it("チェックされた権限コードだけを渡す", async () => {
+    await expect(
+      grantPermissionsAction(
+        initial,
+        formData({ slug: "tennis", userId: "u1" }, ["user.view", "org.edit"]),
+      ),
+    ).rejects.toThrow("NEXT_REDIRECT");
+
+    expect(grantPermissionsInDb).toHaveBeenCalledWith({
+      userId: "u1",
+      organizationId: "o1",
+      codes: ["user.view", "org.edit"],
+    });
+  });
+
+  it("自分自身から user.grant を外そうとしたら拒否し、DB を触らない", async () => {
+    // 最後の user.grant 保持者が自分を降格すると、誰も権限を戻せなくなる。
+    const state = await grantPermissionsAction(
+      initial,
+      formData({ slug: "tennis", userId: "me" }, ["user.view"]),
+    );
+
+    expect(state.error).toBe("自分自身から権限の付与・剥奪の権限は外せません");
+    expect(grantPermissionsInDb).not.toHaveBeenCalled();
+  });
+
+  it("自分自身でも user.grant を残していれば保存できる", async () => {
+    await expect(
+      grantPermissionsAction(
+        initial,
+        formData({ slug: "tennis", userId: "me" }, ["user.grant", "user.view"]),
+      ),
+    ).rejects.toThrow("NEXT_REDIRECT");
+
+    expect(grantPermissionsInDb).toHaveBeenCalled();
+  });
+
+  it("保存できたら一覧へ戻す", async () => {
+    await expect(
+      grantPermissionsAction(
+        initial,
+        formData({ slug: "tennis", userId: "u1" }, ["user.view"]),
+      ),
+    ).rejects.toThrow("NEXT_REDIRECT");
+
+    expect(revalidatePath).toHaveBeenCalledWith("/orgs/tennis/users");
+    expect(redirect).toHaveBeenCalledWith("/orgs/tennis/users");
+  });
+
+  it("未知の権限コードが混ざっていたらエラーを返し、DB を触らない", async () => {
+    const state = await grantPermissionsAction(
+      initial,
+      formData({ slug: "tennis", userId: "u1" }, ["system.root"]),
+    );
+
+    expect(state.error).not.toBeNull();
+    expect(grantPermissionsInDb).not.toHaveBeenCalled();
+  });
+});
