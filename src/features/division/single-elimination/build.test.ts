@@ -63,6 +63,56 @@ describe("buildFromSlots", () => {
     expect(buildFromSlots([]).matches).toEqual([]);
     expect(buildFromSlots([entry("a")]).matches).toEqual([]);
   });
+
+  it("6 スロットでも 8 スロット扱いで組み立てる (バイで埋める)", () => {
+    const slots = ["a", "b", "c", "d", "e", "f"].map(entry);
+    const config = buildFromSlots(slots);
+
+    // 4 round-1 matches (6 entries + 2 byes), 2 round-2, 1 round-3
+    expect(config.matches.filter((m) => m.round === 1)).toHaveLength(4);
+    expect(config.matches.filter((m) => m.round === 2)).toHaveLength(2);
+    expect(config.matches.filter((m) => m.round === 3)).toHaveLength(1);
+
+    // Verify the last two round-1 matches have byes
+    const r1Matches = config.matches
+      .filter((m) => m.round === 1)
+      .sort((a, b) => a.order - b.order);
+    expect(r1Matches[3].slots[0]).toEqual(bye);
+    expect(r1Matches[3].slots[1]).toEqual(bye);
+  });
+
+  it("5 スロット (奇数) でも 8 スロット扱いで組み立てる", () => {
+    const slots = ["a", "b", "c", "d", "e"].map(entry);
+    const config = buildFromSlots(slots);
+
+    // All slots should be defined objects with a kind property
+    for (const match of config.matches) {
+      for (const slot of match.slots) {
+        expect(slot).toBeDefined();
+        expect(slot).toHaveProperty("kind");
+      }
+    }
+
+    // Verify structure
+    expect(config.matches.filter((m) => m.round === 1)).toHaveLength(4);
+    expect(config.matches.filter((m) => m.round === 2)).toHaveLength(2);
+    expect(config.matches.filter((m) => m.round === 3)).toHaveLength(1);
+  });
+
+  it("6 スロットの場合、全ての winnerOf 参照がマッチ id として存在する", () => {
+    const slots = ["a", "b", "c", "d", "e", "f"].map(entry);
+    const config = buildFromSlots(slots);
+
+    const matchIds = new Set(config.matches.map((m) => m.id));
+
+    for (const match of config.matches) {
+      for (const slot of match.slots) {
+        if (slot.kind === "winnerOf") {
+          expect(matchIds.has(slot.matchId)).toBe(true);
+        }
+      }
+    }
+  });
 });
 
 describe("toSlots", () => {

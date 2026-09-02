@@ -1,4 +1,8 @@
-import type { BracketMatch, MatchingConfig, SlotSource } from "@/lib/division/types";
+import type {
+  BracketMatch,
+  MatchingConfig,
+  SlotSource,
+} from "@/lib/division/types";
 
 /**
  * 標準シード順。size 個の位置それぞれに「何番シードが入るか」を 1 始まりで返す。
@@ -26,27 +30,49 @@ export const seedOrder = (size: number): number[] => {
 const matchId = (round: number, order: number): string => `m${round}-${order}`;
 
 /**
+ * 次の 2 の冪を計算する。既に 2 の冪なら変わらない。
+ */
+const nextPowerOfTwo = (n: number): number => {
+  if (n <= 1) return 1;
+  let power = 1;
+  while (power < n) {
+    power *= 2;
+  }
+  return power;
+};
+
+/**
  * 1 回戦のスロット割当から勝ち上がり木を組み立てる。
- * slots の長さは 2 の冪であることを前提とする。2 未満なら試合が作れないので空。
+ * 入力 slots の長さが 2 の冪でない場合、自動的に { kind: "bye" } でパディングする。
+ * これは、配列が括弧全体の唯一の情報源であり、短い配列は「試合が足りない」のではなく
+ * 「bye スロットが不足している」という正規化の意図である。
+ * 2 未満なら試合が作れないので空。
  */
 export const buildFromSlots = (slots: SlotSource[]): MatchingConfig => {
   if (slots.length < 2) {
     return { version: 1, matches: [] };
   }
 
+  // 次の 2 の冪までパディング
+  const targetSize = nextPowerOfTwo(slots.length);
+  const paddedSlots = [...slots];
+  while (paddedSlots.length < targetSize) {
+    paddedSlots.push({ kind: "bye" });
+  }
+
   const matches: BracketMatch[] = [];
 
-  for (let order = 0; order < slots.length / 2; order += 1) {
+  for (let order = 0; order < paddedSlots.length / 2; order += 1) {
     matches.push({
       id: matchId(1, order),
       bracket: "winners",
       round: 1,
       order,
-      slots: [slots[order * 2], slots[order * 2 + 1]],
+      slots: [paddedSlots[order * 2], paddedSlots[order * 2 + 1]],
     });
   }
 
-  let previousCount = slots.length / 2;
+  let previousCount = paddedSlots.length / 2;
   let round = 2;
   while (previousCount > 1) {
     const count = previousCount / 2;
