@@ -72,6 +72,18 @@ const users = [
   },
 ];
 
+// canRemove の削除ボタンは自分自身の行には出ないため、
+// canRemove/canGrant を区別するテストには自分以外のユーザーが要る。
+const otherUser = {
+  userId: "u2",
+  name: "山田",
+  username: "yamada",
+  email: "yamada@example.com",
+  image: null,
+  permissionCodes: ["user.view"],
+  joinedAt: new Date("2026-08-01T00:00:00Z"),
+};
+
 describe("OrganizationUsersPage", () => {
   beforeEach(() => {
     requirePermission.mockReset();
@@ -131,5 +143,33 @@ describe("OrganizationUsersPage", () => {
     render(element);
 
     expect(screen.getByText("ユーザーを追加")).toBeInTheDocument();
+  });
+
+  it("user.remove だけ持てば削除ボタンが出て、権限編集リンクは出ない", async () => {
+    requirePermission.mockResolvedValue(
+      contextWith(["user.view", "user.remove"]),
+    );
+    listUsersInOrganization.mockResolvedValue([otherUser]);
+
+    const element = await OrganizationUsersPage(pageProps("tennis"));
+    render(element);
+
+    expect(screen.getByText(`${otherUser.name} を削除`)).toBeInTheDocument();
+    expect(screen.queryByText(/の権限を編集/)).toBeNull();
+  });
+
+  it("user.grant だけ持てば権限編集リンクが出て、削除ボタンは出ない", async () => {
+    requirePermission.mockResolvedValue(
+      contextWith(["user.view", "user.grant"]),
+    );
+    listUsersInOrganization.mockResolvedValue([otherUser]);
+
+    const element = await OrganizationUsersPage(pageProps("tennis"));
+    render(element);
+
+    expect(
+      screen.getByText(`${otherUser.name} の権限を編集`),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/を削除/)).toBeNull();
   });
 });
