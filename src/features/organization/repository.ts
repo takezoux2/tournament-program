@@ -24,3 +24,22 @@ export const listOrganizationsForUser = async (
 
   return memberships.map((membership) => membership.organization);
 };
+
+export type MemberSummary = {
+  id: string;
+  name: string;
+  nameKana: string;
+};
+
+/**
+ * 組織のメンバーを読み順で返す。エントリー追加の選択肢に使う。
+ * Member は組織スコープなので、organizationId が絞り込みの境界そのものになる。
+ */
+export const listMembersInOrganization = (
+  organizationId: string,
+): Promise<MemberSummary[]> =>
+  prisma.member.findMany({
+    where: { organizationId },
+    orderBy: { nameKana: "asc" },
+    select: { id: true, name: true, nameKana: true },
+  });

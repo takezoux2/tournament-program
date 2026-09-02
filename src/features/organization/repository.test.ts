@@ -1,14 +1,17 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const findMany = vi.fn();
+const memberFindMany = vi.fn();
 
 vi.mock("@/shared/db/prisma", () => ({
   prisma: {
     organizationUser: { findMany: (args: unknown) => findMany(args) },
+    member: { findMany: (args: unknown) => memberFindMany(args) },
   },
 }));
 
-const { listOrganizationsForUser } = await import("./repository");
+const { listMembersInOrganization, listOrganizationsForUser } =
+  await import("./repository");
 
 describe("listOrganizationsForUser", () => {
   beforeEach(() => {
@@ -50,5 +53,19 @@ describe("listOrganizationsForUser", () => {
     await expect(listOrganizationsForUser("u1")).resolves.toEqual([
       organization,
     ]);
+  });
+});
+
+describe("listMembersInOrganization", () => {
+  it("組織を条件に入れて読み順で引く", async () => {
+    memberFindMany.mockResolvedValue([]);
+
+    await listMembersInOrganization("o1");
+
+    expect(memberFindMany).toHaveBeenCalledWith({
+      where: { organizationId: "o1" },
+      orderBy: { nameKana: "asc" },
+      select: { id: true, name: true, nameKana: true },
+    });
   });
 });
