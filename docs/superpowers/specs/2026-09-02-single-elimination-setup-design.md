@@ -234,6 +234,9 @@ src/app/orgs/[slug]/tournaments/[tournamentId]/divisions/[divisionId]/setup/page
 | `DivisionResultsRecordedError` | 勝敗が記録されているため、エントリーと組み合わせは変更できません |
 | `DivisionNotEnoughEntriesError` | 組み合わせを作るにはエントリーが 2 人以上必要です |
 | `DivisionDataError` | 部門のデータが壊れています。管理者に連絡してください |
+| `DivisionEntryLimitError` | エントリーは128人までです |
+| `DivisionDuplicateEntryError` | その参加者はすでにエントリーしています |
+| `DivisionMemberNotFoundError` | 選択したメンバーが見つかりません |
 
 `toDivisionError` は `DivisionJsonError` を受け取ったら `DivisionDataError` へ写像する。
 現状は Prisma の `P2002` しか見ていないため、そこに分岐を足す。
@@ -245,8 +248,8 @@ src/app/orgs/[slug]/tournaments/[tournamentId]/divisions/[divisionId]/setup/page
 ## 画面へ通知を返す
 
 `DivisionFormState` は今 `error` しか持たない。削除時の「再生成しました」を出すため
-`notice: string | null` を足し、既存の `INITIAL_DIVISION_FORM_STATE` と
-`divisionErrorFormState` も合わせて更新する。既存 4 スライスは `notice: null` のままになる。
+`notice?: string` を足す。省略可能にすることで、既存 4 スライスのハンドラとテストは
+無修正のまま通る。`INITIAL_DIVISION_FORM_STATE` と `divisionErrorFormState` も変更しない。
 
 ## UI
 

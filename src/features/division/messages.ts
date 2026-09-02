@@ -15,5 +15,26 @@ export const divisionErrorMessage: (error: DivisionError) => string =
       "UnexpectedDivisionError",
       () => "処理に失敗しました。時間をおいて再度お試しください",
     ),
+    Match.tag(
+      "DivisionResultsRecordedError",
+      () => "勝敗が記録されているため、エントリーと組み合わせは変更できません",
+    ),
+    Match.tag(
+      "DivisionNotEnoughEntriesError",
+      () => "組み合わせを作るにはエントリーが2人以上必要です",
+    ),
+    Match.tag(
+      "DivisionDataError",
+      () => "部門のデータが壊れています。管理者に連絡してください",
+    ),
+    Match.tag("DivisionEntryLimitError", () => "エントリーは128人までです"),
+    Match.tag(
+      "DivisionDuplicateEntryError",
+      () => "その参加者はすでにエントリーしています",
+    ),
+    Match.tag(
+      "DivisionMemberNotFoundError",
+      () => "選択したメンバーが見つかりません",
+    ),
     Match.exhaustive,
   );
