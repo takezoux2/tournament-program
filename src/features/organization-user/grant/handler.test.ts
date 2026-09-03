@@ -57,6 +57,7 @@ describe("grantPermissionsAction", () => {
     requirePermission.mockResolvedValue({
       session: { user: { id: "me" } },
       organization: { id: "o1", slug: "tennis" },
+      permissionCodes: ["user.view", "user.grant"],
     });
     // GrantPermissionsPort は Effect を返す契約なので、素の Promise を返すモックだと
     // Effect.runPromiseExit が "Not a valid effect" で die してしまう。
@@ -98,15 +99,64 @@ describe("grantPermissionsAction", () => {
       formData({ slug: "tennis", userId: "me" }, ["user.view"]),
     );
 
-    expect(state.error).toBe("自分自身から権限の付与・剥奪の権限は外せません");
+    expect(state.error).toBe(
+      "自分自身からは「ユーザーの閲覧」と「権限の付与・剥奪」の権限を外せません",
+    );
     expect(grantPermissionsInDb).not.toHaveBeenCalled();
   });
 
-  it("自分自身でも user.grant を残していれば保存できる", async () => {
+  it("自分自身から user.view を外そうとしたら拒否し、DB を触らない", async () => {
+    // 保存後のリダイレクト先 /orgs/[slug]/users が user.view を要求するため、
+    // 外せてしまうと自分で自分を 404 に閉じ込める。
+    const state = await grantPermissionsAction(
+      initial,
+      formData({ slug: "tennis", userId: "me" }, ["user.grant"]),
+    );
+
+    expect(state.error).toBe(
+      "自分自身からは「ユーザーの閲覧」と「権限の付与・剥奪」の権限を外せません",
+    );
+    expect(grantPermissionsInDb).not.toHaveBeenCalled();
+  });
+
+  it("自分自身でもロック対象を残していれば保存できる", async () => {
     await expect(
       grantPermissionsAction(
         initial,
-        formData({ slug: "tennis", userId: "me" }, ["user.grant", "user.view"]),
+        formData({ slug: "tennis", userId: "me" }, [
+          "user.grant",
+          "user.view",
+          "org.edit",
+        ]),
+      ),
+    ).rejects.toThrow("NEXT_REDIRECT");
+
+    expect(grantPermissionsInDb).toHaveBeenCalled();
+  });
+
+  it("他人からは user.view を外せる", async () => {
+    await expect(
+      grantPermissionsAction(
+        initial,
+        formData({ slug: "tennis", userId: "u1" }, ["org.edit"]),
+      ),
+    ).rejects.toThrow("NEXT_REDIRECT");
+
+    expect(grantPermissionsInDb).toHaveBeenCalled();
+  });
+
+  it("元々 user.view を持っていない自分なら、外れたままでも保存できる", async () => {
+    // 持っていない権限を「外すな」と言われても保存できない。
+    requirePermission.mockResolvedValue({
+      session: { user: { id: "me" } },
+      organization: { id: "o1", slug: "tennis" },
+      permissionCodes: ["user.grant"],
+    });
+
+    await expect(
+      grantPermissionsAction(
+        initial,
+        formData({ slug: "tennis", userId: "me" }, ["user.grant"]),
       ),
     ).rejects.toThrow("NEXT_REDIRECT");
 

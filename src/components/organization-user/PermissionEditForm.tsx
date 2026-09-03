@@ -2,6 +2,10 @@
 
 import Link from "next/link";
 import { useActionState } from "react";
+import {
+  SELF_LOCKED_CODES,
+  SELF_LOCKED_MESSAGE,
+} from "@/features/organization-user/grant/domain";
 import type {
   OrganizationUserSummary,
   PermissionSummary,
@@ -11,9 +15,6 @@ import {
   type OrganizationUserFormAction,
 } from "@/features/organization-user/state";
 import { UserAvatar } from "./UserAvatar";
-
-/** 自分から外せない権限。外すと誰も権限を戻せなくなる。 */
-const SELF_LOCKED_CODE = "user.grant";
 
 export function PermissionEditForm({
   slug,
@@ -33,7 +34,10 @@ export function PermissionEditForm({
     INITIAL_ORGANIZATION_USER_FORM_STATE,
   );
   const held = new Set(user.permissionCodes);
-  const lockGrant = isSelf && held.has(SELF_LOCKED_CODE);
+  // 元々持っていない権限は外しようがないので、ロックの対象にしない。
+  const lockedCodes = isSelf
+    ? SELF_LOCKED_CODES.filter((code) => held.has(code))
+    : [];
 
   return (
     <form
@@ -43,9 +47,9 @@ export function PermissionEditForm({
       <input type="hidden" name="slug" value={slug} />
       <input type="hidden" name="userId" value={user.userId} />
       {/* disabled なチェックボックスは送信されないため、固定分は hidden で補う。 */}
-      {lockGrant && (
-        <input type="hidden" name="permissionCode" value={SELF_LOCKED_CODE} />
-      )}
+      {lockedCodes.map((code) => (
+        <input key={code} type="hidden" name="permissionCode" value={code} />
+      ))}
 
       <div className="flex items-center gap-3">
         <UserAvatar name={user.name} image={user.image} />
@@ -59,7 +63,7 @@ export function PermissionEditForm({
 
       <ul className="space-y-2">
         {permissions.map((permission) => {
-          const locked = lockGrant && permission.code === SELF_LOCKED_CODE;
+          const locked = lockedCodes.some((code) => code === permission.code);
           return (
             <li key={permission.id}>
               <label
@@ -85,10 +89,8 @@ export function PermissionEditForm({
         })}
       </ul>
 
-      {lockGrant && (
-        <p className="text-xs text-slate-500">
-          自分自身から「{SELF_LOCKED_CODE}」を外すことはできません
-        </p>
+      {lockedCodes.length > 0 && (
+        <p className="text-xs text-slate-500">{SELF_LOCKED_MESSAGE}</p>
       )}
 
       {state.error !== null && (

@@ -6,6 +6,7 @@ import { notFound, redirect } from "next/navigation";
 import { requirePermission } from "@/shared/middleware/require-organization";
 import { organizationUserErrorFormState } from "../effect-to-form-state";
 import type { OrganizationUserFormState } from "../state";
+import { SELF_LOCKED_MESSAGE, strippedSelfLockedCodes } from "./domain";
 import { grantPermissionsInDb } from "./repository";
 import { grantPermissionsSchema } from "./schema";
 import { grantPermissions } from "./usecase";
@@ -15,7 +16,10 @@ export const grantPermissionsAction = async (
   formData: FormData,
 ): Promise<OrganizationUserFormState> => {
   const slug = String(formData.get("slug") ?? "");
-  const { session, organization } = await requirePermission(slug, "user.grant");
+  const { session, organization, permissionCodes } = await requirePermission(
+    slug,
+    "user.grant",
+  );
 
   const parsed = grantPermissionsSchema.safeParse({
     userId: String(formData.get("userId") ?? ""),
@@ -26,13 +30,14 @@ export const grantPermissionsAction = async (
     return { error: parsed.error.issues[0].message };
   }
 
-  // 最後の user.grant 保持者が自分から権限を外すと、誰も権限を戻せなくなる。
-  // チェックボックスの無効化は体感のためで、境界はここ。
+  // 自分から外すと自分を締め出す権限（user.grant / user.view）を守る。
+  // 対象が自分なので、requirePermission が返す保有コードがそのまま
+  // 対象の保有コードになる。チェックボックスの無効化は体感のためで、境界はここ。
   if (
     parsed.data.userId === session.user.id &&
-    !parsed.data.codes.includes("user.grant")
+    strippedSelfLockedCodes(permissionCodes, parsed.data.codes).length > 0
   ) {
-    return { error: "自分自身から権限の付与・剥奪の権限は外せません" };
+    return { error: SELF_LOCKED_MESSAGE };
   }
 
   const exit = await Effect.runPromiseExit(

@@ -81,16 +81,71 @@ describe("PermissionEditForm", () => {
     ).not.toBeDisabled();
   });
 
-  it("自分自身のときは user.grant を hidden でも送る（disabled は送信されないため）", () => {
+  it("自分自身の user.view も外せないよう無効化する", () => {
+    // 外すと戻り先の /orgs/[slug]/users が 404 になり、URL を打ち直すしかなくなる。
+    renderForm({
+      isSelf: true,
+      user: { ...user, permissionCodes: ["user.view", "user.grant"] },
+    });
+
+    const view = screen.getByLabelText(/組織ユーザーの閲覧/);
+    expect(view).toBeChecked();
+    expect(view).toBeDisabled();
+  });
+
+  it("ロック対象でない権限は自分自身でも外せる", () => {
+    renderForm({
+      isSelf: true,
+      user: {
+        ...user,
+        permissionCodes: ["user.view", "user.grant", "org.delete"],
+      },
+    });
+
+    expect(screen.getByLabelText(/組織の削除/)).not.toBeDisabled();
+  });
+
+  it("元々持っていない権限は自分自身でも無効化しない", () => {
+    renderForm({
+      isSelf: true,
+      user: { ...user, permissionCodes: ["user.grant"] },
+    });
+
+    expect(screen.getByLabelText(/組織ユーザーの閲覧/)).not.toBeDisabled();
+  });
+
+  it("他人の user.view は無効化しない", () => {
+    renderForm({ user: { ...user, permissionCodes: ["user.view"] } });
+
+    expect(screen.getByLabelText(/組織ユーザーの閲覧/)).not.toBeDisabled();
+  });
+
+  it("自分自身のときはロック対象を hidden でも送る（disabled は送信されないため）", () => {
     const { container } = renderForm({
       isSelf: true,
       user: { ...user, permissionCodes: ["user.view", "user.grant"] },
     });
 
-    const hidden = container.querySelector(
-      'input[type="hidden"][name="permissionCode"][value="user.grant"]',
-    );
-    expect(hidden).not.toBeNull();
+    for (const code of ["user.grant", "user.view"]) {
+      expect(
+        container.querySelector(
+          `input[type="hidden"][name="permissionCode"][value="${code}"]`,
+        ),
+      ).not.toBeNull();
+    }
+  });
+
+  it("元々持っていない権限は hidden でも送らない", () => {
+    const { container } = renderForm({
+      isSelf: true,
+      user: { ...user, permissionCodes: ["user.grant"] },
+    });
+
+    expect(
+      container.querySelector(
+        'input[type="hidden"][name="permissionCode"][value="user.view"]',
+      ),
+    ).toBeNull();
   });
 
   it("対象ユーザーの名前を出す", () => {
