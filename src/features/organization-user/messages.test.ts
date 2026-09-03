@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   AlreadyMember,
+  LastGrantHolder,
   NotAMember,
   UnexpectedOrganizationUserError,
   UserNotFound,
@@ -24,6 +25,12 @@ describe("organizationUserErrorMessage", () => {
     expect(organizationUserErrorMessage(new NotAMember({ userId: "u1" }))).toBe(
       "このユーザーはこの組織に所属していません",
     );
+  });
+
+  it("LastGrantHolder には最後の権限付与者は消せない旨を返す", () => {
+    expect(
+      organizationUserErrorMessage(new LastGrantHolder({ userId: "u1" })),
+    ).toBe("権限を付与できる最後のユーザーは削除できません");
   });
 
   it("想定外のエラーには内部の詳細を出さない汎用文言を返す", () => {

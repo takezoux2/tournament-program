@@ -6,7 +6,7 @@ import { notFound } from "next/navigation";
 import { requirePermission } from "@/shared/middleware/require-organization";
 import { organizationUserErrorFormState } from "../effect-to-form-state";
 import type { OrganizationUserFormState } from "../state";
-import { removeUserInDb } from "./repository";
+import { countGrantHoldersInDb, removeUserInDb } from "./repository";
 import { removeUserSchema } from "./schema";
 import { removeUser } from "./usecase";
 
@@ -33,8 +33,14 @@ export const removeUserAction = async (
     return { error: "自分自身をこの組織から削除することはできません" };
   }
 
+  // 最後の user.grant 保持者かどうかは usecase が DB に問い合わせて判断する。
+  // 自分以外を消す形でも組織を締め出せてしまうため、自己削除の禁止だけでは足りない。
   const exit = await Effect.runPromiseExit(
-    removeUser(removeUserInDb, parsed.data, organization.id),
+    removeUser(
+      { countGrantHolders: countGrantHoldersInDb, remove: removeUserInDb },
+      parsed.data,
+      organization.id,
+    ),
   );
 
   if (Exit.isFailure(exit)) {

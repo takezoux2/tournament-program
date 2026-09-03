@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const requirePermission = vi.fn();
 const removeUserInDb = vi.fn();
+const countGrantHoldersInDb = vi.fn();
 const revalidatePath = vi.fn();
 const notFound = vi.fn(() => {
   throw new Error("NEXT_NOT_FOUND");
@@ -23,6 +24,7 @@ vi.mock("next/navigation", () => ({
 
 vi.mock("./repository", () => ({
   removeUserInDb: (input: unknown) => removeUserInDb(input),
+  countGrantHoldersInDb: (input: unknown) => countGrantHoldersInDb(input),
 }));
 
 const { removeUserAction } = await import("./handler");
@@ -41,6 +43,10 @@ describe("removeUserAction", () => {
   beforeEach(() => {
     requirePermission.mockReset();
     removeUserInDb.mockReset();
+    countGrantHoldersInDb.mockReset();
+    countGrantHoldersInDb.mockImplementation(() =>
+      Effect.succeed({ targetHolds: false, otherHolders: 1 }),
+    );
     revalidatePath.mockReset();
     notFound.mockClear();
     requirePermission.mockResolvedValue({
@@ -77,6 +83,50 @@ describe("removeUserAction", () => {
 
     expect(state).toEqual({ error: null });
     expect(revalidatePath).toHaveBeenCalledWith("/orgs/tennis/users");
+  });
+
+  it("最後の user.grant 保持者は削除できず、DB の削除まで進まない", async () => {
+    // フォームの値ではなく DB の実測で判断する。ここを抜けると誰も
+    // 権限行を書けなくなり、組織が UI から復旧できなくなる。
+    countGrantHoldersInDb.mockImplementation(() =>
+      Effect.succeed({ targetHolds: true, otherHolders: 0 }),
+    );
+
+    const state = await removeUserAction(
+      initial,
+      formData({ slug: "tennis", userId: "u1" }),
+    );
+
+    expect(state.error).toBe("権限を付与できる最後のユーザーは削除できません");
+    expect(removeUserInDb).not.toHaveBeenCalled();
+  });
+
+  it("他に user.grant 保持者が居れば削除できる", async () => {
+    countGrantHoldersInDb.mockImplementation(() =>
+      Effect.succeed({ targetHolds: true, otherHolders: 1 }),
+    );
+
+    const state = await removeUserAction(
+      initial,
+      formData({ slug: "tennis", userId: "u1" }),
+    );
+
+    expect(state).toEqual({ error: null });
+    expect(removeUserInDb).toHaveBeenCalledTimes(1);
+  });
+
+  it("user.grant を持たない相手には保護が働かない", async () => {
+    countGrantHoldersInDb.mockImplementation(() =>
+      Effect.succeed({ targetHolds: false, otherHolders: 0 }),
+    );
+
+    const state = await removeUserAction(
+      initial,
+      formData({ slug: "tennis", userId: "u1" }),
+    );
+
+    expect(state).toEqual({ error: null });
+    expect(removeUserInDb).toHaveBeenCalledTimes(1);
   });
 
   it("0 件なら notFound を呼ぶ（表示後に所属が消えていた場合）", async () => {

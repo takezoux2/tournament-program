@@ -16,6 +16,14 @@ export class NotAMember extends Data.TaggedError("NotAMember")<{
   readonly userId: string;
 }> {}
 
+/**
+ * 対象が組織に残る最後の user.grant 保持者だった。消すと誰も
+ * OrganizationUserPermission を書けなくなり、組織が UI から復旧できなくなる。
+ */
+export class LastGrantHolder extends Data.TaggedError("LastGrantHolder")<{
+  readonly userId: string;
+}> {}
+
 export class UnexpectedOrganizationUserError extends Data.TaggedError(
   "UnexpectedOrganizationUserError",
 )<{
@@ -27,6 +35,7 @@ export type OrganizationUserError =
   | UserNotFound
   | AlreadyMember
   | NotAMember
+  | LastGrantHolder
   | UnexpectedOrganizationUserError;
 
 /**

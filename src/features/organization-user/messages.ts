@@ -15,6 +15,10 @@ export const organizationUserErrorMessage: (
   ),
   Match.tag("NotAMember", () => "このユーザーはこの組織に所属していません"),
   Match.tag(
+    "LastGrantHolder",
+    () => "権限を付与できる最後のユーザーは削除できません",
+  ),
+  Match.tag(
     "UnexpectedOrganizationUserError",
     () => "処理に失敗しました。時間をおいて再度お試しください",
   ),
