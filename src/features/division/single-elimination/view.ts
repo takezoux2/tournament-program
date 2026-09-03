@@ -1,12 +1,26 @@
 import type { DivisionEntries, MatchingConfig } from "@/lib/division/types";
 import { toSlots } from "./build";
 
-/** label が null なら bye、または名前を引けなかったスロット。 */
-export type SetupSlotView = {
-  /** 1 回戦のスロット配列における通し番号。swap-slots に渡す添字と同じ。 */
-  index: number;
-  label: string | null;
-};
+/**
+ * スロット 1 つの表示内容。
+ *
+ * bye（不戦勝の空き）と「参加者名を引けなかった entry」は画面では別物なので
+ * 型でも分ける。まとめて label: null にすると、名前が引けないだけのスロットが
+ * 「不戦勝」と表示され、ブラケットについて事実でないことを言ってしまう。
+ * index はどちらの場合も swap-slots に渡す添字として意味を持つ。
+ */
+export type SetupSlotView =
+  | {
+      /** 1 回戦のスロット配列における通し番号。swap-slots に渡す添字と同じ。 */
+      index: number;
+      kind: "bye";
+    }
+  | {
+      index: number;
+      kind: "entry";
+      /** null は「参加者を引けなかった」。エントリー自体は居る。 */
+      label: string | null;
+    };
 
 export type SetupMatchView = {
   matchId: string;
@@ -42,13 +56,15 @@ export const toSetupView = (
   for (let order = 0; order * 2 + 1 < slots.length; order += 1) {
     const toView = (index: number): SetupSlotView => {
       const slot = slots[index];
-      return {
-        index,
-        label:
-          slot.kind === "entry"
-            ? (nameByEntryId.get(slot.entryId) ?? null)
-            : null,
-      };
+      // 1 回戦に entry 以外が入るのは bye だけ。winnerOf / loserOf が来るのは
+      // 壊れたデータで、そのときも空きとして描いて画面は落とさない。
+      return slot.kind === "entry"
+        ? {
+            index,
+            kind: "entry",
+            label: nameByEntryId.get(slot.entryId) ?? null,
+          }
+        : { index, kind: "bye" };
     };
 
     matches.push({

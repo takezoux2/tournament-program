@@ -7,15 +7,15 @@ const matches: SetupMatchView[] = [
   {
     matchId: "m1-0",
     slots: [
-      { index: 0, label: "山田太郎" },
-      { index: 1, label: null },
+      { index: 0, kind: "entry", label: "山田太郎" },
+      { index: 1, kind: "bye" },
     ],
   },
   {
     matchId: "m1-1",
     slots: [
-      { index: 2, label: "佐藤花子" },
-      { index: 3, label: "鈴木一郎" },
+      { index: 2, kind: "entry", label: "佐藤花子" },
+      { index: 3, kind: "entry", label: "鈴木一郎" },
     ],
   },
 ];
@@ -50,6 +50,29 @@ describe("MatchingEditor", () => {
       <MatchingEditor matches={matches} onSwap={vi.fn()} disabled={false} />,
     );
 
+    expect(screen.getByText("（不戦勝）")).toBeInTheDocument();
+  });
+
+  it("参加者を引けないスロットは不戦勝ではなく不明な参加者として出す", () => {
+    // 名前が引けないだけのスロットを「不戦勝」と出すと、ブラケットについて
+    // 事実でないことを言うことになる。文言は EntryList の行と揃える。
+    render(
+      <MatchingEditor
+        matches={[
+          {
+            matchId: "m1-0",
+            slots: [
+              { index: 0, kind: "entry", label: null },
+              { index: 1, kind: "bye" },
+            ],
+          },
+        ]}
+        onSwap={vi.fn()}
+        disabled={false}
+      />,
+    );
+
+    expect(screen.getByText("（不明な参加者）")).toBeInTheDocument();
     expect(screen.getByText("（不戦勝）")).toBeInTheDocument();
   });
 

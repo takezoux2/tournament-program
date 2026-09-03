@@ -12,6 +12,14 @@ import type {
 } from "@/features/division/single-elimination/view";
 import { resolveDragSwap, slotDomId } from "./matching-drag";
 
+/**
+ * bye と「参加者を引けなかった entry」は別物として書き分ける。
+ * 引けないだけのスロットを「不戦勝」と出すとブラケットの読み違いになる。
+ * 引けない場合の文言は EntryList の行と揃える。
+ */
+const slotLabel = (slot: SetupSlotView): string =>
+  slot.kind === "bye" ? "（不戦勝）" : (slot.label ?? "（不明な参加者）");
+
 function Slot({ slot, disabled }: { slot: SetupSlotView; disabled: boolean }) {
   const id = slotDomId(slot.index);
   // 同じスロットが掴む側にも落とされる側にもなる。交換なので両方要る。
@@ -35,7 +43,7 @@ function Slot({ slot, disabled }: { slot: SetupSlotView; disabled: boolean }) {
         {...draggable.listeners}
         {...draggable.attributes}
       >
-        {slot.label ?? "（不戦勝）"}
+        {slotLabel(slot)}
       </button>
     </div>
   );

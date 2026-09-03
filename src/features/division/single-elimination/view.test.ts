@@ -41,19 +41,28 @@ describe("toSetupView", () => {
 
   it("エントリー経由で参加者の氏名を引く", () => {
     const view = toSetupView(config, entries, participants);
-    expect(view[0].slots[0].label).toBe("山田太郎");
-    expect(view[1].slots[1].label).toBe("鈴木一郎");
+    expect(view[0].slots[0]).toEqual({
+      index: 0,
+      kind: "entry",
+      label: "山田太郎",
+    });
+    expect(view[1].slots[1]).toEqual({
+      index: 3,
+      kind: "entry",
+      label: "鈴木一郎",
+    });
   });
 
-  it("bye は label が null", () => {
+  it("bye は kind: bye で返す", () => {
     const view = toSetupView(config, entries, participants);
-    expect(view[0].slots[1].label).toBeNull();
+    expect(view[0].slots[1]).toEqual({ index: 1, kind: "bye" });
   });
 
-  it("参加者が引けないスロットは label が null", () => {
+  it("参加者が引けないスロットは bye ではなく label が null の entry", () => {
     // 参加者一覧が古いなど、突き合わせに失敗しても画面を落とさない。
+    // ただし bye と同じ形にすると、居るはずの人が不戦勝として描かれてしまう。
     const view = toSetupView(config, entries, []);
-    expect(view[0].slots[0].label).toBeNull();
+    expect(view[0].slots[0]).toEqual({ index: 0, kind: "entry", label: null });
   });
 
   it("組み合わせが未作成なら空配列", () => {
