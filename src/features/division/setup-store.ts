@@ -34,7 +34,10 @@ export type DivisionSetup = {
 
 export type DivisionSetupTx = Prisma.TransactionClient;
 
-/** found: false は「この組織のこの大会にその部門が無い」。呼び出し側は notFound() へ倒す。 */
+/**
+ * found: false は「この組織のこの大会に、この画面が編集できる部門が無い」。
+ * 存在しない場合と対象外の形式の場合を区別しない。呼び出し側は notFound() へ倒す。
+ */
 export type DivisionSetupOutcome<T> =
   | { found: false }
   | { found: true; value: T };
@@ -42,6 +45,13 @@ export type DivisionSetupOutcome<T> =
 /**
  * 所有権を where に入れて読み、Json を検証済みの形にして返す。
  * 勝敗が 1 件でも記録されていれば、この画面からは編集させない。
+ *
+ * 形式の判定をここに置くのは、Server Action がページを経由せず直接叩ける
+ * 別の入口だから。画面（DivisionSetup）の分岐だけでは、例えば ROUND_ROBIN の
+ * 部門へ generateMatching を投げられると、どの画面にも出ない勝ち上がり木が
+ * matchingConfig に書き込まれてしまう。5 スライスが必ず通るこの読み出しで
+ * 弾いておけば、スライスごとに同じ判定を書き写す必要がなくなる。
+ * 対象外の形式は「その部門は無い」と同じ扱いにして 404 に倒す。
  */
 const load = async (
   tx: DivisionSetupTx,
@@ -52,9 +62,18 @@ const load = async (
       id: ids.divisionId,
       tournament: { id: ids.tournamentId, organizationId: ids.organizationId },
     },
-    select: { entries: true, matchingConfig: true, results: true },
+    select: {
+      format: true,
+      entries: true,
+      matchingConfig: true,
+      results: true,
+    },
   });
   if (!row) {
+    return null;
+  }
+
+  if (row.format !== "SINGLE_ELIMINATION") {
     return null;
   }
 

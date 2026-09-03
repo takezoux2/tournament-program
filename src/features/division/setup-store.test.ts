@@ -31,6 +31,7 @@ const { runDivisionSetup } = await import("./setup-store");
 const ids = { organizationId: "o1", tournamentId: "t1", divisionId: "d1" };
 
 const emptyRow = {
+  format: "SINGLE_ELIMINATION",
   entries: EMPTY_DIVISION_ENTRIES,
   matchingConfig: EMPTY_MATCHING_CONFIG,
   results: { version: 1, matches: [] },
@@ -67,6 +68,35 @@ describe("runDivisionSetup", () => {
 
     expect(result).toEqual({ found: false });
     expect(mutate).not.toHaveBeenCalled();
+  });
+
+  it("シングルエリミネーション以外は found: false を返し mutate を呼ばない", async () => {
+    // Server Action は画面を経由せず直接叩けるので、対象外の形式の部門へ
+    // 組み合わせを書き込まれないことをこの層で保証する。
+    divisionFindFirst.mockResolvedValue({ ...emptyRow, format: "ROUND_ROBIN" });
+    // 素通りしたときに mutate 側で落ちるのではなく assertion で落ちるよう、
+    // 呼ばれれば成立する戻り値を持たせておく。
+    const mutate = vi.fn(async () => ({ next: null, value: null }));
+
+    const result = await Effect.runPromise(runDivisionSetup(ids, mutate));
+
+    expect(result).toEqual({ found: false });
+    expect(mutate).not.toHaveBeenCalled();
+    expect(divisionUpdateMany).not.toHaveBeenCalled();
+  });
+
+  it("形式も select して読む", async () => {
+    divisionFindFirst.mockResolvedValue(emptyRow);
+
+    await Effect.runPromise(
+      runDivisionSetup(ids, async () => ({ next: null, value: null })),
+    );
+
+    expect(divisionFindFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        select: expect.objectContaining({ format: true }),
+      }),
+    );
   });
 
   it("勝敗が記録されていれば拒否する", async () => {
