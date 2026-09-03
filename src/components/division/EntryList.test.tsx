@@ -44,6 +44,34 @@ describe("EntryList", () => {
     render(<EntryList {...props} participants={[]} />);
 
     expect(screen.getAllByText("（不明な参加者）")).toHaveLength(2);
+
+    // 文言だけの断片に差し替わっていないか、行そのものが残っているかを確認する。
+    // 参加者が引けなくても編集を続けられることが目的なので、
+    // 行が消えて操作ボタンだけ無くなるような実装はここで落ちる必要がある。
+    const rows = screen.getAllByRole("listitem");
+    expect(rows).toHaveLength(2);
+    for (const row of rows) {
+      expect(within(row).getByLabelText("削除")).toBeInTheDocument();
+      expect(within(row).getByLabelText("上へ移動")).toBeInTheDocument();
+      expect(within(row).getByLabelText("下へ移動")).toBeInTheDocument();
+    }
+  });
+
+  it("並べ替えと削除は別々のフォームに分かれている", () => {
+    render(<EntryList {...props} />);
+
+    const row = screen.getAllByRole("listitem")[0];
+
+    // 並べ替え用フォームと削除用フォームの 2 つが独立して存在すること。
+    expect(row.querySelectorAll("form")).toHaveLength(2);
+
+    // 削除ボタンを包む form の中に direction という名前の要素が無いこと。
+    // 同じフォームにまとめると削除の送信にも direction が乗ってしまい、
+    // サーバー側が期待する契約と食い違うため、ここが本質的な要求になる。
+    const deleteButton = within(row).getByLabelText("削除");
+    const deleteForm = deleteButton.closest("form");
+    expect(deleteForm).not.toBeNull();
+    expect(deleteForm?.querySelector('[name="direction"]')).toBeNull();
   });
 
   it("先頭では上へ、末尾では下へ動かせない", () => {
