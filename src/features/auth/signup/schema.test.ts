@@ -69,6 +69,21 @@ describe("signupSchema", () => {
     }
   });
 
+  it("username は小文字に正規化して受け取る", () => {
+    // Takezo と takezo を別アカウントとして登録できると、検索も外れる。
+    const parsed = signupSchema.safeParse({
+      name: "竹添",
+      username: "TakeZo_01",
+      email: "takezo@example.com",
+      password: "password123",
+    });
+
+    expect(parsed.success).toBe(true);
+    if (parsed.success) {
+      expect(parsed.data.username).toBe("takezo_01");
+    }
+  });
+
   it("username が空なら弾く", () => {
     const parsed = signupSchema.safeParse({
       name: "竹添",

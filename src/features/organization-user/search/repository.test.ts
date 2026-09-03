@@ -37,12 +37,27 @@ describe("searchUserInDb", () => {
       expect.objectContaining({
         where: {
           OR: [
-            { username: "TAKEZO@Example.com" },
+            { username: "takezo@example.com" },
             { email: "takezo@example.com" },
           ],
         },
       }),
     );
+  });
+
+  it("username も小文字に正規化してから引く", () => {
+    // username は小文字で保存されるので、Takezo と打った管理者が
+    // takezo を見つけられないと検索が壊れて見える。
+    findFirst.mockResolvedValue(found);
+
+    return Effect.runPromiseExit(
+      searchUserInDb({ query: "TakeZo", organizationId: "o1" }),
+    ).then(() => {
+      const args = findFirst.mock.calls[0][0] as {
+        where: { OR: { username?: string }[] };
+      };
+      expect(args.where.OR[0]).toEqual({ username: "takezo" });
+    });
   });
 
   it("所属の有無を alreadyMember に畳んで返す", async () => {

@@ -2,6 +2,7 @@ import "server-only";
 import { Effect } from "effect";
 import { prisma } from "@/shared/db/prisma";
 import { normalizeEmail } from "@/shared/lib/email";
+import { normalizeUsername } from "@/shared/lib/username";
 import {
   type OrganizationUserError,
   toOrganizationUserError,
@@ -24,8 +25,9 @@ export const searchUserInDb: SearchUserPort = (input) =>
       const user = await prisma.user.findFirst({
         where: {
           OR: [
-            { username: input.query },
-            // メールは大文字小文字を吸収する。username はそのまま照合する。
+            // username は小文字で保存されるので、検索語も小文字に揃える。
+            // 揃えないと Takezo と打った管理者が takezo を見つけられない。
+            { username: normalizeUsername(input.query) },
             { email: normalizeEmail(input.query) },
           ],
         },

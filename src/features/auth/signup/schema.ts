@@ -4,6 +4,7 @@ import {
   MAX_PASSWORD_LENGTH,
   MIN_PASSWORD_LENGTH,
 } from "@/shared/lib/password-policy";
+import { normalizeUsername } from "@/shared/lib/username";
 
 export const signupSchema = z.object({
   name: z
@@ -17,7 +18,9 @@ export const signupSchema = z.object({
     ),
   username: z
     .string()
-    .transform((raw) => raw.trim())
+    // 小文字化を regex の前に置く。後だと大文字混じりの入力が
+    // 弾かれてしまうが、ここでは受け付けて小文字で保存したい。
+    .transform(normalizeUsername)
     .pipe(
       z
         .string()
