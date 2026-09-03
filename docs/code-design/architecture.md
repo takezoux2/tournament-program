@@ -59,6 +59,36 @@ DB への読み書きが責務であり、描画には関わらない。
 `features/bracket` から下位共通層の `lib/division` を参照する向きにしてある。
 対応するのは `SINGLE_ELIMINATION` のみで、それ以外は `null` を返す。
 
+## features/division の共有ドメイン
+
+`features/division/single-elimination/` はスライスではなく、カテゴリ直下に置く
+共有ドメインである。`handler.ts` と `repository.ts` を持たないことで
+スライスと見分けられる。5 つの編集スライス（`add-entry` / `remove-entry` /
+`reorder-entry` / `generate-matching` / `swap-slots`）のうち、組み合わせ
+（`matchingConfig`）を書き換える 4 つ（`add-entry` / `remove-entry` /
+`generate-matching` / `swap-slots`）がここへ祖先方向に依存する。`reorder-entry`
+はシード順（`entries`）だけを書き換え `matchingConfig` には触らないため、
+single-elimination には依存しない。5 スライスとも依存先は `../setup-store`
+や `../errors` のような上位のモジュールに限られ、スライス同士の依存
+（例えば `add-entry` が `remove-entry` を import する経路）は存在しない。
+
+シングルエリミネーションのブラケットは「1 回戦のスロット割当配列（長さ 2 の冪）」
+だけで完全に決まる。2 回戦以降のスロットは必ず `winnerOf` だからである。
+この配列を唯一の状態とし、木は `buildFromSlots` で毎回組み立て直す。
+試合 id を `m{round}-{order}` の決定的な形にしてあるため、組み立て直しても
+`winnerOf` の参照が壊れる経路が存在しない。
+
+`buildFromSlots` は渡された配列の長さが 2 の冪でなくても、次の 2 の冪まで
+`{ kind: "bye" }` で埋めてから組み立てる。現在の呼び出し元（`generateSlots` の
+出力や `placeEntry` が返す配列）はすでに 2 の冪になっているため、この埋め立てが
+実際に働く場面は今のところ無いが、`toSlots` で取り出した配列がもし正規化されて
+いなくても `buildFromSlots` に渡し直せば 2 の冪へ揃え直される、という保険になっている。
+
+`setup-store.ts` は 5 スライス共通の read-modify-write を持つ。所有権つきの読み出し、
+Json のパース、勝敗が記録済みかの確認、保存前の検証、`updateMany` での書き戻しを
+1 つのトランザクションにまとめる。スライス側の `repository.ts` は
+「配列をどう変えるか」だけを書けばよくなる。
+
 ## テナント分離の 2 原則
 
 `features/organization` と `features/tournament` と `features/division` は組織単位の
@@ -79,3 +109,12 @@ DB への読み書きが責務であり、描画には関わらない。
 organizationId } }` と書き、3 段の所有権を 1 クエリで担保する。
 `create` だけは `where` を持てないため、同じトランザクションの中で大会の所属を
 別途確かめてから作る。
+
+編集スライス（`add-entry` / `remove-entry` / `reorder-entry` / `generate-matching` /
+`swap-slots`）も同じ原則に従う。所有権は `setup-store.ts` の `load` / `save` が
+`where` に入れて担保する。`add-entry` だけは `Member` と `Participant` を作るため
+`create` を使うが、`Member` は `organizationId` を直接持ち、`Participant` は
+所有権を確かめた `tournamentId` の下に作るので、境界は保たれる。
+
+`reorder-entry` と `swap-slots` の 0 件応答は `features/division/reorder` と同じ扱いで、
+「端まで来ている」と「その対象が無い」を区別せず、どちらも成功として返す。
