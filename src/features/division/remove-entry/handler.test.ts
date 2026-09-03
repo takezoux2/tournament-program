@@ -52,7 +52,10 @@ beforeEach(() => {
   notFound.mockClear();
   requireOrganization.mockResolvedValue({ organization: { id: "o1" } });
   removeEntryInDb.mockReturnValue(
-    Effect.succeed({ found: true, value: { regenerated: false } }),
+    Effect.succeed({
+      found: true,
+      value: { removed: true, matching: "unchanged" },
+    }),
   );
 });
 
@@ -71,7 +74,10 @@ describe("removeEntryAction", () => {
 
   it("再生成が起きたら通知を返す", async () => {
     removeEntryInDb.mockReturnValue(
-      Effect.succeed({ found: true, value: { regenerated: true } }),
+      Effect.succeed({
+        found: true,
+        value: { removed: true, matching: "regenerated" },
+      }),
     );
 
     const state = await removeEntryAction(
@@ -90,6 +96,42 @@ describe("removeEntryAction", () => {
     );
 
     expect(state.notice).toBe("エントリーを削除しました");
+  });
+
+  it("組み合わせが消えたときは再生成したとは言わない", async () => {
+    // 残りが 2 人未満だと木は作れず空になる。ここで「再生成しました」と
+    // 出すと、消えた組み合わせが残っているかのように読める。
+    removeEntryInDb.mockReturnValue(
+      Effect.succeed({
+        found: true,
+        value: { removed: true, matching: "cleared" },
+      }),
+    );
+
+    const state = await removeEntryAction(
+      INITIAL_DIVISION_FORM_STATE,
+      formData("e1"),
+    );
+
+    expect(state.notice).toBe(
+      "エントリーを削除し、残りが 2 人未満になったため組み合わせを取り消しました",
+    );
+  });
+
+  it("何も消えていなければ通知を出さない", async () => {
+    // 対象が無かった場合。存在を漏らさないためエラーにはしないが、
+    // 「削除しました」と出すと消えていない行が消えたように見える。
+    removeEntryInDb.mockReturnValue(
+      Effect.succeed({ found: true, value: { removed: false } }),
+    );
+
+    const state = await removeEntryAction(
+      INITIAL_DIVISION_FORM_STATE,
+      formData("e1"),
+    );
+
+    expect(state.error).toBeNull();
+    expect(state.notice).toBeUndefined();
   });
 
   it("成功したら再検証する", async () => {

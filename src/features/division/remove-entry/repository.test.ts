@@ -35,7 +35,7 @@ const callMutate = async (current: DivisionSetup) => {
 beforeEach(() => {
   runDivisionSetup.mockReset();
   runDivisionSetup.mockReturnValue(
-    Effect.succeed({ found: true, value: { regenerated: false } }),
+    Effect.succeed({ found: true, value: { removed: false } }),
   );
 });
 
@@ -62,7 +62,7 @@ describe("removeEntryInDb", () => {
       matchingConfig: buildFromSlots(["e1", "e2", "e3", "e4"].map(entry)),
     });
 
-    expect(value).toEqual({ regenerated: true });
+    expect(value).toEqual({ removed: true, matching: "regenerated" });
     // 残り 3 人なので 4 枠に bye が 1 つ入る形へ作り直される。
     expect(next.matchingConfig.matches[0].slots).toEqual([
       entry("e1"),
@@ -77,9 +77,10 @@ describe("removeEntryInDb", () => {
       matchingConfig: buildFromSlots(["e1", "e2"].map(entry)),
     });
 
-    // 除去前の状態では matches.length > 0 だったが、除去後に 1 人未満になるため matches が空になる。
-    // この状況でのみ除去前・後の状態が異なるため、regenerated フラグが除去前の状態に基づいていることを確認する。
-    expect(value).toEqual({ regenerated: true });
+    // 除去前は matches.length > 0 だが、除去後は 2 人未満で木が作れず空になる。
+    // 除去前だけを見て "regenerated" と報告すると、画面が「再生成しました」と
+    // 嘘をつく。除去後の結果で "cleared" と言い分けていることを確認する。
+    expect(value).toEqual({ removed: true, matching: "cleared" });
     expect(next.matchingConfig.matches).toEqual([]);
   });
 
@@ -90,7 +91,7 @@ describe("removeEntryInDb", () => {
       matchingConfig: { version: 1, matches: [] },
     });
 
-    expect(value).toEqual({ regenerated: false });
+    expect(value).toEqual({ removed: true, matching: "unchanged" });
   });
 
   it("知らない entryId なら何も書き込まない", async () => {
@@ -101,7 +102,8 @@ describe("removeEntryInDb", () => {
     });
 
     // 存在を漏らさないため、無い対象の削除はエラーにせず黙って何もしない。
+    // removed: false は handler が「通知を出さない」判断に使う。
     expect(next).toBeNull();
-    expect(value).toEqual({ regenerated: false });
+    expect(value).toEqual({ removed: false });
   });
 });
