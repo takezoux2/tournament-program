@@ -43,8 +43,14 @@ export const usernameSchema = z
       ),
   );
 
-/** 衝突時に試す候補の総数。無限ループを避けるための上限。 */
-export const USERNAME_CANDIDATE_LIMIT = 20;
+/** 衝突時に試す連番候補の数。 */
+export const USERNAME_NUMBERED_CANDIDATE_LIMIT = 20;
+
+/** 連番が尽きた後に試すランダム接尾辞つき候補の数。 */
+export const USERNAME_RANDOM_CANDIDATE_LIMIT = 10;
+
+/** ランダム接尾辞の長さ。36^6 ≒ 22 億通り。 */
+export const USERNAME_RANDOM_SUFFIX_LENGTH = 6;
 
 /** ローカル部が使える文字を 1 つも含まなかったときの逃げ道。 */
 const FALLBACK_USERNAME_BASE = "user";
@@ -68,16 +74,48 @@ export const usernameBaseFromEmail = (email: string): string => {
   return base.slice(0, MAX_USERNAME_LENGTH);
 };
 
+/** ランダム接尾辞の生成。差し替えられるよう型を切ってある。 */
+export type RandomSuffix = () => string;
+
+/**
+ * 36 進数の乱数文字列。秘密ではなく衝突回避のための飾りなので
+ * Math.random で十分（本当の保証は username の unique 制約と再試行）。
+ * toString(36) は短く出ることがあるため、必要な長さに達するまで足す。
+ */
+export const randomBase36Suffix: RandomSuffix = () => {
+  let generated = "";
+  while (generated.length < USERNAME_RANDOM_SUFFIX_LENGTH) {
+    generated += Math.random().toString(36).slice(2);
+  }
+  return generated.slice(0, USERNAME_RANDOM_SUFFIX_LENGTH);
+};
+
 /**
  * 衝突したときに順に試す候補列。先頭は素そのもので、以降は連番を足す。
  * 連番を足す分だけ素を削るので、どの候補も MAX_USERNAME_LENGTH を超えない。
+ *
+ * 連番が尽きた後はランダムな接尾辞つきの候補に切り替える。連番だけだと
+ * info@… のような素で 20 件が埋まった時点で以降の生成が必ず失敗し、
+ * mapProfileToUser は毎回のサインインで走るため、既存ユーザーまで
+ * ログインできなくなる。ランダム接尾辞は同時サインインどうしが同じ
+ * 候補を掴む競合もほぼ起こらなくする。
  */
-export const usernameCandidates = (base: string): string[] => {
+export const usernameCandidates = (
+  base: string,
+  randomSuffix: RandomSuffix = randomBase36Suffix,
+): string[] => {
   const safeBase = base === "" ? FALLBACK_USERNAME_BASE : base;
   const candidates = [safeBase.slice(0, MAX_USERNAME_LENGTH)];
 
-  for (let n = 2; n <= USERNAME_CANDIDATE_LIMIT; n++) {
+  for (let n = 2; n <= USERNAME_NUMBERED_CANDIDATE_LIMIT; n++) {
     const suffix = String(n);
+    candidates.push(
+      `${safeBase.slice(0, MAX_USERNAME_LENGTH - suffix.length)}${suffix}`,
+    );
+  }
+
+  for (let n = 0; n < USERNAME_RANDOM_CANDIDATE_LIMIT; n++) {
+    const suffix = `-${randomSuffix()}`;
     candidates.push(
       `${safeBase.slice(0, MAX_USERNAME_LENGTH - suffix.length)}${suffix}`,
     );

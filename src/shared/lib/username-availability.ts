@@ -1,7 +1,7 @@
 import "server-only";
 
 import { prisma } from "@/shared/db/prisma";
-import { usernameCandidates } from "./username";
+import { type RandomSuffix, usernameCandidates } from "./username";
 
 export type UsernameExistsPort = (username: string) => Promise<boolean>;
 
@@ -12,16 +12,18 @@ export const usernameExistsInDb: UsernameExistsPort = async (username) =>
  * 候補を順に試して最初に空いているものを返す。
  *
  * 候補の生成（純粋）と空きの確認（DB 読み）を分けてあるのは、生成側だけを
- * 単体テストで詰められるようにするため。候補は
- * USERNAME_CANDIDATE_LIMIT 件で打ち切られるので、ここは有限回で必ず止まる。
- * 全部埋まっていたら黙って諦めず例外にする（Google の初回サインインが
- * 失敗するが、意味の分からない名前を割り当てるより追いやすい）。
+ * 単体テストで詰められるようにするため。候補は有限件で打ち切られるので、
+ * ここは有限回で必ず止まる。連番が尽きてもランダム接尾辞の候補が続くため、
+ * 実際に行き止まりになることはまず無い（連番だけだった頃は、素が 20 件
+ * 埋まった組織メールの既存ユーザーがサインインのたびに落ちていた）。
+ * それでも全部埋まっていたら黙って諦めず例外にする。
  */
 export const findAvailableUsername = async (
   base: string,
   exists: UsernameExistsPort = usernameExistsInDb,
+  randomSuffix?: RandomSuffix,
 ): Promise<string> => {
-  for (const candidate of usernameCandidates(base)) {
+  for (const candidate of usernameCandidates(base, randomSuffix)) {
     if (!(await exists(candidate))) {
       return candidate;
     }

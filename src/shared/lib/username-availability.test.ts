@@ -9,7 +9,8 @@ vi.mock("@/shared/db/prisma", () => ({
 const { findAvailableUsername, usernameExistsInDb } = await import(
   "./username-availability"
 );
-const { USERNAME_CANDIDATE_LIMIT } = await import("./username");
+const { USERNAME_NUMBERED_CANDIDATE_LIMIT, USERNAME_RANDOM_CANDIDATE_LIMIT } =
+  await import("./username");
 
 /** taken に入っている名前だけ「使用済み」とみなす確認関数。 */
 const takenAre = (taken: string[]) => (username: string) =>
@@ -36,6 +37,22 @@ describe("findAvailableUsername", () => {
     expect(exists).toHaveBeenCalledTimes(2);
   });
 
+  it("連番が全部埋まっていてもランダム接尾辞つきの候補で救われる", async () => {
+    // mapProfileToUser はサインインのたびに走るので、ここで例外にすると
+    // 行だけは正しい既存ユーザーがログインできなくなる。
+    const numbered = [
+      "takezo",
+      ...Array.from(
+        { length: USERNAME_NUMBERED_CANDIDATE_LIMIT - 1 },
+        (_, i) => `takezo${i + 2}`,
+      ),
+    ];
+
+    await expect(
+      findAvailableUsername("takezo", takenAre(numbered), () => "abc123"),
+    ).resolves.toBe("takezo-abc123");
+  });
+
   it("候補が尽きたら黙って諦めず例外にする", async () => {
     // 無音で妙な名前を割り当てるより、失敗として見える方が追える。
     const allTaken = () => Promise.resolve(true);
@@ -49,7 +66,9 @@ describe("findAvailableUsername", () => {
     const exists = vi.fn(() => Promise.resolve(true));
 
     await expect(findAvailableUsername("takezo", exists)).rejects.toThrow();
-    expect(exists).toHaveBeenCalledTimes(USERNAME_CANDIDATE_LIMIT);
+    expect(exists).toHaveBeenCalledTimes(
+      USERNAME_NUMBERED_CANDIDATE_LIMIT + USERNAME_RANDOM_CANDIDATE_LIMIT,
+    );
   });
 });
 

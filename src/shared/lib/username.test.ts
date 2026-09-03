@@ -2,7 +2,10 @@ import { describe, expect, it } from "vitest";
 import {
   MAX_USERNAME_LENGTH,
   normalizeUsername,
-  USERNAME_CANDIDATE_LIMIT,
+  randomBase36Suffix,
+  USERNAME_NUMBERED_CANDIDATE_LIMIT,
+  USERNAME_RANDOM_CANDIDATE_LIMIT,
+  USERNAME_RANDOM_SUFFIX_LENGTH,
   usernameBaseFromEmail,
   usernameCandidates,
 } from "./username";
@@ -85,6 +88,15 @@ describe("usernameBaseFromEmail", () => {
   });
 });
 
+/** 乱数を注入して候補列を決定的にする。 */
+const countingSuffix = () => {
+  let n = 0;
+  return () => {
+    n += 1;
+    return `r${n}`;
+  };
+};
+
 describe("usernameCandidates", () => {
   it("先頭は素そのもので、以降は 2 から始まる連番を足す", () => {
     const candidates = usernameCandidates("takezo");
@@ -92,14 +104,44 @@ describe("usernameCandidates", () => {
     expect(candidates.slice(0, 3)).toEqual(["takezo", "takezo2", "takezo3"]);
   });
 
-  it("上限の件数で打ち切る（無限に探し続けない）", () => {
-    const candidates = usernameCandidates("takezo");
+  it("連番の最後は上限の番号", () => {
+    const candidates = usernameCandidates("takezo", countingSuffix());
 
-    expect(candidates).toHaveLength(USERNAME_CANDIDATE_LIMIT);
-    expect(candidates.at(-1)).toBe(`takezo${USERNAME_CANDIDATE_LIMIT}`);
+    expect(candidates[USERNAME_NUMBERED_CANDIDATE_LIMIT - 1]).toBe(
+      `takezo${USERNAME_NUMBERED_CANDIDATE_LIMIT}`,
+    );
   });
 
-  it("連番を足しても上限の長さを超えない", () => {
+  it("連番が尽きた後はランダムな接尾辞つきの候補に切り替える", () => {
+    // 連番だけだと素が埋まった時点で以降ずっと生成できず、
+    // mapProfileToUser は毎回のサインインで走るので既存ユーザーが締め出される。
+    const candidates = usernameCandidates("takezo", countingSuffix());
+
+    expect(
+      candidates.slice(USERNAME_NUMBERED_CANDIDATE_LIMIT, undefined)[0],
+    ).toBe("takezo-r1");
+    expect(candidates.at(-1)).toBe(
+      `takezo-r${USERNAME_RANDOM_CANDIDATE_LIMIT}`,
+    );
+  });
+
+  it("ランダム候補は毎回引き直すので同じ名前が並ばない", () => {
+    const candidates = usernameCandidates("takezo", countingSuffix()).slice(
+      USERNAME_NUMBERED_CANDIDATE_LIMIT,
+    );
+
+    expect(new Set(candidates).size).toBe(USERNAME_RANDOM_CANDIDATE_LIMIT);
+  });
+
+  it("上限の件数で打ち切る（無限に探し続けない）", () => {
+    const candidates = usernameCandidates("takezo", countingSuffix());
+
+    expect(candidates).toHaveLength(
+      USERNAME_NUMBERED_CANDIDATE_LIMIT + USERNAME_RANDOM_CANDIDATE_LIMIT,
+    );
+  });
+
+  it("連番もランダム接尾辞も足して上限の長さを超えない", () => {
     const candidates = usernameCandidates("a".repeat(MAX_USERNAME_LENGTH));
 
     for (const candidate of candidates) {
@@ -110,5 +152,25 @@ describe("usernameCandidates", () => {
 
   it("素が空でも空文字の候補は作らない", () => {
     expect(usernameCandidates("")[0]).toBe("user");
+  });
+});
+
+describe("randomBase36Suffix", () => {
+  it("決められた長さの 36 進数文字列を返す", () => {
+    for (let n = 0; n < 50; n++) {
+      const suffix = randomBase36Suffix();
+
+      expect(suffix).toHaveLength(USERNAME_RANDOM_SUFFIX_LENGTH);
+      expect(suffix).toMatch(/^[0-9a-z]+$/);
+    }
+  });
+
+  it("呼ぶたびに違う値を返す", () => {
+    const suffixes = new Set(
+      Array.from({ length: 20 }, () => randomBase36Suffix()),
+    );
+
+    // 22 億通りから 20 個引いて全部同じになることは実質起こらない。
+    expect(suffixes.size).toBeGreaterThan(1);
   });
 });
