@@ -217,10 +217,14 @@ src/app/orgs/[slug]/tournaments/[tournamentId]/divisions/[divisionId]/setup/page
 
 ### swap-slots
 
-入力: `slug`, `tournamentId`, `divisionId`, `slotIndexA`, `slotIndexB`
+入力: `slug`, `tournamentId`, `divisionId`, `indexA`, `indexB`
 
 `toSlots` した配列の 2 要素を入れ替えて `buildFromSlots` で組み立て直す。
-添字が範囲外なら入力エラーにする。同じ添字なら何もせず正常終了する。
+添字が範囲外の場合と、同じ添字の場合は、どちらも何もせず正常終了する
+（`{ swapped: false }`）。範囲外を入力エラーとして返すと、応答の違いから
+「そのスロットが在るか」を外から数えられてしまうため、区別しない。
+形として数値でない・負・非整数の添字はスキーマで弾く。こちらは現物の
+スロット数に依存しない判定なので、何も漏らさない。
 
 `bye` のスロットも入れ替え対象になるので、「空きへ移す」も同じ操作で表現できる。
 

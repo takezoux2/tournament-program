@@ -53,6 +53,9 @@ export const toSetupView = (
   const slots = toSlots(config);
   const matches: SetupMatchView[] = [];
 
+  // 条件の「+ 1」が実際に効く場面は無い。parse.ts が 1 試合 2 スロットを
+  // 強制するので toSlots の長さは必ず偶数になる。壊れたデータが来ても
+  // 半端なカードを作らないための保険として残している。
   for (let order = 0; order * 2 + 1 < slots.length; order += 1) {
     const toView = (index: number): SetupSlotView => {
       const slot = slots[index];

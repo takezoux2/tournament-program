@@ -79,10 +79,11 @@ single-elimination には依存しない。5 スライスとも依存先は `../
 `winnerOf` の参照が壊れる経路が存在しない。
 
 `buildFromSlots` は渡された配列の長さが 2 の冪でなくても、次の 2 の冪まで
-`{ kind: "bye" }` で埋めてから組み立てる。現在の呼び出し元（`generateSlots` の
-出力や `placeEntry` が返す配列）はすでに 2 の冪になっているため、この埋め立てが
-実際に働く場面は今のところ無いが、`toSlots` で取り出した配列がもし正規化されて
-いなくても `buildFromSlots` に渡し直せば 2 の冪へ揃え直される、という保険になっている。
+`{ kind: "bye" }` で埋めてから組み立てる。`generateSlots` の出力や `placeEntry` が
+返す配列はすでに 2 の冪だが、埋め立てが働く経路は実在する。`swap-slots` は保存済みの
+`matchingConfig` を `toSlots` で取り出して `buildFromSlots` に渡し直すため、DB の値が
+2 の冪でない（1 回戦の試合数が 2 の冪でない）場合、この往復で正規形に矯正される。
+つまりこの埋め立ては死んだコードではなく、外から入った歪な値を直す経路そのものである。
 
 `setup-store.ts` は 5 スライス共通の read-modify-write を持つ。所有権つきの読み出し、
 Json のパース、勝敗が記録済みかの確認、保存前の検証、`updateMany` での書き戻しを
