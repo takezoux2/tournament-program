@@ -1,5 +1,6 @@
 import { Effect } from "effect";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { defineAbilityFor } from "@/shared/authz/ability";
 
 const requirePermission = vi.fn();
 const grantPermissionsInDb = vi.fn();
@@ -47,6 +48,14 @@ const formData = (
 
 const initial = { error: null };
 
+/** requirePermission の戻り。ability は保有コードから組み立てる。 */
+const context = (permissionCodes: string[]) => ({
+  session: { user: { id: "me" } },
+  organization: { id: "o1", slug: "tennis" },
+  permissionCodes,
+  ability: defineAbilityFor(permissionCodes),
+});
+
 describe("grantPermissionsAction", () => {
   beforeEach(() => {
     requirePermission.mockReset();
@@ -54,11 +63,7 @@ describe("grantPermissionsAction", () => {
     revalidatePath.mockReset();
     redirect.mockClear();
     notFound.mockClear();
-    requirePermission.mockResolvedValue({
-      session: { user: { id: "me" } },
-      organization: { id: "o1", slug: "tennis" },
-      permissionCodes: ["user.view", "user.grant"],
-    });
+    requirePermission.mockResolvedValue(context(["user.view", "user.grant"]));
     // GrantPermissionsPort は Effect を返す契約なので、素の Promise を返すモックだと
     // Effect.runPromiseExit が "Not a valid effect" で die してしまう。
     grantPermissionsInDb.mockImplementation(() =>
@@ -147,11 +152,7 @@ describe("grantPermissionsAction", () => {
 
   it("元々 user.view を持っていない自分なら、外れたままでも保存できる", async () => {
     // 持っていない権限を「外すな」と言われても保存できない。
-    requirePermission.mockResolvedValue({
-      session: { user: { id: "me" } },
-      organization: { id: "o1", slug: "tennis" },
-      permissionCodes: ["user.grant"],
-    });
+    requirePermission.mockResolvedValue(context(["user.grant"]));
 
     await expect(
       grantPermissionsAction(
@@ -163,7 +164,7 @@ describe("grantPermissionsAction", () => {
     expect(grantPermissionsInDb).toHaveBeenCalled();
   });
 
-  it("保存できたら一覧へ戻す", async () => {
+  it("user.view を持っていれば、保存後は一覧へ戻す", async () => {
     await expect(
       grantPermissionsAction(
         initial,
@@ -173,6 +174,22 @@ describe("grantPermissionsAction", () => {
 
     expect(revalidatePath).toHaveBeenCalledWith("/orgs/tennis/users");
     expect(redirect).toHaveBeenCalledWith("/orgs/tennis/users");
+  });
+
+  it("user.view を持っていなければ、保存後は組織トップへ戻す", async () => {
+    // 一覧は user.view を要求するため、そのまま送ると保存は成功したのに
+    // 404 に落とすことになる。user.add した人が user.view を持たないことは
+    // 起こりうる（新しいメンバーは追加者の権限だけを引き継ぐ）。
+    requirePermission.mockResolvedValue(context(["user.grant"]));
+
+    await expect(
+      grantPermissionsAction(
+        initial,
+        formData({ slug: "tennis", userId: "u1" }, ["user.view"]),
+      ),
+    ).rejects.toThrow("NEXT_REDIRECT");
+
+    expect(redirect).toHaveBeenCalledWith("/orgs/tennis");
   });
 
   it("未知の権限コードが混ざっていたらエラーを返し、DB を触らない", async () => {

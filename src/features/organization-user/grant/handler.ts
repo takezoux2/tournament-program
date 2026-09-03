@@ -3,6 +3,7 @@
 import { Effect, Exit } from "effect";
 import { revalidatePath } from "next/cache";
 import { notFound, redirect } from "next/navigation";
+import { canByCode } from "@/shared/authz/ability";
 import { requirePermission } from "@/shared/middleware/require-organization";
 import { organizationUserErrorFormState } from "../effect-to-form-state";
 import type { OrganizationUserFormState } from "../state";
@@ -16,10 +17,8 @@ export const grantPermissionsAction = async (
   formData: FormData,
 ): Promise<OrganizationUserFormState> => {
   const slug = String(formData.get("slug") ?? "");
-  const { session, organization, permissionCodes } = await requirePermission(
-    slug,
-    "user.grant",
-  );
+  const { session, organization, permissionCodes, ability } =
+    await requirePermission(slug, "user.grant");
 
   const parsed = grantPermissionsSchema.safeParse({
     userId: String(formData.get("userId") ?? ""),
@@ -53,6 +52,11 @@ export const grantPermissionsAction = async (
   }
 
   revalidatePath(`/orgs/${slug}/users`);
+  // 一覧は user.view を要求する。user.grant だけを持つ人（新しいメンバーは
+  // 追加者の権限だけを引き継ぐので実在しうる）をそこへ送ると、保存は
+  // 成功したのに 404 に落ちる。戻れる場所として組織トップへ送る。
   // redirect は例外を投げて制御を打ち切るため、Effect の実行が終わった後に呼ぶ。
-  redirect(`/orgs/${slug}/users`);
+  redirect(
+    canByCode(ability, "user.view") ? `/orgs/${slug}/users` : `/orgs/${slug}`,
+  );
 };
