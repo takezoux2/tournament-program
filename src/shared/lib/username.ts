@@ -80,15 +80,19 @@ export type RandomSuffix = () => string;
 /**
  * 36 進数の乱数文字列。秘密ではなく衝突回避のための飾りなので
  * Math.random で十分（本当の保証は username の unique 制約と再試行）。
- * toString(36) は短く出ることがあるため、必要な長さに達するまで足す。
+ *
+ * toString(36) は "0.xxxx" の小数部が短く出ることがある（Math.random() が
+ * ちょうど 0 を返すと "0" になり、小数部が丸ごと無い）。以前は届かない分を
+ * while ループで足し続けていたが、その 0 のケースでは何を足しても
+ * 長さが増えず、止まらない無限ループになっていた。
+ * 必要な長さ + "0." の 2 文字ぶんを "0" で埋めてから切り出せば、
+ * ループ無しで必ず所定の長さになる。
  */
-export const randomBase36Suffix: RandomSuffix = () => {
-  let generated = "";
-  while (generated.length < USERNAME_RANDOM_SUFFIX_LENGTH) {
-    generated += Math.random().toString(36).slice(2);
-  }
-  return generated.slice(0, USERNAME_RANDOM_SUFFIX_LENGTH);
-};
+export const randomBase36Suffix: RandomSuffix = () =>
+  Math.random()
+    .toString(36)
+    .padEnd(USERNAME_RANDOM_SUFFIX_LENGTH + 2, "0")
+    .slice(2, USERNAME_RANDOM_SUFFIX_LENGTH + 2);
 
 /**
  * 衝突したときに順に試す候補列。先頭は素そのもので、以降は連番を足す。

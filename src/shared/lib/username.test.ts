@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   MAX_USERNAME_LENGTH,
   normalizeUsername,
@@ -173,4 +173,21 @@ describe("randomBase36Suffix", () => {
     // 22 億通りから 20 個引いて全部同じになることは実質起こらない。
     expect(suffixes.size).toBeGreaterThan(1);
   });
+
+  // 無限ループへの回帰はテストスイート全体を止めてしまうため、
+  // このテストだけ短いタイムアウトで早く落とす。
+  it("Math.random が 0 を返しても長さちょうどの接尾辞を返す（無限ループしない）", () => {
+    // (0).toString(36) は "0" になり slice(2) は "" になる。旧実装は
+    // 空文字を足し続けるだけの while ループのため、ここで停止しなくなる。
+    const randomSpy = vi.spyOn(Math, "random").mockReturnValue(0);
+
+    try {
+      const suffix = randomBase36Suffix();
+
+      expect(suffix).toHaveLength(USERNAME_RANDOM_SUFFIX_LENGTH);
+      expect(suffix).toMatch(/^[0-9a-z]+$/);
+    } finally {
+      randomSpy.mockRestore();
+    }
+  }, 200);
 });
