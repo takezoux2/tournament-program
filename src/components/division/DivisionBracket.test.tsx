@@ -13,8 +13,8 @@ vi.mock("@/components/tournament/TournamentFlow", () => ({
 const { DivisionBracket } = await import("./DivisionBracket");
 
 const participants = [
-  { id: "p1", name: "佐藤 蓮" },
-  { id: "p2", name: "鈴木 陽菜" },
+  { id: "p1", name: "佐藤 蓮", nameKana: "サトウ レン" },
+  { id: "p2", name: "鈴木 陽菜", nameKana: "スズキ ハルナ" },
 ];
 
 const buildDivision = (
@@ -157,7 +157,10 @@ describe("DivisionBracket", () => {
             matches: [{ matchId: "m1", winnerEntryId: "e3" }],
           },
         })}
-        participants={[...participants, { id: "p3", name: "高橋 澪" }]}
+        participants={[
+          ...participants,
+          { id: "p3", name: "高橋 澪", nameKana: "タカハシ ミオ" },
+        ]}
       />,
     );
 

@@ -20,10 +20,11 @@ export type DivisionDetail = DivisionSummary & {
   createdAt: Date;
 };
 
-/** ブラケット描画に渡す参加者。表示名は Member から解決済み。 */
+/** ブラケット描画とエントリー一覧に渡す参加者。表示名は Member から解決済み。 */
 export type DivisionParticipant = {
   id: string;
   name: string;
+  nameKana: string;
   team?: string;
 };
 
@@ -77,12 +78,17 @@ export const listParticipantsInTournament = async (
 ): Promise<DivisionParticipant[]> => {
   const rows = await prisma.participant.findMany({
     where: { tournament: { id: tournamentId, organizationId } },
-    select: { id: true, team: true, member: { select: { name: true } } },
+    select: {
+      id: true,
+      team: true,
+      member: { select: { name: true, nameKana: true } },
+    },
   });
 
   return rows.map((row) => ({
     id: row.id,
     name: row.member.name,
+    nameKana: row.member.nameKana,
     // bracket 側の Participant.team は省略可能なプロパティ。null は運ばない。
     team: row.team ?? undefined,
   }));

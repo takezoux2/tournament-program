@@ -16,12 +16,20 @@ export function DivisionDetailView({
     <div className="space-y-4">
       <div className="flex items-start justify-between">
         <h1 className="text-lg font-bold text-slate-800">{division.name}</h1>
-        <Link
-          href={`/orgs/${slug}/tournaments/${tournamentId}/divisions/${division.id}/edit`}
-          className="rounded border border-slate-300 px-3 py-2 text-sm text-slate-700"
-        >
-          部門を編集
-        </Link>
+        <div className="flex gap-2">
+          <Link
+            href={`/orgs/${slug}/tournaments/${tournamentId}/divisions/${division.id}/setup`}
+            className="rounded border border-slate-300 px-3 py-2 text-sm text-slate-700"
+          >
+            エントリー・組み合わせ
+          </Link>
+          <Link
+            href={`/orgs/${slug}/tournaments/${tournamentId}/divisions/${division.id}/edit`}
+            className="rounded border border-slate-300 px-3 py-2 text-sm text-slate-700"
+          >
+            部門を編集
+          </Link>
+        </div>
       </div>
 
       <dl className="space-y-2 rounded border border-slate-200 bg-white px-4 py-3 text-sm">

@@ -1,0 +1,156 @@
+import { describe, expect, it } from "vitest";
+import type { MatchingConfig, SlotSource } from "@/lib/division/types";
+import { buildFromSlots, seedOrder, toSlots } from "./build";
+
+const entry = (id: string): SlotSource => ({ kind: "entry", entryId: id });
+const bye: SlotSource = { kind: "bye" };
+
+describe("seedOrder", () => {
+  it("size 1 は 1 番だけを返す", () => {
+    expect(seedOrder(1)).toEqual([1]);
+  });
+
+  it("size 8 で標準シード順を返す", () => {
+    expect(seedOrder(8)).toEqual([1, 8, 4, 5, 2, 7, 3, 6]);
+  });
+
+  it("1 番と 2 番が決勝まで当たらない", () => {
+    const order = seedOrder(16);
+    // 1 番は前半、2 番は後半に入るのが標準シード配置の要件。
+    expect(order.indexOf(1)).toBeLessThan(8);
+    expect(order.indexOf(2)).toBeGreaterThanOrEqual(8);
+  });
+
+  it("size 0 は空配列を返す", () => {
+    expect(seedOrder(0)).toEqual([]);
+  });
+});
+
+describe("buildFromSlots", () => {
+  it("2 スロットなら決勝 1 試合だけになる", () => {
+    const config = buildFromSlots([entry("a"), entry("b")]);
+    expect(config.matches).toEqual([
+      {
+        id: "m1-0",
+        bracket: "winners",
+        round: 1,
+        order: 0,
+        slots: [entry("a"), entry("b")],
+      },
+    ]);
+  });
+
+  it("8 スロットなら 4 + 2 + 1 の 7 試合になる", () => {
+    const slots = ["a", "b", "c", "d", "e", "f", "g", "h"].map(entry);
+    const config = buildFromSlots(slots);
+    expect(config.matches).toHaveLength(7);
+    expect(config.matches.filter((match) => match.round === 1)).toHaveLength(4);
+    expect(config.matches.filter((match) => match.round === 2)).toHaveLength(2);
+    expect(config.matches.filter((match) => match.round === 3)).toHaveLength(1);
+  });
+
+  it("2 回戦以降は前ラウンドの勝者を参照する", () => {
+    const slots = ["a", "b", "c", "d"].map(entry);
+    const config = buildFromSlots(slots);
+    const second = config.matches.find((match) => match.id === "m2-0");
+    expect(second?.slots).toEqual([
+      { kind: "winnerOf", matchId: "m1-0" },
+      { kind: "winnerOf", matchId: "m1-1" },
+    ]);
+  });
+
+  it("スロットが 2 未満なら試合を作らない", () => {
+    expect(buildFromSlots([]).matches).toEqual([]);
+    expect(buildFromSlots([entry("a")]).matches).toEqual([]);
+  });
+
+  it("6 スロットでも 8 スロット扱いで組み立てる (バイで埋める)", () => {
+    const slots = ["a", "b", "c", "d", "e", "f"].map(entry);
+    const config = buildFromSlots(slots);
+
+    // 4 round-1 matches (6 entries + 2 byes), 2 round-2, 1 round-3
+    expect(config.matches.filter((m) => m.round === 1)).toHaveLength(4);
+    expect(config.matches.filter((m) => m.round === 2)).toHaveLength(2);
+    expect(config.matches.filter((m) => m.round === 3)).toHaveLength(1);
+
+    // Verify the last two round-1 matches have byes
+    const r1Matches = config.matches
+      .filter((m) => m.round === 1)
+      .sort((a, b) => a.order - b.order);
+    expect(r1Matches[3].slots[0]).toEqual(bye);
+    expect(r1Matches[3].slots[1]).toEqual(bye);
+  });
+
+  it("5 スロット (奇数) でも 8 スロット扱いで組み立てる", () => {
+    const slots = ["a", "b", "c", "d", "e"].map(entry);
+    const config = buildFromSlots(slots);
+
+    // All slots should be defined objects with a kind property
+    for (const match of config.matches) {
+      for (const slot of match.slots) {
+        expect(slot).toBeDefined();
+        expect(slot).toHaveProperty("kind");
+      }
+    }
+
+    // Verify structure
+    expect(config.matches.filter((m) => m.round === 1)).toHaveLength(4);
+    expect(config.matches.filter((m) => m.round === 2)).toHaveLength(2);
+    expect(config.matches.filter((m) => m.round === 3)).toHaveLength(1);
+  });
+
+  it("6 スロットの場合、全ての winnerOf 参照がマッチ id として存在する", () => {
+    const slots = ["a", "b", "c", "d", "e", "f"].map(entry);
+    const config = buildFromSlots(slots);
+
+    const matchIds = new Set(config.matches.map((m) => m.id));
+
+    for (const match of config.matches) {
+      for (const slot of match.slots) {
+        if (slot.kind === "winnerOf") {
+          expect(matchIds.has(slot.matchId)).toBe(true);
+        }
+      }
+    }
+  });
+});
+
+describe("toSlots", () => {
+  it("buildFromSlots と往復して元に戻る", () => {
+    const slots = [entry("a"), bye, entry("c"), entry("d")];
+    expect(toSlots(buildFromSlots(slots))).toEqual(slots);
+  });
+
+  it("1 回戦を order 昇順に並べ直して取り出す", () => {
+    // DB の Json は順序が保証されないため、order で並べ直せることを確かめる。
+    const config: MatchingConfig = {
+      version: 1,
+      matches: [
+        {
+          id: "m1-1",
+          bracket: "winners",
+          round: 1,
+          order: 1,
+          slots: [entry("c"), entry("d")],
+        },
+        {
+          id: "m1-0",
+          bracket: "winners",
+          round: 1,
+          order: 0,
+          slots: [entry("a"), entry("b")],
+        },
+      ],
+    };
+    expect(toSlots(config)).toEqual([
+      entry("a"),
+      entry("b"),
+      entry("c"),
+      entry("d"),
+    ]);
+  });
+
+  it("1 回戦が無ければ空配列を返す", () => {
+    expect(toSlots({ version: 1, matches: [] })).toEqual([]);
+  });
+});
