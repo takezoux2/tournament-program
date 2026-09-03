@@ -171,7 +171,8 @@ describe("randomBase36Suffix", () => {
     );
 
     // 22 億通りから 20 個引いて全部同じになることは実質起こらない。
-    expect(suffixes.size).toBeGreaterThan(1);
+    // 19 個が同じでも通ってしまう `> 1` ではなく、20 個すべての一意性を見る。
+    expect(suffixes.size).toBe(20);
   });
 
   // 無限ループへの回帰はテストスイート全体を止めてしまうため、
