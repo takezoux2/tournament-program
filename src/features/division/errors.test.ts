@@ -74,7 +74,10 @@ describe("toDivisionError（タグ判定の網羅性）", () => {
   // 実行時に確かめるしかない。DivisionError の8タグすべてで
   // identity pass-through（そのまま返る）ことを1件ずつ検証する。
   it.each([
-    ["DivisionOrderConflictError", new DivisionOrderConflictError({ tournamentId: "t1" })],
+    [
+      "DivisionOrderConflictError",
+      new DivisionOrderConflictError({ tournamentId: "t1" }),
+    ],
     [
       "UnexpectedDivisionError",
       new UnexpectedDivisionError({ reason: new Error("boom") }),
@@ -88,7 +91,10 @@ describe("toDivisionError（タグ判定の網羅性）", () => {
       new DivisionNotEnoughEntriesError({ divisionId: "d1" }),
     ],
     ["DivisionDataError", new DivisionDataError({ reason: "broken" })],
-    ["DivisionEntryLimitError", new DivisionEntryLimitError({ divisionId: "d1" })],
+    [
+      "DivisionEntryLimitError",
+      new DivisionEntryLimitError({ divisionId: "d1" }),
+    ],
     [
       "DivisionDuplicateEntryError",
       new DivisionDuplicateEntryError({ divisionId: "d1" }),
@@ -105,19 +111,21 @@ describe("toDivisionError（タグ判定の網羅性）", () => {
   // 居るだけの名前が DivisionError として素通りする。素通りした値は
   // messages.ts の Match.exhaustive で文言に落とせず、画面にエラーを出す
   // 手前で実行時に落ちる。UnexpectedDivisionError へ倒すことを確かめる。
-  it.each(["toString", "constructor", "valueOf", "hasOwnProperty"])(
-    "_tag が %s でも DivisionError とは見なさない",
-    (tag) => {
-      const reason = { _tag: tag };
+  it.each([
+    "toString",
+    "constructor",
+    "valueOf",
+    "hasOwnProperty",
+  ])("_tag が %s でも DivisionError とは見なさない", (tag) => {
+    const reason = { _tag: tag };
 
-      const error = toDivisionError(reason, "t1");
+    const error = toDivisionError(reason, "t1");
 
-      expect(error._tag).toBe("UnexpectedDivisionError");
-      expect(error).toMatchObject({ reason });
-      // 文言まで作れることを見る。素通りしていたときに落ちていたのはここ。
-      expect(divisionErrorMessage(error)).toBe(
-        "処理に失敗しました。時間をおいて再度お試しください",
-      );
-    },
-  );
+    expect(error._tag).toBe("UnexpectedDivisionError");
+    expect(error).toMatchObject({ reason });
+    // 文言まで作れることを見る。素通りしていたときに落ちていたのはここ。
+    expect(divisionErrorMessage(error)).toBe(
+      "処理に失敗しました。時間をおいて再度お試しください",
+    );
+  });
 });
