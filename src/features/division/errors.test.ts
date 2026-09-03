@@ -12,6 +12,7 @@ import {
   toDivisionError,
   UnexpectedDivisionError,
 } from "./errors";
+import { divisionErrorMessage } from "./messages";
 
 /** P2002（unique 制約違反）を模した Prisma のエラーを作る。organization/errors.test.ts と同じ組み立て方。 */
 const uniqueViolation = () =>
@@ -99,4 +100,24 @@ describe("toDivisionError（タグ判定の網羅性）", () => {
   ])("%s はそのまま通す", (_tag, original) => {
     expect(toDivisionError(original, "t1")).toBe(original);
   });
+
+  // 判定に `in` を使うとプロトタイプ鎖まで辿ってしまい、Object.prototype に
+  // 居るだけの名前が DivisionError として素通りする。素通りした値は
+  // messages.ts の Match.exhaustive で文言に落とせず、画面にエラーを出す
+  // 手前で実行時に落ちる。UnexpectedDivisionError へ倒すことを確かめる。
+  it.each(["toString", "constructor", "valueOf", "hasOwnProperty"])(
+    "_tag が %s でも DivisionError とは見なさない",
+    (tag) => {
+      const reason = { _tag: tag };
+
+      const error = toDivisionError(reason, "t1");
+
+      expect(error._tag).toBe("UnexpectedDivisionError");
+      expect(error).toMatchObject({ reason });
+      // 文言まで作れることを見る。素通りしていたときに落ちていたのはここ。
+      expect(divisionErrorMessage(error)).toBe(
+        "処理に失敗しました。時間をおいて再度お試しください",
+      );
+    },
+  );
 });

@@ -98,12 +98,17 @@ const divisionErrorTags: Record<DivisionError["_tag"], true> = {
  * 使わないのは、判定対象のタグ集合を divisionErrorTags（＝union から
  * コンパイラが強制した一覧）に一本化し、判定ロジックとタグ一覧が
  * ずれる余地を無くすため。
+ *
+ * `in` ではなく Object.hasOwn を使う。`in` はプロトタイプ鎖まで辿るため、
+ * _tag が "toString" や "constructor" のオブジェクトが DivisionError と
+ * 判定されてしまい、messages.ts の Match.exhaustive が文言を返せず
+ * 実行時に落ちる。判定はこの対照表が自分で持つキーだけに限る。
  */
 const isDivisionError = (reason: unknown): reason is DivisionError =>
   Predicate.isRecord(reason) &&
   Predicate.hasProperty(reason, "_tag") &&
   typeof reason._tag === "string" &&
-  reason._tag in divisionErrorTags;
+  Object.hasOwn(divisionErrorTags, reason._tag);
 
 /**
  * Prisma の例外をドメインのエラーに写像する。ここで写像しておくことで、
