@@ -53,4 +53,10 @@ describe("SignupForm の Google 登録ボタン", () => {
     expect(button).not.toBeDisabled();
     expect(push).not.toHaveBeenCalled();
   });
+
+  it("ユーザー名の入力欄がある", () => {
+    render(<SignupForm redirectTo="/" />);
+
+    expect(screen.getByLabelText("ユーザー名")).toBeInTheDocument();
+  });
 });

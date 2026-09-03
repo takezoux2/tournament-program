@@ -24,6 +24,14 @@ describe("authErrorMessage", () => {
     );
   });
 
+  it("ユーザー名重複の可能性を伝える", () => {
+    // FAILED_TO_CREATE_USER は「作成に失敗した」一般形で、接続断や
+    // アダプタの不具合でも返る。断定すると無関係な改名を促すことになる。
+    expect(authErrorMessage(toAuthError("FAILED_TO_CREATE_USER", null))).toBe(
+      "そのユーザー名は既に使われている可能性があります。別の名前でお試しください",
+    );
+  });
+
   it("未知の失敗は汎用文言にする", () => {
     expect(authErrorMessage(toAuthError(undefined, new Error("boom")))).toBe(
       "処理に失敗しました。時間をおいて再度お試しください",

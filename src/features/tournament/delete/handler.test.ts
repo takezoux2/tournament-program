@@ -1,5 +1,6 @@
 import { Effect } from "effect";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { defineAbilityFor, PERMISSION_CODES } from "@/shared/authz/ability";
 import { INITIAL_TOURNAMENT_FORM_STATE } from "../state";
 
 const requireOrganization = vi.fn();
@@ -79,7 +80,8 @@ describe("deleteTournamentAction", () => {
     requireOrganization.mockResolvedValue({
       session: { user: { id: "u1", name: "竹添" } },
       organization,
-      role: "OWNER",
+      permissionCodes: [...PERMISSION_CODES],
+      ability: defineAbilityFor(PERMISSION_CODES),
     });
     findTournamentInOrganization.mockResolvedValue(tournament);
   });

@@ -1,5 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { defineAbilityFor, PERMISSION_CODES } from "@/shared/authz/ability";
 
 // LogoutButton は authClient / useRouter に依存するクライアントコンポーネントで、
 // ここではページ本体の検証に集中したいので AppHeader.test.tsx と同じ方針で
@@ -55,7 +56,8 @@ describe("OrganizationPage", () => {
     requireOrganization.mockResolvedValue({
       session,
       organization,
-      role: "OWNER",
+      permissionCodes: [...PERMISSION_CODES],
+      ability: defineAbilityFor(PERMISSION_CODES),
     });
     listTournamentsInOrganization.mockResolvedValue([]);
   });
@@ -106,5 +108,29 @@ describe("OrganizationPage", () => {
       "href",
       "/orgs/tennis/tournaments/t1",
     );
+  });
+
+  it("user.view を持てばユーザー管理へのリンクを出す", async () => {
+    const element = await OrganizationPage(pageProps("tennis"));
+    render(element);
+
+    expect(screen.getByRole("link", { name: "ユーザー管理" })).toHaveAttribute(
+      "href",
+      "/orgs/tennis/users",
+    );
+  });
+
+  it("user.view を持たなければユーザー管理へのリンクを出さない", async () => {
+    requireOrganization.mockResolvedValue({
+      session,
+      organization,
+      permissionCodes: [],
+      ability: defineAbilityFor([]),
+    });
+
+    const element = await OrganizationPage(pageProps("tennis"));
+    render(element);
+
+    expect(screen.queryByRole("link", { name: "ユーザー管理" })).toBeNull();
   });
 });

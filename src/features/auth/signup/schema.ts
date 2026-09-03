@@ -4,6 +4,7 @@ import {
   MAX_PASSWORD_LENGTH,
   MIN_PASSWORD_LENGTH,
 } from "@/shared/lib/password-policy";
+import { usernameSchema } from "@/shared/lib/username";
 
 export const signupSchema = z.object({
   name: z
@@ -15,6 +16,9 @@ export const signupSchema = z.object({
         .min(1, "名前を入力してください")
         .max(100, "名前は100文字以内で入力してください"),
     ),
+  // フォームとサーバ側（better-auth の additionalFields）で規則がずれると
+  // 直接 POST で迂回できてしまうため、規則そのものは shared に 1 つだけ持つ。
+  username: usernameSchema,
   email: z
     .string()
     .transform(normalizeEmail)

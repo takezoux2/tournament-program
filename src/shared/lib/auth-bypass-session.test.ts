@@ -17,6 +17,7 @@ const { getBypassSession } = await import("./auth-bypass-session");
 const user: UserModel = {
   id: "user-1",
   email: "taro@example.com",
+  username: "taro",
   name: "山田太郎",
   emailVerified: true,
   image: null,

@@ -45,6 +45,7 @@ describe("buildBypassSession", () => {
   const user: UserModel = {
     id: "user-1",
     email: "taro@example.com",
+    username: "taro",
     name: "山田太郎",
     emailVerified: true,
     image: null,
@@ -60,6 +61,7 @@ describe("buildBypassSession", () => {
       id: "user-1",
       email: "taro@example.com",
       name: "山田太郎",
+      username: "taro",
       emailVerified: true,
       image: null,
       createdAt: new Date("2025-12-01T00:00:00.000Z"),

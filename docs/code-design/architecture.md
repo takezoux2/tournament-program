@@ -19,6 +19,7 @@ src/
 │       ├── repository.ts         # 機能全体のリポジトリ
 │       └── domain.test.ts        # テストコード
 ├── shared/                       # 横断的な基盤
+│   ├── authz/                    # 権限コードと CASL の Ability
 │   ├── db/                       # DB接続・マイグレーション
 │   ├── errors/                   # 共通エラー型
 │   └── middleware/               # 認証、ロギング等 
@@ -61,8 +62,9 @@ DB への読み書きが責務であり、描画には関わらない。
 
 ## テナント分離の 2 原則
 
-`features/organization` と `features/tournament` と `features/division` は組織単位の
-テナント分離が要る。次の 2 点は次のスライスを書くときに必ず守る。
+`features/organization` と `features/organization-user` と `features/tournament` と
+`features/division` は組織単位のテナント分離が要る。
+次の 2 点は次のスライスを書くときに必ず守る。
 
 * 認可境界（`requireOrganization`）はページの冒頭だけでなく、**Server Action の冒頭でも独立に呼ぶ**。
   Server Action はページを経由せず直接叩ける、別のエントリポイントだから。
@@ -79,3 +81,16 @@ DB への読み書きが責務であり、描画には関わらない。
 organizationId } }` と書き、3 段の所有権を 1 クエリで担保する。
 `create` だけは `where` を持てないため、同じトランザクションの中で大会の所属を
 別途確かめてから作る。
+
+## 認可モデル
+
+権限は `"<subject>.<action>"` 形式のコード（`user.view`、`tournament.create` など）で表す。
+一覧は `src/shared/authz/ability.ts` の `PERMISSION_CODES` が持ち、DB の `Permission.code` と
+1:1 で対応させる。保有コードから CASL の Ability を組み、可否はコードのまま問い合わせる。
+
+* `requirePermission(slug, code)` は**ページの冒頭と、Server Action の冒頭で独立に呼ぶ**。
+  Server Action はページを経由せず直接叩ける別のエントリポイントなので、
+  ページで確認済みでも素通しにはできない。画面側でボタンを隠すのは体感のためで、
+  境界にはならない。
+* 権限が無い場合は 403 ではなく `notFound()`（404）にする。非所属を 404 にするのと同じ理由で、
+  「権限が無い」と「そもそも存在しない」を区別させないため。

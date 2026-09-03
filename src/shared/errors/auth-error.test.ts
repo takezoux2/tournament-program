@@ -28,6 +28,14 @@ describe("toAuthError", () => {
     expect(toAuthError("PASSWORD_TOO_LONG", null)._tag).toBe("WeakPassword");
   });
 
+  it("FAILED_TO_CREATE_USER を UsernameAlreadyExists に写像する", () => {
+    // username 重複は Better Auth に事前チェックが無く、Prisma の P2002 が
+    // FAILED_TO_CREATE_USER として返ってくる唯一の現実的な経路。
+    expect(toAuthError("FAILED_TO_CREATE_USER", null)._tag).toBe(
+      "UsernameAlreadyExists",
+    );
+  });
+
   it("未知のコードは UnexpectedAuthError になる", () => {
     const error = toAuthError("SOMETHING_WE_DO_NOT_HANDLE", null);
     expect(error._tag).toBe("UnexpectedAuthError");

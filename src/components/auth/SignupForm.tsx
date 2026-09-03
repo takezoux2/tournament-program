@@ -21,6 +21,7 @@ export function SignupForm({ redirectTo }: { redirectTo: string }) {
 
     const parsed = signupSchema.safeParse({
       name: formData.get("name"),
+      username: formData.get("username"),
       email: formData.get("email"),
       password: formData.get("password"),
     });
@@ -97,6 +98,26 @@ export function SignupForm({ redirectTo }: { redirectTo: string }) {
             required
             className="w-full rounded border border-slate-300 px-3 py-2 text-sm"
           />
+        </div>
+
+        <div className="space-y-1">
+          <label
+            htmlFor="username"
+            className="block text-sm font-medium text-slate-700"
+          >
+            ユーザー名
+          </label>
+          <input
+            id="username"
+            name="username"
+            type="text"
+            autoComplete="username"
+            required
+            className="w-full rounded border border-slate-300 px-3 py-2 text-sm"
+          />
+          <p className="text-xs text-slate-500">
+            半角英数字・アンダースコア・ハイフン。組織へ招待されるときの目印になります
+          </p>
         </div>
 
         <div className="space-y-1">
