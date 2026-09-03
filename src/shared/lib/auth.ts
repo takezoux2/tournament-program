@@ -4,6 +4,7 @@ import { prismaAdapter } from "@better-auth/prisma-adapter";
 import { betterAuth } from "better-auth";
 import { nextCookies } from "better-auth/next-js";
 import { prisma } from "@/shared/db/prisma";
+import { usernameAdditionalField } from "@/shared/lib/auth-user-fields";
 import {
   MAX_PASSWORD_LENGTH,
   MIN_PASSWORD_LENGTH,
@@ -44,9 +45,8 @@ export const auth = betterAuth({
   user: {
     // username は User テーブルの必須列。ここに宣言しないと signUp の
     // 入力から落とされ、NOT NULL 制約で登録が失敗する。
-    additionalFields: {
-      username: { type: "string", required: true, input: true },
-    },
+    // 中身（正規化と検証）は auth-user-fields.ts にある。
+    additionalFields: { username: usernameAdditionalField },
   },
   account: {
     // Google は検証済みのメールアドレスを返すため、同じメールの既存ユーザーへ

@@ -4,7 +4,7 @@ import {
   MAX_PASSWORD_LENGTH,
   MIN_PASSWORD_LENGTH,
 } from "@/shared/lib/password-policy";
-import { normalizeUsername } from "@/shared/lib/username";
+import { usernameSchema } from "@/shared/lib/username";
 
 export const signupSchema = z.object({
   name: z
@@ -16,21 +16,9 @@ export const signupSchema = z.object({
         .min(1, "名前を入力してください")
         .max(100, "名前は100文字以内で入力してください"),
     ),
-  username: z
-    .string()
-    // 小文字化を regex の前に置く。後だと大文字混じりの入力が
-    // 弾かれてしまうが、ここでは受け付けて小文字で保存したい。
-    .transform(normalizeUsername)
-    .pipe(
-      z
-        .string()
-        .min(1, "ユーザー名を入力してください")
-        .max(50, "ユーザー名は50文字以内で入力してください")
-        .regex(
-          /^[A-Za-z0-9_-]+$/,
-          "ユーザー名は半角英数字・アンダースコア・ハイフンのみ使えます",
-        ),
-    ),
+  // フォームとサーバ側（better-auth の additionalFields）で規則がずれると
+  // 直接 POST で迂回できてしまうため、規則そのものは shared に 1 つだけ持つ。
+  username: usernameSchema,
   email: z
     .string()
     .transform(normalizeEmail)

@@ -1,3 +1,5 @@
+import { z } from "zod";
+
 /**
  * username は User テーブルで unique。大文字小文字が違うだけの 2 アカウントを
  * 登録できてしまうと検索も外れるため、保存も検索も小文字に揃える。
@@ -7,8 +9,39 @@
 export const normalizeUsername = (raw: string): string =>
   raw.trim().toLowerCase();
 
-/** signup の schema と同じ上限。生成した名前もこの範囲に収める。 */
+/** username の長さの上限。生成した名前もこの範囲に収める。 */
 export const MAX_USERNAME_LENGTH = 50;
+
+/**
+ * username に使える文字。小文字化した後に当てるので A-Z は実質通らないが、
+ * 規則そのものは正規化の前後どちらで読んでも同じ意味になるよう両方を書く。
+ */
+export const USERNAME_PATTERN = /^[A-Za-z0-9_-]+$/;
+
+/**
+ * username の唯一の規則。signup フォーム（クライアント）と
+ * better-auth の additionalFields（公開エンドポイント）の両方がこれを使う。
+ *
+ * 1 か所に置いているのは、片方だけ緩いと直接 POST で規則を迂回できるため。
+ * 小文字化を regex より前に置くのは、大文字混じりの入力を弾くのではなく
+ * 揃えて受け入れたいから。
+ */
+export const usernameSchema = z
+  .string()
+  .transform((raw) => normalizeUsername(raw))
+  .pipe(
+    z
+      .string()
+      .min(1, "ユーザー名を入力してください")
+      .max(
+        MAX_USERNAME_LENGTH,
+        `ユーザー名は${MAX_USERNAME_LENGTH}文字以内で入力してください`,
+      )
+      .regex(
+        USERNAME_PATTERN,
+        "ユーザー名は半角英数字・アンダースコア・ハイフンのみ使えます",
+      ),
+  );
 
 /** 衝突時に試す候補の総数。無限ループを避けるための上限。 */
 export const USERNAME_CANDIDATE_LIMIT = 20;
