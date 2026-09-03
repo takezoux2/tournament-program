@@ -2,11 +2,12 @@ import { describe, expect, it } from "vitest";
 import { SELF_LOCKED_CODES, strippedSelfLockedCodes } from "./domain";
 
 describe("SELF_LOCKED_CODES", () => {
-  it("user.grant と user.view の両方を含む", () => {
+  it("user.view と user.grant のちょうど 2 つ", () => {
     // user.view を外すと、戻り先の /orgs/[slug]/users が 404 になる。
-    expect([...SELF_LOCKED_CODES]).toEqual(
-      expect.arrayContaining(["user.grant", "user.view"]),
-    );
+    // arrayContaining ではなく完全一致で見るのは、この定数が「自分から
+    // 外せない権限」＝保存を拒否する条件そのものだから。増えた分だけ
+    // 正当な編集が拒否されるので、増減の両方に気づける必要がある。
+    expect([...SELF_LOCKED_CODES]).toEqual(["user.view", "user.grant"]);
   });
 });
 
