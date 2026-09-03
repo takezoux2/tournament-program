@@ -25,4 +25,13 @@ describe("resolveDragSwap", () => {
     expect(resolveDragSwap("slot-0", "trash")).toBeNull();
     expect(resolveDragSwap("card-1", "slot-0")).toBeNull();
   });
+
+  it("添字が整数でない id なら null", () => {
+    // Number.isInteger で弾いている箇所。parseInt に変えると
+    // "slot-1x" や "slot-1.5" が 1 として通ってしまい、
+    // 誤ったスロットを入れ替えかねない。
+    expect(resolveDragSwap("slot-1x", "slot-0")).toBeNull();
+    expect(resolveDragSwap("slot-0", "slot-1x")).toBeNull();
+    expect(resolveDragSwap("slot-1.5", "slot-0")).toBeNull();
+  });
 });
