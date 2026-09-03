@@ -18,7 +18,11 @@ export const authErrorMessage: (error: AuthError) => string =
     ),
     Match.tag(
       "UsernameAlreadyExists",
-      () => "そのユーザー名は既に使われています。別の名前を入力してください",
+      // 元の FAILED_TO_CREATE_USER は「作成に失敗した」一般形で、
+      // 接続断やアダプタの不具合でも返る。ユーザー名重複が最も
+      // 可能性が高いというだけなので、断定はしない。
+      () =>
+        "そのユーザー名は既に使われている可能性があります。別の名前でお試しください",
     ),
     Match.tag("WeakPassword", () => "パスワードの長さが要件を満たしていません"),
     Match.tag(
