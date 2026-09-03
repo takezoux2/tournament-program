@@ -33,6 +33,7 @@ const renderForm = (
       user={user}
       permissions={permissions}
       isSelf={false}
+      canViewUsers={true}
       action={action}
       {...overrides}
     />,
@@ -152,5 +153,24 @@ describe("PermissionEditForm", () => {
     renderForm();
 
     expect(screen.getByText("山田")).toBeInTheDocument();
+  });
+
+  it("user.view を持っていればキャンセルは一覧へ戻る", () => {
+    renderForm({ canViewUsers: true });
+
+    expect(screen.getByText("キャンセル")).toHaveAttribute(
+      "href",
+      "/orgs/tennis/users",
+    );
+  });
+
+  it("user.view を持っていなければキャンセルは組織トップへ戻る", () => {
+    // 一覧は user.view を要求するため、そのまま送ると 404 に落ちる。
+    renderForm({ canViewUsers: false });
+
+    expect(screen.getByText("キャンセル")).toHaveAttribute(
+      "href",
+      "/orgs/tennis",
+    );
   });
 });

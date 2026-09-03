@@ -114,6 +114,34 @@ describe("PermissionsPage", () => {
     expect(screen.getByLabelText(/組織ユーザーの閲覧/)).toBeChecked();
   });
 
+  it("user.view があればパンくずの「ユーザー」が一覧にリンクする", async () => {
+    const element = await PermissionsPage(pageProps("tennis", "u2"));
+    render(element);
+
+    expect(screen.getByRole("link", { name: "ユーザー" })).toHaveAttribute(
+      "href",
+      "/orgs/tennis/users",
+    );
+  });
+
+  it("user.view が無ければパンくずの「ユーザー」はリンクにならない", async () => {
+    // 一覧は user.view を要求するため、リンクを残すと 404 に落ちる。
+    requirePermission.mockResolvedValue({
+      session,
+      organization,
+      permissionCodes: ["user.grant"],
+      ability: defineAbilityFor(["user.grant"]),
+    });
+
+    const element = await PermissionsPage(pageProps("tennis", "u2"));
+    render(element);
+
+    expect(
+      screen.queryByRole("link", { name: "ユーザー" }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByText("ユーザー")).toBeInTheDocument();
+  });
+
   it("自分自身のページでは isSelf として扱う（user.grant を無効化する）", async () => {
     findOrganizationUser.mockResolvedValue({
       ...target,

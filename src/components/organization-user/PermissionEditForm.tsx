@@ -21,12 +21,15 @@ export function PermissionEditForm({
   user,
   permissions,
   isSelf,
+  canViewUsers,
   action,
 }: {
   slug: string;
   user: OrganizationUserSummary;
   permissions: PermissionSummary[];
   isSelf: boolean;
+  /** 一覧（/orgs/[slug]/users）は user.view を要求するため、無ければ戻り先を変える。 */
+  canViewUsers: boolean;
   action: OrganizationUserFormAction;
 }) {
   const [state, formAction, pending] = useActionState(
@@ -38,6 +41,7 @@ export function PermissionEditForm({
   const lockedCodes = isSelf
     ? SELF_LOCKED_CODES.filter((code) => held.has(code))
     : [];
+  const cancelHref = canViewUsers ? `/orgs/${slug}/users` : `/orgs/${slug}`;
 
   return (
     <form
@@ -108,7 +112,7 @@ export function PermissionEditForm({
           {pending ? "保存中..." : "保存する"}
         </button>
         <Link
-          href={`/orgs/${slug}/users`}
+          href={cancelHref}
           className="rounded border border-slate-300 px-4 py-2 text-sm text-slate-700"
         >
           キャンセル
