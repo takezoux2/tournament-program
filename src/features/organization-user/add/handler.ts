@@ -14,7 +14,10 @@ export const addUserAction = async (
   formData: FormData,
 ): Promise<OrganizationUserFormState> => {
   const slug = String(formData.get("slug") ?? "");
-  const { organization } = await requirePermission(slug, "user.add");
+  const { organization, permissionCodes } = await requirePermission(
+    slug,
+    "user.add",
+  );
 
   const parsed = addUserSchema.safeParse({
     userId: String(formData.get("userId") ?? ""),
@@ -23,8 +26,10 @@ export const addUserAction = async (
     return { error: parsed.error.issues[0].message };
   }
 
+  // 追加者の権限をそのまま引き継がせる。requirePermission が返した実測値を
+  // 使うので、フォームから権限を指定して自分より強いメンバーは作れない。
   const exit = await Effect.runPromiseExit(
-    addUser(addUserInDb, parsed.data, organization.id),
+    addUser(addUserInDb, parsed.data, organization.id, permissionCodes),
   );
 
   if (Exit.isFailure(exit)) {

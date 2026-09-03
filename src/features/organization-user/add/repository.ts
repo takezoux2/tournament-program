@@ -6,12 +6,17 @@ import { type OrganizationUserError, toOrganizationUserError } from "../errors";
 export type AddUserPort = (input: {
   userId: string;
   organizationId: string;
+  /** 追加を実行した人が今 持っている権限コード。これを超える権限は渡らない。 */
+  granterCodes: readonly string[];
 }) => Effect.Effect<void, OrganizationUserError>;
 
 export const addUserInDb: AddUserPort = (input) =>
   Effect.tryPromise({
     try: async () => {
+      // 追加者が持つコードだけに絞る。Permission 表との積になるので、
+      // 存在しないコードが混じっても付与は増えない。
       const permissions = await prisma.permission.findMany({
+        where: { code: { in: [...input.granterCodes] } },
         select: { id: true },
       });
 
@@ -21,7 +26,8 @@ export const addUserInDb: AddUserPort = (input) =>
         data: {
           organizationId: input.organizationId,
           userId: input.userId,
-          // 設計どおり、追加されたユーザーには全権限を付与する。
+          // 追加されたユーザーは追加者の権限だけを引き継ぐ。
+          // 自分より強いメンバーを作れないようにするため。
           permissions: {
             create: permissions.map((permission) => ({
               permissionId: permission.id,
