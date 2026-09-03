@@ -65,7 +65,7 @@ describe("AddEntryForm", () => {
     ).toBeDisabled();
   });
 
-  it("id を hidden で送る", () => {
+  it("id と mode を hidden で送る", async () => {
     const { container } = render(<AddEntryForm {...props} />);
 
     expect(container.querySelector('input[name="slug"]')).toHaveValue("acme");
@@ -75,5 +75,16 @@ describe("AddEntryForm", () => {
     expect(container.querySelector('input[name="divisionId"]')).toHaveValue(
       "d1",
     );
+
+    // mode は add-entry の discriminatedUnion の判別子。名前も値も
+    // スキーマ側と一致していなければ、切り替えたつもりの分岐が丸ごと落ちる。
+    // 型では守られない境界なので、両方の値をここで固定する。
+    expect(container.querySelector('input[name="mode"]')).toHaveValue(
+      "existing",
+    );
+
+    await userEvent.click(screen.getByLabelText("新しく登録する"));
+
+    expect(container.querySelector('input[name="mode"]')).toHaveValue("new");
   });
 });

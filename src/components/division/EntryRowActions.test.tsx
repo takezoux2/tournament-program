@@ -1,7 +1,10 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
-import type { DivisionFormState } from "@/features/division/state";
+import type {
+  DivisionFormAction,
+  DivisionFormState,
+} from "@/features/division/state";
 import { EntryRowActions } from "./EntryRowActions";
 
 const props = {
@@ -46,6 +49,38 @@ describe("EntryRowActions", () => {
 
     expect(removeAction).toHaveBeenCalled();
     expect(screen.queryByRole("status")).not.toBeInTheDocument();
+  });
+
+  it("削除は entryId を載せて送る", async () => {
+    // remove-entry/handler.ts が formData.get("entryId") で読む名前。
+    // 型では守られない境界なので、送る側でも固定しておく。
+    const removeAction = vi.fn<DivisionFormAction>(async () => ({
+      error: null,
+    }));
+    render(<EntryRowActions {...props} removeAction={removeAction} />);
+
+    await userEvent.click(screen.getByLabelText("削除"));
+
+    const sent = removeAction.mock.calls[0][1];
+    expect(sent.get("entryId")).toBe("e1");
+    expect(sent.get("slug")).toBe("acme");
+    expect(sent.get("tournamentId")).toBe("t1");
+    expect(sent.get("divisionId")).toBe("d1");
+  });
+
+  it("並べ替えは entryId と押した向きを載せて送る", async () => {
+    // direction は押された submit ボタンの value として乗る。
+    // reorder-entry/handler.ts が読む名前と値をここで固定する。
+    const reorderAction = vi.fn<DivisionFormAction>(async () => ({
+      error: null,
+    }));
+    render(<EntryRowActions {...props} reorderAction={reorderAction} />);
+
+    await userEvent.click(screen.getByLabelText("下へ移動"));
+
+    const sent = reorderAction.mock.calls[0][1];
+    expect(sent.get("entryId")).toBe("e1");
+    expect(sent.get("direction")).toBe("down");
   });
 
   it("エラーは通知とは別に出す", async () => {
