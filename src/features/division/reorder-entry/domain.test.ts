@@ -47,9 +47,12 @@ describe("reorderEntries", () => {
   // 偶然どちらも null になってしまい、findIndex === -1 の判定自体は検証できない
   // （index = -1, direction "up" だと target = -2 になり境界チェックに紛れ込む）。
   // direction "down" なら index = -1 → target = 0 は配列の範囲内なので、
-  // findIndex === -1 の分岐が無いと境界チェックをすり抜けて壊れた結果を返す
-  // （sorted[-1] が undefined になり、後段の map が例外を投げる）。
-  // そのため down 方向でも確認し、"知らない id" 判定に固有のテコを持たせる。
+  // findIndex === -1 の分岐が無いと境界チェックをすり抜ける。しかも例外は出ない。
+  // next[-1] への代入は配列の要素にならず、next[0] には sorted[-1] つまり
+  // undefined が入り、後段の map は { ...undefined } を {} として黙って通す。
+  // つまり先頭の要素から id も participantId も消えた配列がそのまま返る。
+  // 落ちてくれないぶん気づきにくいので、down 方向でも確認して
+  // "知らない id" 判定に固有のテコを持たせる。
   it("知らない id なら null（down でも境界チェックに紛れずに判定する）", () => {
     expect(reorderEntries(entries, "unknown", "down")).toBeNull();
   });

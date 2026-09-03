@@ -156,6 +156,25 @@ describe("DivisionSetup", () => {
         actions.generateMatching,
       );
       expect(matchingSectionProps?.swapAction).toBe(actions.swapSlots);
+      expect(entryListProps?.disabled).toBe(false);
+
+      // 施錠状態が子まで届くことも同じ仕掛けで見る。EntryList を実物にすると
+      // 行が 1 つも無い場合に何も描かれず、disabled が落ちていても気づけない。
+      render(
+        <IsolatedDivisionSetup
+          {...props}
+          division={division({
+            results: {
+              version: 1,
+              matches: [{ matchId: "m1-0", winnerEntryId: "e1" }],
+            },
+          })}
+        />,
+      );
+
+      expect(entryListProps?.disabled).toBe(true);
+      expect(addEntryFormProps?.disabled).toBe(true);
+      expect(matchingSectionProps?.disabled).toBe(true);
     } finally {
       // 後続テストは冒頭で static import した実物の DivisionSetup を使うので
       // 直接の影響はないが、モジュールレジストリを汚さないよう明示的に戻す。
