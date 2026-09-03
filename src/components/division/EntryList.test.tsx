@@ -88,7 +88,7 @@ describe("EntryList", () => {
     render(<EntryList {...props} />);
 
     expect(
-      screen.getByText("削除すると組み合わせは再生成されます"),
+      screen.getByText("削除すると組み合わせが変わることがあります"),
     ).toBeInTheDocument();
   });
 

@@ -34,7 +34,7 @@ export function EntryList({
   return (
     <div className="space-y-2">
       <p className="text-xs text-slate-500">
-        削除すると組み合わせは再生成されます
+        削除すると組み合わせが変わることがあります
       </p>
 
       <ul className="space-y-2">
