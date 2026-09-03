@@ -24,6 +24,12 @@ describe("authErrorMessage", () => {
     );
   });
 
+  it("ユーザー名重複を伝える", () => {
+    expect(authErrorMessage(toAuthError("FAILED_TO_CREATE_USER", null))).toBe(
+      "そのユーザー名は既に使われています。別の名前を入力してください",
+    );
+  });
+
   it("未知の失敗は汎用文言にする", () => {
     expect(authErrorMessage(toAuthError(undefined, new Error("boom")))).toBe(
       "処理に失敗しました。時間をおいて再度お試しください",

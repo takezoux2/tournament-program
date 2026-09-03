@@ -16,6 +16,10 @@ export const authErrorMessage: (error: AuthError) => string =
       "EmailAlreadyExists",
       () => "このメールアドレスは既に登録されています",
     ),
+    Match.tag(
+      "UsernameAlreadyExists",
+      () => "そのユーザー名は既に使われています。別の名前を入力してください",
+    ),
     Match.tag("WeakPassword", () => "パスワードの長さが要件を満たしていません"),
     Match.tag(
       "UnexpectedAuthError",
