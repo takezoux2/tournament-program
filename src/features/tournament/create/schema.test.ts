@@ -101,6 +101,15 @@ describe("createTournamentSchema", () => {
     }
   });
 
+  it("ちょうど 10000 文字の概要を許容する", () => {
+    const result = parse({
+      name: "春季大会",
+      startsAt: "",
+      description: "あ".repeat(10000),
+    });
+    expect(result.success).toBe(true);
+  });
+
   it("10000 文字超の概要を弾く", () => {
     const result = parse({
       name: "春季大会",

@@ -85,7 +85,7 @@ export function TournamentForm({
           >
             大会概要
           </label>
-          <div className="flex gap-1" role="tablist">
+          <div className="flex gap-1">
             <button
               type="button"
               onClick={() => setDescriptionTab("edit")}

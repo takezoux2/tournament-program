@@ -15,64 +15,65 @@ export function TournamentDescriptionMarkdown({
       <Markdown
         remarkPlugins={[remarkGfm]}
         components={{
-          h1: (props) => (
-            <h1
-              className="mt-4 mb-2 text-lg font-bold first:mt-0"
-              {...props}
-            />
+          h1: ({ node, ...props }) => (
+            <h1 className="mt-4 mb-2 text-lg font-bold first:mt-0" {...props} />
           ),
-          h2: (props) => (
+          h2: ({ node, ...props }) => (
             <h2
               className="mt-4 mb-2 text-base font-bold first:mt-0"
               {...props}
             />
           ),
-          h3: (props) => (
+          h3: ({ node, ...props }) => (
             <h3 className="mt-3 mb-1 font-bold first:mt-0" {...props} />
           ),
-          p: (props) => <p className="my-2 first:mt-0 last:mb-0" {...props} />,
-          ul: (props) => (
+          p: ({ node, ...props }) => (
+            <p className="my-2 first:mt-0 last:mb-0" {...props} />
+          ),
+          ul: ({ node, ...props }) => (
             <ul className="my-2 list-disc space-y-1 pl-5" {...props} />
           ),
-          ol: (props) => (
+          ol: ({ node, ...props }) => (
             <ol className="my-2 list-decimal space-y-1 pl-5" {...props} />
           ),
-          a: (props) => (
+          a: ({ node, ...props }) => (
             <a className="text-blue-600 underline" {...props} />
           ),
-          code: (props) => (
+          code: ({ node, className, ...props }) => (
             <code
-              className="rounded bg-slate-100 px-1 py-0.5 font-mono text-xs"
+              className={`rounded bg-slate-100 px-1 py-0.5 font-mono text-xs ${className ?? ""}`}
               {...props}
             />
           ),
-          pre: (props) => (
+          pre: ({ node, ...props }) => (
             <pre
               className="my-2 overflow-x-auto rounded bg-slate-100 p-3"
               {...props}
             />
           ),
-          blockquote: (props) => (
+          blockquote: ({ node, ...props }) => (
             <blockquote
               className="my-2 border-l-4 border-slate-300 pl-3 text-slate-600"
               {...props}
             />
           ),
-          table: (props) => (
+          table: ({ node, ...props }) => (
             <div className="my-2 overflow-x-auto">
               <table className="border-collapse" {...props} />
             </div>
           ),
-          th: (props) => (
+          th: ({ node, ...props }) => (
             <th
               className="border border-slate-300 bg-slate-100 px-2 py-1 text-left font-medium"
               {...props}
             />
           ),
-          td: (props) => (
+          td: ({ node, ...props }) => (
             <td className="border border-slate-300 px-2 py-1" {...props} />
           ),
-          hr: (props) => <hr className="my-4 border-slate-200" {...props} />,
+          hr: ({ node, ...props }) => (
+            <hr className="my-4 border-slate-200" {...props} />
+          ),
         }}
       >
         {markdown}
