@@ -3,7 +3,10 @@ import type {
   DivisionDetail,
   DivisionParticipant,
 } from "@/features/division/repository";
-import { toSetupView } from "@/features/division/single-elimination/view";
+import {
+  toMatchNumberView,
+  toSetupView,
+} from "@/features/division/single-elimination/view";
 import type { DivisionFormAction } from "@/features/division/state";
 import type { MemberSummary } from "@/features/organization/repository";
 import {
@@ -15,6 +18,7 @@ import { AddEntryForm } from "./AddEntryForm";
 import { DivisionBracket } from "./DivisionBracket";
 import { EntryList } from "./EntryList";
 import { MatchingSection } from "./MatchingSection";
+import { MatchNumberList } from "./MatchNumberList";
 
 export type DivisionSetupActions = {
   addEntry: DivisionFormAction;
@@ -22,6 +26,7 @@ export type DivisionSetupActions = {
   reorderEntry: DivisionFormAction;
   generateMatching: DivisionFormAction;
   swapSlots: DivisionFormAction;
+  setMatchNumber: DivisionFormAction;
 };
 
 const Notice = ({ children }: { children: React.ReactNode }) => (
@@ -124,6 +129,22 @@ export function DivisionSetup({
           generateAction={actions.generateMatching}
           swapAction={actions.swapSlots}
           disabled={locked}
+        />
+      </section>
+
+      <section className="space-y-3">
+        <h2 className="text-sm font-bold text-slate-700">試合番号</h2>
+        {/* 番号の変更は構造を変えないため、locked でも編集できる */}
+        <MatchNumberList
+          rows={toMatchNumberView(
+            parsed.matchingConfig,
+            parsed.entries,
+            participants,
+          )}
+          slug={slug}
+          tournamentId={tournamentId}
+          divisionId={division.id}
+          action={actions.setMatchNumber}
         />
       </section>
 
