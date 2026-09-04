@@ -96,13 +96,13 @@ describe("grantPermissionsInDb", () => {
       where: { code: { in: ["user.remove", "org.delete"] } },
       select: { id: true, code: true },
     });
-    // permissionTable 上で user.remove は id 3、org.delete は id 9。
+    // permissionTable 上で user.remove は id 3、org.delete は id 12。
     // where 句が抜けたりミスタイプしたりすると、他の code の
     // permissionId まで混ざるか、逆に絞り込みすぎて欠けるので検出できる。
     expect(createManyGrant).toHaveBeenCalledWith({
       data: [
         { organizationId: "o1", userId: "u1", permissionId: 3 },
-        { organizationId: "o1", userId: "u1", permissionId: 9 },
+        { organizationId: "o1", userId: "u1", permissionId: 12 },
       ],
     });
   });
