@@ -55,6 +55,28 @@ const resolveMemberId = async (
 };
 
 /**
+ * 次の選手番号。同じ大会で 10 進整数として読める番号の最大値 + 1。
+ * 手入力の "A-1" のような番号は序数を持たないので最大値の計算から外す。
+ */
+const nextPlayerNumber = async (
+  tx: DivisionSetupTx,
+  tournamentId: string,
+): Promise<string> => {
+  const rows = await tx.participant.findMany({
+    where: { tournamentId },
+    select: { playerNumber: true },
+  });
+  const max = rows.reduce(
+    (acc, row) =>
+      /^\d+$/.test(row.playerNumber)
+        ? Math.max(acc, Number(row.playerNumber))
+        : acc,
+    0,
+  );
+  return String(max + 1);
+};
+
+/**
  * この大会の Participant を用意する。同じ人が複数の部門に出ることがあるので、
  * 既にあれば使い回す。seed は付けない（@@unique([tournamentId, seed]) と衝突するため。
  * Postgres は NULL の重複を許すので null なら安全）。
@@ -73,7 +95,11 @@ const resolveParticipantId = async (
   }
 
   const created = await tx.participant.create({
-    data: { tournamentId, memberId },
+    data: {
+      tournamentId,
+      memberId,
+      playerNumber: await nextPlayerNumber(tx, tournamentId),
+    },
     select: { id: true },
   });
   return created.id;

@@ -25,6 +25,8 @@ export type DivisionParticipant = {
   id: string;
   name: string;
   nameKana: string;
+  /** 選手番号。大会単位で Participant が持つ */
+  playerNumber: string;
   team?: string;
 };
 
@@ -81,6 +83,7 @@ export const listParticipantsInTournament = async (
     select: {
       id: true,
       team: true,
+      playerNumber: true,
       member: { select: { name: true, nameKana: true } },
     },
   });
@@ -89,6 +92,7 @@ export const listParticipantsInTournament = async (
     id: row.id,
     name: row.member.name,
     nameKana: row.member.nameKana,
+    playerNumber: row.playerNumber,
     // bracket 側の Participant.team は省略可能なプロパティ。null は運ばない。
     team: row.team ?? undefined,
   }));

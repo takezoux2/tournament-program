@@ -9,8 +9,8 @@ const entries: DivisionEntry[] = [
 ];
 
 const participants = [
-  { id: "p1", name: "山田太郎", nameKana: "やまだたろう" },
-  { id: "p2", name: "佐藤花子", nameKana: "さとうはなこ" },
+  { id: "p1", name: "山田太郎", nameKana: "やまだたろう", playerNumber: "1" },
+  { id: "p2", name: "佐藤花子", nameKana: "さとうはなこ", playerNumber: "2" },
 ];
 
 const props = {
