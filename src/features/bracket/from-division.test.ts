@@ -75,6 +75,7 @@ describe("fromDivision", () => {
           id: "m1",
           round: 1,
           order: 0,
+          matchNumber: "1",
           slots: [
             { kind: "participant", participantId: "e1" },
             { kind: "participant", participantId: "e2" },
@@ -82,6 +83,11 @@ describe("fromDivision", () => {
         },
       ],
     });
+  });
+
+  it("matchNumber を描画側の Match に写す", () => {
+    const result = fromDivision(buildInput());
+    expect(result?.bracket.matches[0].matchNumber).toBe("1");
   });
 
   it("winnerOf と bye はそのまま運ぶ", () => {
@@ -155,6 +161,7 @@ describe("fromDivision", () => {
         id: "m1",
         round: 1,
         order: 0,
+        matchNumber: "1",
         slots: [
           { kind: "participant", participantId: "e1" },
           { kind: "participant", participantId: "e2" },

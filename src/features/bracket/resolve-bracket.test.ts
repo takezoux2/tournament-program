@@ -17,12 +17,14 @@ const bracket: Bracket = {
       id: "m1",
       round: 1,
       order: 0,
+      matchNumber: "1",
       slots: [{ kind: "participant", participantId: "p1" }, { kind: "bye" }],
     },
     {
       id: "m2",
       round: 1,
       order: 1,
+      matchNumber: "2",
       slots: [
         { kind: "participant", participantId: "p2" },
         { kind: "participant", participantId: "p3" },
@@ -32,6 +34,7 @@ const bracket: Bracket = {
       id: "m3",
       round: 2,
       order: 0,
+      matchNumber: "3",
       slots: [
         { kind: "winnerOf", matchId: "m1" },
         { kind: "winnerOf", matchId: "m2" },
@@ -117,6 +120,7 @@ describe("resolveBracket", () => {
           id: "x1",
           round: 1,
           order: 0,
+          matchNumber: "1",
           slots: [
             { kind: "participant", participantId: "ghost" },
             { kind: "bye" },
@@ -135,6 +139,7 @@ describe("resolveBracket", () => {
           id: "x1",
           round: 2,
           order: 0,
+          matchNumber: "1",
           slots: [{ kind: "winnerOf", matchId: "ghost" }, { kind: "bye" }],
         },
       ],
@@ -160,5 +165,40 @@ describe("resolveBracket", () => {
   it("BYE 試合の結果が自動勝者と食い違うと例外を投げる", () => {
     const results: MatchResult[] = [{ matchId: "m1", winnerId: "p9" }];
     expect(() => resolveBracket(participants, bracket, results)).toThrow(/p9/);
+  });
+
+  it("matchNumber を ResolvedMatch へ通す。無ければ null", () => {
+    const bracketWithNumber: Bracket = {
+      ...bracket,
+      matches: [
+        {
+          ...bracket.matches[0],
+          matchNumber: "3",
+        },
+      ],
+    };
+    const withNumber = resolveBracket(participants, bracketWithNumber, []);
+    expect(withNumber[0].matchNumber).toBe("3");
+
+    const bracketWithoutNumber: Bracket = {
+      ...bracket,
+      matches: [
+        {
+          id: "m1",
+          round: 1,
+          order: 0,
+          slots: [
+            { kind: "participant", participantId: "p1" },
+            { kind: "bye" },
+          ],
+        },
+      ],
+    };
+    const withoutNumber = resolveBracket(
+      participants,
+      bracketWithoutNumber,
+      [],
+    );
+    expect(withoutNumber[0].matchNumber).toBeNull();
   });
 });
