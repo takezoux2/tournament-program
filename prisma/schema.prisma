@@ -105,6 +105,8 @@ model Tournament {
   name           String
   status         TournamentStatus @default(DRAFT)
   startsAt       DateTime?
+  /// 大会の概要。Markdown 形式。空文字は未設定を意味する。
+  description    String           @default("")
   createdAt      DateTime         @default(now())
   updatedAt      DateTime         @updatedAt
 

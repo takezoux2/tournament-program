@@ -2,6 +2,7 @@ import Link from "next/link";
 import { formatStartsAt } from "@/features/tournament/format";
 import type { TournamentDetail } from "@/features/tournament/repository";
 import { TOURNAMENT_STATUS_LABELS } from "@/features/tournament/status";
+import { TournamentDescriptionMarkdown } from "./TournamentDescriptionMarkdown";
 
 export function TournamentDetailView({
   slug,
@@ -42,6 +43,13 @@ export function TournamentDetailView({
           </dd>
         </div>
       </dl>
+
+      {tournament.description !== "" && (
+        <section className="space-y-2 rounded border border-slate-200 bg-white px-4 py-3">
+          <h2 className="text-sm font-medium text-slate-500">概要</h2>
+          <TournamentDescriptionMarkdown markdown={tournament.description} />
+        </section>
+      )}
     </div>
   );
 }

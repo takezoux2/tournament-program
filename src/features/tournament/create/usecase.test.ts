@@ -5,7 +5,7 @@ import { UnexpectedTournamentError } from "../errors";
 import type { CreateTournamentPort } from "./repository";
 import { createTournament } from "./usecase";
 
-const input = { name: "春季大会", startsAt: null };
+const input = { name: "春季大会", startsAt: null, description: "" };
 
 describe("createTournament", () => {
   it("入力と組織 id を合わせて port に渡す", async () => {
@@ -21,6 +21,7 @@ describe("createTournament", () => {
     expect(port).toHaveBeenCalledWith({
       name: "春季大会",
       startsAt: null,
+      description: "",
       organizationId: "o1",
     });
   });
