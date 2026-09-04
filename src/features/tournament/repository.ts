@@ -11,6 +11,7 @@ export type TournamentSummary = {
 
 export type TournamentDetail = TournamentSummary & {
   createdAt: Date;
+  description: string;
 };
 
 /** 大会一覧。startsAt は nullable で未設定の位置が定まらないため createdAt で並べる。 */
@@ -40,5 +41,6 @@ export const findTournamentInOrganization = (
       startsAt: true,
       status: true,
       createdAt: true,
+      description: true,
     },
   });

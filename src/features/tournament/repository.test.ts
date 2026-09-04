@@ -69,4 +69,16 @@ describe("findTournamentInOrganization", () => {
 
     await expect(findTournamentInOrganization("o1", "t1")).resolves.toBeNull();
   });
+
+  it("select に description を含める", async () => {
+    findFirst.mockResolvedValue(null);
+
+    await findTournamentInOrganization("o1", "t1");
+
+    expect(findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        select: expect.objectContaining({ description: true }),
+      }),
+    );
+  });
 });
