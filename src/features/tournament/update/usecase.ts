@@ -14,4 +14,5 @@ export const updateTournament = (
     tournamentId,
     name: input.name,
     startsAt: input.startsAt,
+    description: input.description,
   });

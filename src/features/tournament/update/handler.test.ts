@@ -51,6 +51,7 @@ const buildFormData = (name: string): FormData => {
   data.set("tournamentId", "t1");
   data.set("name", name);
   data.set("startsAt", "");
+  data.set("description", "");
   return data;
 };
 
@@ -123,6 +124,7 @@ describe("updateTournamentAction", () => {
       tournamentId: "t1",
       name: "春季大会",
       startsAt: null,
+      description: "",
     });
     expect(revalidatePath).toHaveBeenCalledWith("/orgs/tennis-club");
     expect(redirect).toHaveBeenCalledWith("/orgs/tennis-club/tournaments/t1");

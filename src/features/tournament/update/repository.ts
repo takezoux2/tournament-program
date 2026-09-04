@@ -8,6 +8,7 @@ export type UpdateTournamentPort = (input: {
   tournamentId: string;
   name: string;
   startsAt: Date | null;
+  description: string;
 }) => Effect.Effect<{ updated: number }, TournamentError>;
 
 export const updateTournamentInDb: UpdateTournamentPort = (input) =>
@@ -17,7 +18,11 @@ export const updateTournamentInDb: UpdateTournamentPort = (input) =>
       // update は unique な where しか受け付けず、id 単独になってしまう。
       const result = await prisma.tournament.updateMany({
         where: { id: input.tournamentId, organizationId: input.organizationId },
-        data: { name: input.name, startsAt: input.startsAt },
+        data: {
+          name: input.name,
+          startsAt: input.startsAt,
+          description: input.description,
+        },
       });
       return { updated: result.count };
     },
