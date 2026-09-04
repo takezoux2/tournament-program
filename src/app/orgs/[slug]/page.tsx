@@ -12,6 +12,7 @@ export default async function OrganizationPage({
   const { session, organization, ability } = await requireOrganization(slug);
   const tournaments = await listTournamentsInOrganization(organization.id);
   const canViewUsers = canByCode(ability, "user.view");
+  const canViewMembers = canByCode(ability, "member.view");
 
   return (
     <main className="min-h-screen bg-slate-50">
@@ -35,6 +36,14 @@ export default async function OrganizationPage({
                 className="rounded border border-slate-300 px-3 py-2 text-sm text-slate-700"
               >
                 ユーザー管理
+              </Link>
+            )}
+            {canViewMembers && (
+              <Link
+                href={`/orgs/${slug}/members`}
+                className="rounded border border-slate-300 px-3 py-2 text-sm text-slate-700"
+              >
+                メンバー管理
               </Link>
             )}
             <Link

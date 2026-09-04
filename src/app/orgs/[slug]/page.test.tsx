@@ -133,4 +133,28 @@ describe("OrganizationPage", () => {
 
     expect(screen.queryByRole("link", { name: "ユーザー管理" })).toBeNull();
   });
+
+  it("member.view を持てばメンバー管理へのリンクを出す", async () => {
+    const element = await OrganizationPage(pageProps("tennis"));
+    render(element);
+
+    expect(screen.getByRole("link", { name: "メンバー管理" })).toHaveAttribute(
+      "href",
+      "/orgs/tennis/members",
+    );
+  });
+
+  it("member.view を持たなければメンバー管理のリンクを出さない", async () => {
+    requireOrganization.mockResolvedValue({
+      session,
+      organization,
+      permissionCodes: ["user.view"],
+      ability: defineAbilityFor(["user.view"]),
+    });
+
+    const element = await OrganizationPage(pageProps("tennis"));
+    render(element);
+
+    expect(screen.queryByRole("link", { name: "メンバー管理" })).toBeNull();
+  });
 });

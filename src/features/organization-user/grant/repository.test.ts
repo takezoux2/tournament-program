@@ -3,8 +3,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { PERMISSION_CODES } from "@/shared/authz/ability";
 import { failureTag } from "@/shared/testing/exit";
 
-// 本物の DB の Permission テーブルを模した固定表。id は PERMISSION_CODES の
-// 並び順に 1 始まりで振る。findManyPermission はこの表から
+// Permission テーブル相当の固定表（id は PERMISSION_CODES の並びから機械的に振ったもので、実 DB の id とは独立）。
+// findManyPermission はこの表から
 // where.code.in に含まれる行だけを返すことで、`where` 句の絞り込みが
 // 抜けたり間違ったりしたら失敗するテストを書けるようにする。
 const permissionTable = PERMISSION_CODES.map((code, index) => ({
@@ -96,13 +96,13 @@ describe("grantPermissionsInDb", () => {
       where: { code: { in: ["user.remove", "org.delete"] } },
       select: { id: true, code: true },
     });
-    // permissionTable 上で user.remove は id 3、org.delete は id 9。
+    // permissionTable 上で user.remove は id 3、org.delete は id 12。
     // where 句が抜けたりミスタイプしたりすると、他の code の
     // permissionId まで混ざるか、逆に絞り込みすぎて欠けるので検出できる。
     expect(createManyGrant).toHaveBeenCalledWith({
       data: [
         { organizationId: "o1", userId: "u1", permissionId: 3 },
-        { organizationId: "o1", userId: "u1", permissionId: 9 },
+        { organizationId: "o1", userId: "u1", permissionId: 12 },
       ],
     });
   });
