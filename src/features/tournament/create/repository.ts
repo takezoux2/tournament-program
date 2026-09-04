@@ -17,6 +17,7 @@ export const createTournamentInDb: CreateTournamentPort = (input) =>
           organizationId: input.organizationId,
           name: input.name,
           startsAt: input.startsAt,
+          description: input.description,
         },
         select: { id: true },
       }),

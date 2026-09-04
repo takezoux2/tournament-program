@@ -17,7 +17,7 @@ describe("createTournamentInDb", () => {
     create.mockReset();
   });
 
-  it("organizationId・name・startsAt を渡して大会を作る", async () => {
+  it("organizationId・name・startsAt・description を渡して大会を作る", async () => {
     create.mockResolvedValue({ id: "t1" });
     const startsAt = new Date(2026, 7, 29, 10, 5);
 
@@ -26,6 +26,7 @@ describe("createTournamentInDb", () => {
         organizationId: "o1",
         name: "春季大会",
         startsAt,
+        description: "# 概要",
       }),
     );
 
@@ -34,6 +35,7 @@ describe("createTournamentInDb", () => {
         organizationId: "o1",
         name: "春季大会",
         startsAt,
+        description: "# 概要",
       },
       select: { id: true },
     });
@@ -51,6 +53,7 @@ describe("createTournamentInDb", () => {
         organizationId: "o1",
         name: "秋季大会",
         startsAt: null,
+        description: "",
       }),
     );
 
@@ -70,6 +73,7 @@ describe("createTournamentInDb", () => {
         organizationId: "o1",
         name: "春季大会",
         startsAt: null,
+        description: "",
       }),
     );
 
