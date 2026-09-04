@@ -60,6 +60,9 @@ vi.mock("@/features/division/generate-matching/handler", () => ({
 vi.mock("@/features/division/swap-slots/handler", () => ({
   swapSlotsAction: vi.fn(),
 }));
+vi.mock("@/features/division/set-match-number/handler", () => ({
+  setMatchNumberAction: vi.fn(),
+}));
 
 // actions プロップに何を渡したかを見たいので、受け取った props を控えるダミーに差し替える。
 const divisionSetupProps = vi.fn();
@@ -85,6 +88,9 @@ const { generateMatchingAction } = await import(
 );
 const { swapSlotsAction } = await import(
   "@/features/division/swap-slots/handler"
+);
+const { setMatchNumberAction } = await import(
+  "@/features/division/set-match-number/handler"
 );
 
 const pageProps = () => ({
@@ -174,5 +180,6 @@ describe("DivisionSetupPage", () => {
     expect(actions.reorderEntry).toBe(reorderEntryAction);
     expect(actions.generateMatching).toBe(generateMatchingAction);
     expect(actions.swapSlots).toBe(swapSlotsAction);
+    expect(actions.setMatchNumber).toBe(setMatchNumberAction);
   });
 });
