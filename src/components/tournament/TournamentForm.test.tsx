@@ -98,4 +98,91 @@ describe("TournamentForm", () => {
       "大会名を入力してください",
     );
   });
+
+  it("既定の概要を textarea に入れる", () => {
+    render(
+      <TournamentForm
+        action={noop}
+        slug="tennis"
+        submitLabel="保存する"
+        defaultDescription="# 概要"
+      />,
+    );
+
+    expect(screen.getByLabelText("大会概要")).toHaveValue("# 概要");
+  });
+
+  it("送信すると概要を FormData として action に渡す", async () => {
+    const action = vi.fn(
+      async (_state: TournamentFormState, formData: FormData) => {
+        expect(formData.get("description")).toBe("## ルール");
+        return { error: null };
+      },
+    );
+
+    const { container } = render(
+      <TournamentForm action={action} slug="tennis" submitLabel="作成する" />,
+    );
+
+    fireEvent.change(screen.getByLabelText("大会概要"), {
+      target: { value: "## ルール" },
+    });
+    fireEvent.submit(formIn(container));
+
+    await waitFor(() => expect(action).toHaveBeenCalled());
+  });
+
+  it("プレビュータブで入力中の Markdown をレンダリングする", () => {
+    render(
+      <TournamentForm
+        action={noop}
+        slug="tennis"
+        submitLabel="作成する"
+        defaultDescription="# 大会について"
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "プレビュー" }));
+
+    expect(
+      screen.getByRole("heading", { name: "大会について" }),
+    ).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "編集" }));
+
+    expect(screen.getByLabelText("大会概要")).toHaveValue("# 大会について");
+  });
+
+  it("概要が空のままプレビューするとプレースホルダを出す", () => {
+    render(
+      <TournamentForm action={noop} slug="tennis" submitLabel="作成する" />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "プレビュー" }));
+
+    expect(screen.getByText("概要は未入力です")).toBeInTheDocument();
+  });
+
+  it("プレビュー中に送信しても概要が FormData に含まれる", async () => {
+    const action = vi.fn(
+      async (_state: TournamentFormState, formData: FormData) => {
+        expect(formData.get("description")).toBe("# 概要");
+        return { error: null };
+      },
+    );
+
+    const { container } = render(
+      <TournamentForm
+        action={action}
+        slug="tennis"
+        submitLabel="作成する"
+        defaultDescription="# 概要"
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "プレビュー" }));
+    fireEvent.submit(formIn(container));
+
+    await waitFor(() => expect(action).toHaveBeenCalled());
+  });
 });
