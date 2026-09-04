@@ -43,6 +43,4 @@ export const startsAtSchema = z
 export const tournamentDescriptionSchema = z
   .string()
   .transform((raw) => raw.trim())
-  .pipe(
-    z.string().max(10000, "大会概要は10000文字以内で入力してください"),
-  );
+  .pipe(z.string().max(10000, "大会概要は10000文字以内で入力してください"));
