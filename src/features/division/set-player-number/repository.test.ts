@@ -1,4 +1,4 @@
-import { Effect } from "effect";
+import { Cause, Effect, Exit, Option } from "effect";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const participantFindFirst = vi.fn();
@@ -116,6 +116,13 @@ describe("setPlayerNumberInDb", () => {
     );
 
     expect(exit._tag).toBe("Failure");
+    if (Exit.isFailure(exit)) {
+      const failure = Cause.failureOption(exit.cause);
+      expect(Option.isSome(failure)).toBe(true);
+      if (Option.isSome(failure)) {
+        expect(failure.value._tag).toBe("DivisionParticipantNotFoundError");
+      }
+    }
     expect(participantUpdate).not.toHaveBeenCalled();
   });
 });

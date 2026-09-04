@@ -1,4 +1,4 @@
-import { Effect } from "effect";
+import { Cause, Effect, Exit, Option } from "effect";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { buildFromSlots } from "../single-elimination/build";
 
@@ -85,6 +85,13 @@ describe("setMatchNumberInDb", () => {
       setMatchNumberInDb(ids, { matchId: "m9-9", matchNumber: "A" }),
     );
     expect(exit._tag).toBe("Failure");
+    if (Exit.isFailure(exit)) {
+      const failure = Cause.failureOption(exit.cause);
+      expect(Option.isSome(failure)).toBe(true);
+      if (Option.isSome(failure)) {
+        expect(failure.value._tag).toBe("DivisionMatchNotFoundError");
+      }
+    }
     expect(divisionUpdateMany).not.toHaveBeenCalled();
   });
 
@@ -105,6 +112,13 @@ describe("setMatchNumberInDb", () => {
       setMatchNumberInDb(ids, { matchId: "m1-0", matchNumber: "2" }),
     );
     expect(exit._tag).toBe("Failure");
+    if (Exit.isFailure(exit)) {
+      const failure = Cause.failureOption(exit.cause);
+      expect(Option.isSome(failure)).toBe(true);
+      if (Option.isSome(failure)) {
+        expect(failure.value._tag).toBe("DivisionMatchNumberConflictError");
+      }
+    }
     expect(divisionUpdateMany).not.toHaveBeenCalled();
   });
 
