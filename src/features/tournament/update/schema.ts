@@ -1,5 +1,9 @@
 import { z } from "zod";
-import { startsAtSchema, tournamentNameSchema } from "../schema-parts";
+import {
+  startsAtSchema,
+  tournamentDescriptionSchema,
+  tournamentNameSchema,
+} from "../schema-parts";
 
 /**
  * 入力の形は作成時と同じだが、create から import はしない（同列スライスへの
@@ -9,6 +13,7 @@ import { startsAtSchema, tournamentNameSchema } from "../schema-parts";
 export const updateTournamentSchema = z.object({
   name: tournamentNameSchema,
   startsAt: startsAtSchema,
+  description: tournamentDescriptionSchema,
 });
 
 export type UpdateTournamentInput = z.infer<typeof updateTournamentSchema>;

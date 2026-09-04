@@ -35,3 +35,14 @@ export const startsAtSchema = z
     "開始日時の形式が正しくありません",
   )
   .transform((value) => (value === "" ? null : new Date(value)));
+
+/**
+ * 大会概要。Markdown 形式のテキスト。空文字は「未設定」を意味するため
+ * 最小長は課さない。
+ */
+export const tournamentDescriptionSchema = z
+  .string()
+  .transform((raw) => raw.trim())
+  .pipe(
+    z.string().max(10000, "大会概要は10000文字以内で入力してください"),
+  );

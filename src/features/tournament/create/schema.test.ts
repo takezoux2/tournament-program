@@ -1,15 +1,22 @@
 import { describe, expect, it } from "vitest";
 import { createTournamentSchema } from "./schema";
 
-const parse = (input: { name: unknown; startsAt: unknown }) =>
-  createTournamentSchema.safeParse(input);
+const parse = (input: {
+  name: unknown;
+  startsAt: unknown;
+  description?: unknown;
+}) => createTournamentSchema.safeParse({ description: "", ...input });
 
 describe("createTournamentSchema", () => {
   it("妥当な入力を通し、前後の空白を落とす", () => {
     const result = parse({ name: "  春季大会  ", startsAt: "" });
     expect(result.success).toBe(true);
     if (result.success) {
-      expect(result.data).toEqual({ name: "春季大会", startsAt: null });
+      expect(result.data).toEqual({
+        name: "春季大会",
+        startsAt: null,
+        description: "",
+      });
     }
   });
 
@@ -70,6 +77,40 @@ describe("createTournamentSchema", () => {
     if (!result.success) {
       expect(result.error.issues[0].message).toBe(
         "大会名は100文字以内で入力してください",
+      );
+    }
+  });
+
+  it("概要の前後の空白を落とす", () => {
+    const result = parse({
+      name: "春季大会",
+      startsAt: "",
+      description: "  # 概要  ",
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.description).toBe("# 概要");
+    }
+  });
+
+  it("空の概要を許容する", () => {
+    const result = parse({ name: "春季大会", startsAt: "", description: "" });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.description).toBe("");
+    }
+  });
+
+  it("10000 文字超の概要を弾く", () => {
+    const result = parse({
+      name: "春季大会",
+      startsAt: "",
+      description: "あ".repeat(10001),
+    });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues[0].message).toBe(
+        "大会概要は10000文字以内で入力してください",
       );
     }
   });
