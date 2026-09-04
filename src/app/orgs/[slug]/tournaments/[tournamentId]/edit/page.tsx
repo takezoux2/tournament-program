@@ -46,6 +46,7 @@ export default async function EditTournamentPage({
             submitLabel="保存する"
             defaultName={tournament.name}
             defaultStartsAt={toDateTimeLocalValue(tournament.startsAt)}
+            defaultDescription={tournament.description}
             tournamentId={tournament.id}
           />
         </div>

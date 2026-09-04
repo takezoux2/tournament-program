@@ -8,6 +8,7 @@ const tournament = {
   startsAt: new Date(2026, 7, 29, 10, 5),
   status: "DRAFT" as const,
   createdAt: new Date(2026, 7, 1, 9, 0),
+  description: "",
 };
 
 describe("TournamentDetailView", () => {
@@ -54,5 +55,24 @@ describe("TournamentDetailView", () => {
       "href",
       "/orgs/tennis/tournaments/t1/edit",
     );
+  });
+
+  it("概要があれば Markdown をレンダリングして表示する", () => {
+    render(
+      <TournamentDetailView
+        slug="tennis"
+        tournament={{ ...tournament, description: "## 会場のご案内" }}
+      />,
+    );
+
+    expect(
+      screen.getByRole("heading", { name: "会場のご案内" }),
+    ).toBeInTheDocument();
+  });
+
+  it("概要が空なら概要セクションを出さない", () => {
+    render(<TournamentDetailView slug="tennis" tournament={tournament} />);
+
+    expect(screen.queryByText("概要")).toBeNull();
   });
 });
