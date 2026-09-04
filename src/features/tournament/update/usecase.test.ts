@@ -5,7 +5,7 @@ import { UnexpectedTournamentError } from "../errors";
 import type { UpdateTournamentPort } from "./repository";
 import { updateTournament } from "./usecase";
 
-const input = { name: "春季大会", startsAt: null };
+const input = { name: "春季大会", startsAt: null, description: "# 概要" };
 
 describe("updateTournament", () => {
   it("組織 id と大会 id を両方 port に渡す", async () => {
@@ -24,6 +24,7 @@ describe("updateTournament", () => {
       tournamentId: "t1",
       name: "春季大会",
       startsAt: null,
+      description: "# 概要",
     });
   });
 

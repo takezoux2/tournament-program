@@ -27,6 +27,7 @@ describe("updateTournamentInDb", () => {
         tournamentId: "t1",
         name: "春季大会",
         startsAt,
+        description: "# 概要",
       }),
     );
 
@@ -34,7 +35,7 @@ describe("updateTournamentInDb", () => {
     // 書き換えられてしまう。id 単独の where は許容できない。
     expect(updateMany).toHaveBeenCalledWith({
       where: { id: "t1", organizationId: "o1" },
-      data: { name: "春季大会", startsAt },
+      data: { name: "春季大会", startsAt, description: "# 概要" },
     });
     expect(Exit.isSuccess(exit)).toBe(true);
     if (Exit.isSuccess(exit)) {
@@ -51,6 +52,7 @@ describe("updateTournamentInDb", () => {
         tournamentId: "t-other-org",
         name: "春季大会",
         startsAt: null,
+        description: "",
       }),
     );
 
@@ -70,6 +72,7 @@ describe("updateTournamentInDb", () => {
         tournamentId: "t1",
         name: "春季大会",
         startsAt: null,
+        description: "",
       }),
     );
 
