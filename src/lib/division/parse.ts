@@ -88,13 +88,21 @@ const parseBracketSide = (value: unknown, path: string): BracketSide => {
     : fail(path, "winners / losers / final のいずれか");
 };
 
-const parseBracketMatch = (value: unknown, path: string): BracketMatch => {
+/** matchNumber 補完前の 1 試合。旧データには matchNumber が無い。 */
+type ParsedBracketMatch = Omit<BracketMatch, "matchNumber"> & {
+  matchNumber?: string;
+};
+
+const parseBracketMatch = (
+  value: unknown,
+  path: string,
+): ParsedBracketMatch => {
   const record = asRecord(value, path);
   const slots = asArray(record.slots, `${path}.slots`);
   if (slots.length !== 2) {
     return fail(`${path}.slots`, "要素 2 個の配列");
   }
-  return {
+  const parsed: ParsedBracketMatch = {
     id: asString(record.id, `${path}.id`),
     bracket: parseBracketSide(record.bracket, `${path}.bracket`),
     round: asInt(record.round, `${path}.round`),
@@ -104,6 +112,46 @@ const parseBracketMatch = (value: unknown, path: string): BracketMatch => {
       parseSlotSource(slots[1], `${path}.slots[1]`),
     ],
   };
+  if (record.matchNumber !== undefined) {
+    parsed.matchNumber = asString(record.matchNumber, `${path}.matchNumber`);
+  }
+  return parsed;
+};
+
+/**
+ * matchNumber の無い試合（列追加前に保存された旧データ）へ番号を補完する。
+ * round/order 順に、既存の番号と衝突しない最小の正整数を文字列で割り当てる。
+ * データ移行を行わない代わりに、読み出しが必ず完全な形へ正規化する。
+ */
+const fillMatchNumbers = (matches: ParsedBracketMatch[]): BracketMatch[] => {
+  const used = new Set(
+    matches.flatMap((match) =>
+      match.matchNumber === undefined ? [] : [match.matchNumber],
+    ),
+  );
+  let candidate = 1;
+  const nextNumber = (): string => {
+    while (used.has(String(candidate))) {
+      candidate += 1;
+    }
+    used.add(String(candidate));
+    return String(candidate);
+  };
+
+  const assigned = new Map<string, string>();
+  for (const match of [...matches].sort(
+    (left, right) => left.round - right.round || left.order - right.order,
+  )) {
+    if (match.matchNumber === undefined) {
+      assigned.set(match.id, nextNumber());
+    }
+  }
+
+  return matches.map((match) =>
+    match.matchNumber === undefined
+      ? { ...match, matchNumber: assigned.get(match.id) as string }
+      : (match as BracketMatch),
+  );
 };
 
 const parseMatchResultRecord = (
@@ -146,9 +194,10 @@ export const parseMatchingConfig = (value: unknown): MatchingConfig => {
   const record = asRecord(value, "matchingConfig");
   return {
     version: asVersion1(record.version, "matchingConfig.version"),
-    matches: asArray(record.matches, "matchingConfig.matches").map(
-      (item, index) =>
+    matches: fillMatchNumbers(
+      asArray(record.matches, "matchingConfig.matches").map((item, index) =>
         parseBracketMatch(item, `matchingConfig.matches[${index}]`),
+      ),
     ),
   };
 };

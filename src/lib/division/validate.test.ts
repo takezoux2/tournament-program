@@ -248,6 +248,57 @@ describe("validateMatchingConfig", () => {
   it("空の組み合わせは妥当とする", () => {
     expect(validateMatchingConfig(config(), roster)).toEqual([]);
   });
+
+  it("matchNumber が重複していたらエラー", () => {
+    // 既存テストの match fixture ヘルパーを使い、2 試合に同じ matchNumber "1" を与える
+    const errors = validateMatchingConfig(
+      {
+        version: 1,
+        matches: [
+          {
+            id: "m1-0",
+            bracket: "winners",
+            round: 1,
+            order: 0,
+            matchNumber: "1",
+            slots: [{ kind: "bye" }, { kind: "bye" }],
+          },
+          {
+            id: "m1-1",
+            bracket: "winners",
+            round: 1,
+            order: 1,
+            matchNumber: "1",
+            slots: [{ kind: "bye" }, { kind: "bye" }],
+          },
+        ],
+      },
+      { version: 1, entries: [] },
+    );
+    expect(errors).toContain(
+      "matchingConfig.matches[].matchNumber が重複しています: 1",
+    );
+  });
+
+  it("matchNumber が空文字ならエラー", () => {
+    const errors = validateMatchingConfig(
+      {
+        version: 1,
+        matches: [
+          {
+            id: "m1-0",
+            bracket: "winners",
+            round: 1,
+            order: 0,
+            matchNumber: "",
+            slots: [{ kind: "bye" }, { kind: "bye" }],
+          },
+        ],
+      },
+      { version: 1, entries: [] },
+    );
+    expect(errors).toContain("m1-0: matchNumber が空です");
+  });
 });
 
 /** 4 名のシングルエリミネーション。m3 が決勝。 */

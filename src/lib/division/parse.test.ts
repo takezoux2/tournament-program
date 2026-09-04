@@ -56,6 +56,85 @@ describe("parseDivisionEntries", () => {
 });
 
 describe("parseMatchingConfig", () => {
+  it("matchNumber を持つ試合はそのまま読む", () => {
+    const config = parseMatchingConfig({
+      version: 1,
+      matches: [
+        {
+          id: "m1-0",
+          bracket: "winners",
+          round: 1,
+          order: 0,
+          matchNumber: "A",
+          slots: [{ kind: "bye" }, { kind: "bye" }],
+        },
+      ],
+    });
+    expect(config.matches[0].matchNumber).toBe("A");
+  });
+
+  it("matchNumber の無い試合には round/order 順で未使用の連番を補完する", () => {
+    const match = (id: string, round: number, order: number) => ({
+      id,
+      bracket: "winners",
+      round,
+      order,
+      slots: [{ kind: "bye" }, { kind: "bye" }],
+    });
+    const config = parseMatchingConfig({
+      version: 1,
+      // 配列順は round 順と逆に置き、round/order 順で補完されることを確かめる
+      matches: [match("m2-0", 2, 0), match("m1-0", 1, 0), match("m1-1", 1, 1)],
+    });
+    const byId = new Map(config.matches.map((m) => [m.id, m.matchNumber]));
+    expect(byId.get("m1-0")).toBe("1");
+    expect(byId.get("m1-1")).toBe("2");
+    expect(byId.get("m2-0")).toBe("3");
+  });
+
+  it("補完する連番は既に使われている番号を飛ばす", () => {
+    const config = parseMatchingConfig({
+      version: 1,
+      matches: [
+        {
+          id: "m1-0",
+          bracket: "winners",
+          round: 1,
+          order: 0,
+          matchNumber: "1",
+          slots: [{ kind: "bye" }, { kind: "bye" }],
+        },
+        {
+          id: "m1-1",
+          bracket: "winners",
+          round: 1,
+          order: 1,
+          slots: [{ kind: "bye" }, { kind: "bye" }],
+        },
+      ],
+    });
+    const byId = new Map(config.matches.map((m) => [m.id, m.matchNumber]));
+    expect(byId.get("m1-1")).toBe("2");
+  });
+
+  it("matchNumber が文字列以外なら DivisionJsonError", () => {
+    expect(() =>
+      parseMatchingConfig({
+        version: 1,
+        matches: [
+          {
+            id: "m1-0",
+            bracket: "winners",
+            round: 1,
+            order: 0,
+            matchNumber: 1,
+            slots: [{ kind: "bye" }, { kind: "bye" }],
+          },
+        ],
+      }),
+    ).toThrow(DivisionJsonError);
+  });
+
   it("4 種類の SlotSource を全て受け付ける", () => {
     const value = {
       version: 1,
@@ -65,6 +144,7 @@ describe("parseMatchingConfig", () => {
           bracket: "winners",
           round: 1,
           order: 0,
+          matchNumber: "1",
           slots: [{ kind: "entry", entryId: "e1" }, { kind: "bye" }],
         },
         {
@@ -72,6 +152,7 @@ describe("parseMatchingConfig", () => {
           bracket: "losers",
           round: 2,
           order: 0,
+          matchNumber: "2",
           slots: [
             { kind: "winnerOf", matchId: "m1" },
             { kind: "loserOf", matchId: "m1" },
