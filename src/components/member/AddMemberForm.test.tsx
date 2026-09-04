@@ -36,6 +36,8 @@ describe("AddMemberForm", () => {
     const user = userEvent.setup();
     render(<AddMemberForm slug="tennis" addAction={addAction} />);
 
+    await user.type(screen.getByLabelText("氏名"), "竹添");
+    await user.type(screen.getByLabelText("氏名（かな）"), "たけぞえ");
     await user.click(screen.getByRole("button", { name: "追加" }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
