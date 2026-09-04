@@ -22,6 +22,7 @@ const matchingConfig: MatchingConfig = {
       bracket: "winners",
       round: 1,
       order: 0,
+      matchNumber: "1",
       slots: [
         { kind: "entry", entryId: "e1" },
         { kind: "entry", entryId: "e2" },
@@ -94,6 +95,7 @@ describe("fromDivision", () => {
               bracket: "winners",
               round: 1,
               order: 0,
+              matchNumber: "1",
               slots: [{ kind: "entry", entryId: "e1" }, { kind: "bye" }],
             },
             {
@@ -101,6 +103,7 @@ describe("fromDivision", () => {
               bracket: "winners",
               round: 2,
               order: 0,
+              matchNumber: "2",
               slots: [
                 { kind: "winnerOf", matchId: "m1" },
                 { kind: "entry", entryId: "e2" },
@@ -185,6 +188,7 @@ describe("fromDivision", () => {
                 bracket: "winners",
                 round: 1,
                 order: 0,
+                matchNumber: "1",
                 slots: [
                   { kind: "entry", entryId: "e1" },
                   { kind: "loserOf", matchId: "m0" },
@@ -209,6 +213,7 @@ describe("fromDivision", () => {
                 bracket: "losers",
                 round: 1,
                 order: 0,
+                matchNumber: "1",
                 slots: [
                   { kind: "entry", entryId: "e1" },
                   { kind: "entry", entryId: "e2" },
@@ -239,6 +244,7 @@ describe("fromDivision", () => {
                 bracket: "winners",
                 round: 2,
                 order: 0,
+                matchNumber: "1",
                 slots: [
                   { kind: "winnerOf", matchId: "m1" },
                   { kind: "entry", entryId: "e2" },
@@ -263,6 +269,7 @@ describe("fromDivision", () => {
                 bracket: "winners",
                 round: 1,
                 order: 0,
+                matchNumber: "1",
                 slots: [
                   { kind: "entry", entryId: "e1" },
                   { kind: "entry", entryId: "e999" },

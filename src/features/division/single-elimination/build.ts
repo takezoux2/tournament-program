@@ -68,6 +68,7 @@ export const buildFromSlots = (slots: SlotSource[]): MatchingConfig => {
       bracket: "winners",
       round: 1,
       order,
+      matchNumber: String(matches.length + 1),
       slots: [paddedSlots[order * 2], paddedSlots[order * 2 + 1]],
     });
   }
@@ -82,6 +83,7 @@ export const buildFromSlots = (slots: SlotSource[]): MatchingConfig => {
         bracket: "winners",
         round,
         order,
+        matchNumber: String(matches.length + 1),
         slots: [
           { kind: "winnerOf", matchId: matchId(round - 1, order * 2) },
           { kind: "winnerOf", matchId: matchId(round - 1, order * 2 + 1) },
