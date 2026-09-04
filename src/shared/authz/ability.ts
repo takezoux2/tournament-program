@@ -6,7 +6,7 @@ import {
 
 /**
  * 権限コードの一覧。DB の Permission.code と 1:1 で対応させる。
- * migration のシードもこの並びに合わせること。
+ * 並びは表示順で、DB の id とは対応しない（追加分の migration は末尾に足すため）。
  */
 export const PERMISSION_CODES = [
   "user.view",
