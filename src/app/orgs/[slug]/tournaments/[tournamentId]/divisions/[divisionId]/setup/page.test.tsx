@@ -44,7 +44,7 @@ vi.mock("@/features/organization/repository", () => ({
     listMembersInOrganization(organizationId),
 }));
 
-// 5 つの Server Action は "use server" を持つので、テストでは差し替える。
+// 6 つの Server Action は "use server" を持つので、テストでは差し替える。
 vi.mock("@/features/division/add-entry/handler", () => ({
   addEntryAction: vi.fn(),
 }));
@@ -62,6 +62,9 @@ vi.mock("@/features/division/swap-slots/handler", () => ({
 }));
 vi.mock("@/features/division/set-match-number/handler", () => ({
   setMatchNumberAction: vi.fn(),
+}));
+vi.mock("@/features/division/set-player-number/handler", () => ({
+  setPlayerNumberAction: vi.fn(),
 }));
 
 // actions プロップに何を渡したかを見たいので、受け取った props を控えるダミーに差し替える。
@@ -91,6 +94,9 @@ const { swapSlotsAction } = await import(
 );
 const { setMatchNumberAction } = await import(
   "@/features/division/set-match-number/handler"
+);
+const { setPlayerNumberAction } = await import(
+  "@/features/division/set-player-number/handler"
 );
 
 const pageProps = () => ({
@@ -166,8 +172,8 @@ describe("DivisionSetupPage", () => {
     );
   });
 
-  it("5 つの Server Action をそれぞれ対応する actions のプロパティに渡す", async () => {
-    // 5 つとも別モジュールの vi.fn() なので参照が異なる。取り違えて渡すと
+  it("6 つの Server Action をそれぞれ対応する actions のプロパティに渡す", async () => {
+    // 6 つとも別モジュールの vi.fn() なので参照が異なる。取り違えて渡すと
     // toBe が落ちる。同じ関数を使い回すダミーでは検出できない観点。
     render(await DivisionSetupPage(pageProps()));
 
@@ -181,5 +187,6 @@ describe("DivisionSetupPage", () => {
     expect(actions.generateMatching).toBe(generateMatchingAction);
     expect(actions.swapSlots).toBe(swapSlotsAction);
     expect(actions.setMatchNumber).toBe(setMatchNumberAction);
+    expect(actions.setPlayerNumber).toBe(setPlayerNumberAction);
   });
 });

@@ -8,7 +8,7 @@ vi.mock("./DivisionBracket", () => ({
   DivisionBracket: () => <div>bracket</div>,
 }));
 
-// 6 つとも同じ vi.fn を使い回すと、EntryList/MatchingSection への配線で
+// 7 つとも同じ vi.fn を使い回すと、EntryList/MatchingSection への配線で
 // prop を取り違えても（例: reorderAction と removeAction の入れ替え）
 // 参照が同じなので検知できない。ここでは配線チェックのため別々にしている。
 const actions = {
@@ -18,6 +18,7 @@ const actions = {
   generateMatching: vi.fn(async () => ({ error: null })),
   swapSlots: vi.fn(async () => ({ error: null })),
   setMatchNumber: vi.fn(async () => ({ error: null })),
+  setPlayerNumber: vi.fn(async () => ({ error: null })),
 };
 
 const division = (overrides: Partial<DivisionDetail> = {}): DivisionDetail => ({
@@ -156,9 +157,12 @@ describe("DivisionSetup", () => {
       render(<IsolatedDivisionSetup {...props} division={division()} />);
 
       // toBe で参照そのものを比較する。値の形（DivisionFormAction）は
-      // 6 つとも同じなので、中身の一致比較では入れ替えを見逃してしまう。
+      // 7 つとも同じなので、中身の一致比較では入れ替えを見逃してしまう。
       expect(entryListProps?.reorderAction).toBe(actions.reorderEntry);
       expect(entryListProps?.removeAction).toBe(actions.removeEntry);
+      expect(entryListProps?.setPlayerNumberAction).toBe(
+        actions.setPlayerNumber,
+      );
       expect(addEntryFormProps?.action).toBe(actions.addEntry);
       expect(matchingSectionProps?.generateAction).toBe(
         actions.generateMatching,

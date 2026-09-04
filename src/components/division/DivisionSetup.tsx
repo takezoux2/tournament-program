@@ -27,6 +27,7 @@ export type DivisionSetupActions = {
   generateMatching: DivisionFormAction;
   swapSlots: DivisionFormAction;
   setMatchNumber: DivisionFormAction;
+  setPlayerNumber: DivisionFormAction;
 };
 
 const Notice = ({ children }: { children: React.ReactNode }) => (
@@ -103,6 +104,7 @@ export function DivisionSetup({
           divisionId={division.id}
           reorderAction={actions.reorderEntry}
           removeAction={actions.removeEntry}
+          setPlayerNumberAction={actions.setPlayerNumber}
           disabled={locked}
         />
         <AddEntryForm
