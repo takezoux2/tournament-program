@@ -20,6 +20,7 @@ export const createTournamentAction = async (
   const parsed = createTournamentSchema.safeParse({
     name: String(formData.get("name") ?? ""),
     startsAt: String(formData.get("startsAt") ?? ""),
+    description: String(formData.get("description") ?? ""),
   });
   if (!parsed.success) {
     return { error: parsed.error.issues[0].message };
