@@ -32,7 +32,11 @@ vi.mock("@dnd-kit/core", async () => {
   };
 });
 
-const dropOn = async (activeId: string, overId: string): Promise<void> => {
+/** overId が null なら「どこにも落とさなかった」ドロップ。 */
+const dropOn = async (
+  activeId: string,
+  overId: string | null,
+): Promise<void> => {
   const handler = dnd.dragEnd;
   if (handler === null) {
     throw new Error("DndContext に onDragEnd が渡っていない");
@@ -40,7 +44,7 @@ const dropOn = async (activeId: string, overId: string): Promise<void> => {
   await act(async () => {
     handler({
       active: { id: activeId },
-      over: { id: overId },
+      over: overId === null ? null : { id: overId },
     } as DragEndEvent);
   });
 };
@@ -230,6 +234,22 @@ describe("ScheduleList", () => {
     expect(sent[0].getAll("key")).toEqual(["match:dA:m1-0", "divider:s1"]);
   });
 
+  it("並べ替えにならないドロップでは何も送らない", async () => {
+    // 行の外で離した場合。並びは変わっていないので、保存を投げると
+    // 無意味な書き込みと再検証だけが走る。
+    const sent: FormData[] = [];
+    const reorderAction = async (_state: ScheduleFormState, data: FormData) => {
+      sent.push(data);
+      return { error: null };
+    };
+    renderList({ reorderAction });
+
+    await dropOn("match:dA:m1-0", null);
+    await dropOn("match:dA:m1-0", "match:dA:m1-0");
+
+    expect(sent).toEqual([]);
+  });
+
   it("保存中は掴めなくして、その旨を出す", async () => {
     // 保存の途中でもう一度掴めると、更新前の props の並びから計算した並びで
     // 上書きしてしまい、先の並べ替えが消える。
@@ -256,5 +276,64 @@ describe("ScheduleList", () => {
     expect(
       screen.getByText("左端をドラッグすると進行順を入れ替えられます"),
     ).toBeInTheDocument();
+  });
+
+  it("挿入中は挿入ボタンをすべて止める", async () => {
+    // useActionState は dispatch を積むので、連打した回数だけ区切りが増える。
+    let finish: (state: ScheduleFormState) => void = () => {};
+    let calls = 0;
+    const insertDividerAction = () => {
+      calls += 1;
+      return new Promise<ScheduleFormState>((resolve) => {
+        finish = resolve;
+      });
+    };
+    renderList({ insertDividerAction });
+
+    const head = screen.getByRole("button", { name: "先頭に区切りを挿入" });
+    await userEvent.click(head);
+
+    for (const button of screen.getAllByRole("button", {
+      name: /区切りを挿入$/,
+    })) {
+      expect(button).toBeDisabled();
+    }
+
+    await userEvent.click(head);
+    expect(calls).toBe(1);
+
+    await act(async () => {
+      finish({ error: null });
+    });
+
+    expect(head).toBeEnabled();
+  });
+
+  it("並べ替えに失敗したら理由を出す", async () => {
+    const reorderAction = async (): Promise<ScheduleFormState> => ({
+      error: "並べ替えを保存できませんでした",
+    });
+    renderList({ reorderAction });
+
+    await dropOn("match:dA:m1-0", "divider:s1");
+
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "並べ替えを保存できませんでした",
+    );
+  });
+
+  it("挿入に失敗したら理由を出す", async () => {
+    const insertDividerAction = async (): Promise<ScheduleFormState> => ({
+      error: "区切りを追加できませんでした",
+    });
+    renderList({ insertDividerAction });
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "先頭に区切りを挿入" }),
+    );
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "区切りを追加できませんでした",
+    );
   });
 });

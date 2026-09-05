@@ -115,7 +115,7 @@ export function ScheduleList({
     reorderAction,
     INITIAL_SCHEDULE_FORM_STATE,
   );
-  const [insertState, insert] = useActionState(
+  const [insertState, insert, inserting] = useActionState(
     insertDividerAction,
     INITIAL_SCHEDULE_FORM_STATE,
   );
@@ -151,6 +151,10 @@ export function ScheduleList({
     startTransition(() => reorder(data));
   };
 
+  /**
+   * 送信中は挿入ボタンをすべて止める（inserting）。useActionState は dispatch を
+   * 積むので、連打するとその回数だけ区切りが増える。
+   */
   const insertAfter = (anchorKey: string): void => {
     const data = new FormData();
     data.set("slug", slug);
@@ -182,11 +186,12 @@ export function ScheduleList({
         </p>
       )}
 
-      {/* 空文字のアンカーは「先頭に挿す」（features/schedule/insert-divider の HEAD_ANCHOR_KEY と対）。 */}
+      {/* 空文字のアンカーは「先頭に挿す」（features/schedule/domain.ts の HEAD_ANCHOR_KEY と対）。 */}
       <button
         type="button"
         onClick={() => insertAfter("")}
-        className="rounded border border-slate-300 px-2 py-1 text-xs text-slate-700"
+        disabled={inserting}
+        className="rounded border border-slate-300 px-2 py-1 text-xs text-slate-700 disabled:opacity-30"
       >
         先頭に区切りを挿入
       </button>
@@ -219,8 +224,9 @@ export function ScheduleList({
                   <button
                     type="button"
                     onClick={() => insertAfter(row.key)}
+                    disabled={inserting}
                     aria-label={`${name}の下に区切りを挿入`}
-                    className="shrink-0 rounded border border-slate-300 px-2 py-1 text-xs text-slate-700"
+                    className="shrink-0 rounded border border-slate-300 px-2 py-1 text-xs text-slate-700 disabled:opacity-30"
                   >
                     この下に区切りを挿入
                   </button>
