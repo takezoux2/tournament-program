@@ -23,9 +23,17 @@ const Notice = ({ children }: { children: React.ReactNode }) => (
 export function DivisionBracket({
   division,
   participants,
+  heightClassName = "h-[28rem]",
 }: {
   division: DivisionDetail;
   participants: DivisionParticipant[];
+  /**
+   * 描画枠の高さ。既定は管理画面の詳細ページ向け。公開のブラケットページは
+   * ブラケット専用の画面なので、dvh 基準の高さを渡して画面を占有させる。
+   * Tailwind v4 はソース中の文字列からクラスを生成するため、
+   * 呼び出し側は必ず文字列リテラルで渡すこと。
+   */
+  heightClassName?: string;
 }) {
   // Json は DB の列で、アプリの外から壊れた値が入りうる。パースの失敗は
   // この区画で受け止め、ページ全体は落とさない。
@@ -85,7 +93,9 @@ export function DivisionBracket({
   }
 
   return (
-    <div className="h-[28rem] rounded border border-slate-200 bg-white">
+    <div
+      className={`${heightClassName} rounded border border-slate-200 bg-white`}
+    >
       <TournamentFlow nodes={elements.nodes} edges={elements.edges} />
     </div>
   );

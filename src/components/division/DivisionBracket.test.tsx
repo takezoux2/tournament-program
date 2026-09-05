@@ -191,4 +191,25 @@ describe("DivisionBracket", () => {
 
     expect(screen.getByText("組み合わせが未作成です")).toBeInTheDocument();
   });
+
+  it("既定の高さは h-[28rem]（管理画面の見た目を変えない）", () => {
+    const { container } = render(
+      <DivisionBracket division={buildDivision()} participants={participants} />,
+    );
+
+    expect(container.querySelector(".h-\\[28rem\\]")).not.toBeNull();
+  });
+
+  it("heightClassName を渡すとその高さを使う", () => {
+    const { container } = render(
+      <DivisionBracket
+        division={buildDivision()}
+        participants={participants}
+        heightClassName="h-[20rem]"
+      />,
+    );
+
+    expect(container.querySelector(".h-\\[20rem\\]")).not.toBeNull();
+    expect(container.querySelector(".h-\\[28rem\\]")).toBeNull();
+  });
 });
