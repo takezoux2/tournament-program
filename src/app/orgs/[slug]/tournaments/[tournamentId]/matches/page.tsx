@@ -42,7 +42,7 @@ export default async function TournamentMatchesPage({
 
       <div className="mx-auto max-w-3xl space-y-4 px-6 py-8">
         <div>
-          <h2 className="text-sm font-bold text-slate-700">試合一覧</h2>
+          <h1 className="text-lg font-bold text-slate-800">試合一覧</h1>
           <p className="text-xs text-slate-500">
             全部門の試合を進行順に並べます。この並びは組み合わせ（ブラケット）には影響しません。
           </p>

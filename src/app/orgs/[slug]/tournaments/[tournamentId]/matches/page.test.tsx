@@ -84,6 +84,10 @@ describe("TournamentMatchesPage", () => {
     expect(requireOrganization).toHaveBeenCalledWith("tennis");
     expect(loadScheduleView).toHaveBeenCalledWith("o1", "t1");
     expect(screen.getByText("山田 vs 佐藤")).toBeInTheDocument();
+    // 見出しは h1 から始める（他のページと同じ）。
+    expect(
+      screen.getByRole("heading", { level: 1, name: "試合一覧" }),
+    ).toBeInTheDocument();
   });
 
   it("大会が無ければ 404 にする", async () => {
