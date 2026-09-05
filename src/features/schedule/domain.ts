@@ -116,3 +116,106 @@ export const toSaveItems = (rows: ScheduleRowView[]): ScheduleSaveItem[] =>
         }
       : { kind: "match", divisionId: row.divisionId, matchId: row.matchId },
   );
+
+/** 「先頭に挿す」を表すアンカー。画面の hidden input が空文字を送ってくる。 */
+export const HEAD_ANCHOR_KEY = "";
+
+/**
+ * 送られたキー順に並べ替える。キーの集合が現在の一覧と完全に一致しない場合は
+ * null を返す。この一致確認が同時編集に対する防波堤で、別の誰かが組み合わせを
+ * 作り直したり区切りを増やしたりしていれば、その並びは受け付けない。
+ */
+export const reorderRows = (
+  rows: ScheduleRowView[],
+  keys: string[],
+): ScheduleRowView[] | null => {
+  if (keys.length !== rows.length) {
+    return null;
+  }
+
+  const byKey = new Map(rows.map((row) => [row.key, row]));
+  const next: ScheduleRowView[] = [];
+  const seen = new Set<string>();
+
+  for (const key of keys) {
+    const row = byKey.get(key);
+    // 知らないキーと、同じキーの二重指定を弾く。長さが同じでも
+    // 集合として一致するとは限らないため、両方を見る必要がある。
+    if (row === undefined || seen.has(key)) {
+      return null;
+    }
+    seen.add(key);
+    next.push(row);
+  }
+
+  return next;
+};
+
+/**
+ * anchorKey の行の直後に区切りを挿す。HEAD_ANCHOR_KEY なら先頭。
+ * id は呼び出し側（repository）が採番して渡す。ここを純粋に保つため。
+ */
+export const insertDividerAfter = (
+  rows: ScheduleRowView[],
+  anchorKey: string,
+  divider: { id: string; label: string; startsAt: Date | null },
+): ScheduleRowView[] | null => {
+  const row: ScheduleRowView = {
+    kind: "divider",
+    key: dividerKey(divider.id),
+    id: divider.id,
+    label: divider.label,
+    startsAt: divider.startsAt,
+  };
+
+  if (anchorKey === HEAD_ANCHOR_KEY) {
+    return [row, ...rows];
+  }
+
+  const index = rows.findIndex((current) => current.key === anchorKey);
+  if (index === -1) {
+    return null;
+  }
+
+  return [...rows.slice(0, index + 1), row, ...rows.slice(index + 1)];
+};
+
+/** 区切りのラベルと開始予定時刻を差し替える。対象が無ければ null。 */
+export const updateDividerRow = (
+  rows: ScheduleRowView[],
+  id: string,
+  label: string,
+  startsAt: Date | null,
+): ScheduleRowView[] | null => {
+  const index = rows.findIndex(
+    (row) => row.kind === "divider" && row.id === id,
+  );
+  if (index === -1) {
+    return null;
+  }
+
+  const next = [...rows];
+  next[index] = {
+    kind: "divider",
+    key: dividerKey(id),
+    id,
+    label,
+    startsAt,
+  };
+  return next;
+};
+
+/** 区切りを取り除く。対象が無ければ null。 */
+export const removeDividerRow = (
+  rows: ScheduleRowView[],
+  id: string,
+): ScheduleRowView[] | null => {
+  const index = rows.findIndex(
+    (row) => row.kind === "divider" && row.id === id,
+  );
+  if (index === -1) {
+    return null;
+  }
+
+  return [...rows.slice(0, index), ...rows.slice(index + 1)];
+};
