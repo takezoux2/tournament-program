@@ -110,10 +110,10 @@ describe("DivisionSetup", () => {
     ).toBeInTheDocument();
   });
 
-  it("6 つのアクションがそれぞれ正しい子コンポーネントの prop に届く", async () => {
+  it("7 つのアクションがそれぞれ正しい子コンポーネントの prop に届く", async () => {
     // 子を実物のままにすると、reorderAction と removeAction の入れ替えのような
     // 配線ミスは「ボタンを押して呼ばれた関数を見る」形でしか検知できず、
-    // 6 つの Server Action を全部押下確認するのは重い。ここだけ子を
+    // 7 つの Server Action を全部押下確認するのは重い。ここだけ子を
     // スタブに差し替え、DivisionSetup が渡した prop を直接検査する。
     // vi.mock は他のテストにも効いてしまうため、resetModules + 動的 import で
     // このテストの中だけ差し替える。

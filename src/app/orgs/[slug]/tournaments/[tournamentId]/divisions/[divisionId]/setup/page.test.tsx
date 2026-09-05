@@ -44,7 +44,7 @@ vi.mock("@/features/organization/repository", () => ({
     listMembersInOrganization(organizationId),
 }));
 
-// 6 つの Server Action は "use server" を持つので、テストでは差し替える。
+// 7 つの Server Action は "use server" を持つので、テストでは差し替える。
 vi.mock("@/features/division/add-entry/handler", () => ({
   addEntryAction: vi.fn(),
 }));
@@ -172,8 +172,8 @@ describe("DivisionSetupPage", () => {
     );
   });
 
-  it("6 つの Server Action をそれぞれ対応する actions のプロパティに渡す", async () => {
-    // 6 つとも別モジュールの vi.fn() なので参照が異なる。取り違えて渡すと
+  it("7 つの Server Action をそれぞれ対応する actions のプロパティに渡す", async () => {
+    // 7 つとも別モジュールの vi.fn() なので参照が異なる。取り違えて渡すと
     // toBe が落ちる。同じ関数を使い回すダミーでは検出できない観点。
     render(await DivisionSetupPage(pageProps()));
 
