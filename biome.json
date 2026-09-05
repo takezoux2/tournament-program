@@ -655,6 +655,45 @@
           }
         }
       }
+    },
+    {
+      "includes": ["src/features/schedule/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": [
+                      "@/features/auth/**",
+                      "@/features/auth",
+                      "@/features/bracket/**",
+                      "@/features/bracket",
+                      "@/features/division/**",
+                      "@/features/division",
+                      "@/features/member/**",
+                      "@/features/member",
+                      "@/features/organization/**",
+                      "@/features/organization",
+                      "@/features/organization-user/**",
+                      "@/features/organization-user",
+                      "@/features/tournament/**",
+                      "@/features/tournament",
+                      "@/components/**",
+                      "**/components/**",
+                      "@/app/**",
+                      "**/app/**"
+                    ],
+                    "message": "features/schedule は他の機能・UI・app に依存できません。試合の表示ロジックのように features/division と共有したいものは src/lib/division へ下ろしてください。"
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
     }
   ]
 }
