@@ -2,19 +2,21 @@
 
 import { Cause, Effect, Exit, Option } from "effect";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { verificationCallbackURL } from "@/features/auth/domain";
 import { authErrorMessage } from "@/features/auth/messages";
 import { signupSchema } from "@/features/auth/signup/schema";
 import { signup } from "@/features/auth/signup/usecase";
 import { authClient } from "@/shared/lib/auth-client";
 import { runAuthCall } from "@/shared/lib/auth-effect";
+import { VERIFICATION_LINK_EXPIRES_LABEL } from "@/shared/lib/email-verification-policy";
 import { MIN_PASSWORD_LENGTH } from "@/shared/lib/password-policy";
 
 export function SignupForm({ redirectTo }: { redirectTo: string }) {
-  const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  // 送信先のメールアドレス。null なら未送信でフォームを出す。
+  const [sentTo, setSentTo] = useState<string | null>(null);
 
   const onSubmit = async (formData: FormData) => {
     setError(null);
@@ -30,9 +32,17 @@ export function SignupForm({ redirectTo }: { redirectTo: string }) {
       return;
     }
 
+    // 確認リンクを踏んだ後の戻り先。login と同じ組み立てを共有する
+    // （login 側は sendOnSignIn による再送メールで使われる）。
+    const callbackURL = verificationCallbackURL(redirectTo);
+
     setPending(true);
     const exit = await Effect.runPromiseExit(
-      signup((input) => authClient.signUp.email(input), parsed.data),
+      signup(
+        (input) => authClient.signUp.email(input),
+        parsed.data,
+        callbackURL,
+      ),
     );
     setPending(false);
 
@@ -46,9 +56,9 @@ export function SignupForm({ redirectTo }: { redirectTo: string }) {
       return;
     }
 
-    // autoSignIn: true のため、登録が済めばそのままログイン済みになる。
-    router.push(redirectTo);
-    router.refresh();
+    // requireEmailVerification によりセッションは発行されない（仮登録）。
+    // 遷移させず、確認メールの案内に切り替える。
+    setSentTo(parsed.data.email);
   };
 
   const onGoogleSignIn = async () => {
@@ -77,6 +87,26 @@ export function SignupForm({ redirectTo }: { redirectTo: string }) {
     // 成功時は signIn.social 自身がブラウザを Google の認証画面へ
     // 遷移させるため、ここでの router.push は不要。
   };
+
+  if (sentTo !== null) {
+    return (
+      <div className="w-full max-w-sm space-y-4">
+        <h1 className="text-xl font-bold text-slate-800">
+          確認メールを送信しました
+        </h1>
+        <p className="text-sm text-slate-700">
+          {sentTo} 宛のメールにあるリンクを開くと登録が完了します。
+        </p>
+        <p className="text-xs text-slate-500">
+          リンクの有効期限は{VERIFICATION_LINK_EXPIRES_LABEL}です。メールが届かない場合は迷惑メールフォルダをご確認ください。
+          それでも見つからないときは、ログイン画面からログインを試すと確認メールを送り直します。
+        </p>
+        <Link href="/login" className="text-sm text-slate-600 underline">
+          ログイン画面へ
+        </Link>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full max-w-sm space-y-6">

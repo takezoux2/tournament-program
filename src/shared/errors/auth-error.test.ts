@@ -36,6 +36,13 @@ describe("toAuthError", () => {
     );
   });
 
+  it("EMAIL_NOT_VERIFIED を EmailNotVerified に写像する", () => {
+    // requireEmailVerification により、仮登録のままのサインインはこのコードで返る。
+    expect(toAuthError("EMAIL_NOT_VERIFIED", null)._tag).toBe(
+      "EmailNotVerified",
+    );
+  });
+
   it("未知のコードは UnexpectedAuthError になる", () => {
     const error = toAuthError("SOMETHING_WE_DO_NOT_HANDLE", null);
     expect(error._tag).toBe("UnexpectedAuthError");

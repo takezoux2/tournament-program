@@ -18,6 +18,10 @@ export class WeakPassword extends Data.TaggedError("WeakPassword")<{
   readonly code: string;
 }> {}
 
+export class EmailNotVerified extends Data.TaggedError("EmailNotVerified")<{
+  readonly code: string;
+}> {}
+
 export class UnexpectedAuthError extends Data.TaggedError(
   "UnexpectedAuthError",
 )<{
@@ -31,6 +35,7 @@ export type AuthError =
   | EmailAlreadyExists
   | UsernameAlreadyExists
   | WeakPassword
+  | EmailNotVerified
   | UnexpectedAuthError;
 
 /**
@@ -61,6 +66,10 @@ export const toAuthError = (
     case "PASSWORD_TOO_SHORT":
     case "PASSWORD_TOO_LONG":
       return new WeakPassword({ code });
+    // requireEmailVerification が有効なとき、仮登録のままのサインインで返る。
+    // Better Auth はこの応答と同時に確認メールを送り直す（sendOnSignIn）。
+    case "EMAIL_NOT_VERIFIED":
+      return new EmailNotVerified({ code });
     default:
       return new UnexpectedAuthError({
         code: code ?? "UNKNOWN",

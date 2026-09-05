@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { safeRedirectPath } from "./domain";
+import {
+  safeRedirectPath,
+  verificationCallbackURL,
+  verificationNotice,
+} from "./domain";
 
 describe("safeRedirectPath", () => {
   it("同一オリジンの絶対パスは通す", () => {
@@ -60,5 +64,51 @@ describe("safeRedirectPath", () => {
 
   it("スペースはタブと異なり弾かれずそのまま通す", () => {
     expect(safeRedirectPath("/ /evil.example.com")).toBe("/ /evil.example.com");
+  });
+});
+
+describe("verificationNotice", () => {
+  it("確認が済んだらログインを促す", () => {
+    expect(verificationNotice(true, null)).toBe(
+      "登録が完了しました。ログインしてください",
+    );
+  });
+
+  it("期限切れは再送されることを伝える", () => {
+    expect(verificationNotice(true, "TOKEN_EXPIRED")).toBe(
+      "リンクの有効期限が切れています。ログインすると確認メールを送り直します",
+    );
+  });
+
+  it("その他のエラーもログインで復帰できることを伝える", () => {
+    expect(verificationNotice(true, "INVALID_TOKEN")).toBe(
+      "リンクが無効です。ログインすると確認メールを送り直します",
+    );
+  });
+
+  it("エラーがあれば verified が false でも案内する", () => {
+    // Better Auth は callbackURL に ?error= を足して返すため、
+    // verified=1 が欠けた URL で戻ってくる経路もあり得る。
+    expect(verificationNotice(false, "TOKEN_EXPIRED")).toBe(
+      "リンクの有効期限が切れています。ログインすると確認メールを送り直します",
+    );
+  });
+
+  it("確認リンク経由でなければ何も出さない", () => {
+    expect(verificationNotice(false, null)).toBeNull();
+  });
+});
+
+describe("verificationCallbackURL", () => {
+  it("遷移先を redirect に載せて /login への callbackURL を組み立てる", () => {
+    expect(verificationCallbackURL("/orgs")).toBe(
+      "/login?verified=1&redirect=%2Forgs",
+    );
+  });
+
+  it("遷移先が / でも組み立てられる", () => {
+    expect(verificationCallbackURL("/")).toBe(
+      "/login?verified=1&redirect=%2F",
+    );
   });
 });
