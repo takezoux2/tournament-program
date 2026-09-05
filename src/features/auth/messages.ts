@@ -26,6 +26,12 @@ export const authErrorMessage: (error: AuthError) => string =
     ),
     Match.tag("WeakPassword", () => "パスワードの長さが要件を満たしていません"),
     Match.tag(
+      "EmailNotVerified",
+      // sendOnSignIn により、この失敗と同時に確認メールが送り直される。
+      // 「再送しました」と言い切れるのはそのため。
+      () => "メールアドレスが未確認です。確認メールを再送しました",
+    ),
+    Match.tag(
       "UnexpectedAuthError",
       () => "処理に失敗しました。時間をおいて再度お試しください",
     ),

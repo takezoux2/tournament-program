@@ -32,6 +32,13 @@ describe("authErrorMessage", () => {
     );
   });
 
+  it("未確認のメールアドレスであることと、再送したことを伝える", () => {
+    // sendOnSignIn を有効にしてあるため、この失敗と同時に確認メールが送り直される。
+    expect(authErrorMessage(toAuthError("EMAIL_NOT_VERIFIED", null))).toBe(
+      "メールアドレスが未確認です。確認メールを再送しました",
+    );
+  });
+
   it("未知の失敗は汎用文言にする", () => {
     expect(authErrorMessage(toAuthError(undefined, new Error("boom")))).toBe(
       "処理に失敗しました。時間をおいて再度お試しください",
