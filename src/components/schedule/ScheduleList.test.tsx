@@ -100,8 +100,12 @@ describe("ScheduleList", () => {
   it("区切り行を編集できる形で出す", () => {
     renderList();
 
-    expect(screen.getByLabelText("午前の部の見出し")).toHaveValue("午前の部");
-    expect(screen.getByLabelText("午前の部の開始予定時刻")).toHaveValue("");
+    expect(
+      screen.getByLabelText("1行目 区切り「午前の部」の見出し"),
+    ).toHaveValue("午前の部");
+    expect(
+      screen.getByLabelText("1行目 区切り「午前の部」の開始予定時刻"),
+    ).toHaveValue("");
   });
 
   it("行ごとの操作にはその行の名前を付ける", () => {
@@ -110,19 +114,61 @@ describe("ScheduleList", () => {
 
     expect(
       screen.getByRole("button", {
-        name: "区切り「午前の部」をドラッグして並べ替え",
+        name: "1行目 区切り「午前の部」をドラッグして並べ替え",
       }),
     ).toBeInTheDocument();
     expect(
       screen.getByRole("button", {
-        name: "男子シングルス 1回戦 第1試合をドラッグして並べ替え",
+        name: "2行目 男子シングルス 1回戦 第1試合をドラッグして並べ替え",
       }),
     ).toBeInTheDocument();
     expect(
       screen.getByRole("button", {
-        name: "区切り「午前の部」の下に区切りを挿入",
+        name: "1行目 区切り「午前の部」の下に区切りを挿入",
       }),
     ).toBeInTheDocument();
+  });
+
+  it("見出しが同じ区切りが並んでも操作の名前は重ならない", () => {
+    // 挿入直後の区切りは既定の見出しのまま。見出しだけを名前にすると、
+    // 2 つ目を挿した時点で支援技術には同じ名前の操作が並ぶ。
+    const duplicated: ScheduleRowView[] = [
+      {
+        kind: "divider",
+        key: "divider:s1",
+        id: "s1",
+        label: "区切り",
+        startsAt: null,
+      },
+      {
+        kind: "divider",
+        key: "divider:s2",
+        id: "s2",
+        label: "区切り",
+        startsAt: null,
+      },
+    ];
+    renderList({ rows: duplicated });
+
+    for (const position of [1, 2]) {
+      const name = `${position}行目 区切り「区切り」`;
+      expect(
+        screen.getByRole("button", { name: `${name}をドラッグして並べ替え` }),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole("button", { name: `${name}の下に区切りを挿入` }),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole("button", { name: `${name}を保存` }),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole("button", { name: `${name}を削除` }),
+      ).toBeInTheDocument();
+      expect(screen.getByLabelText(`${name}の見出し`)).toBeInTheDocument();
+      expect(
+        screen.getByLabelText(`${name}の開始予定時刻`),
+      ).toBeInTheDocument();
+    }
   });
 
   it("試合が無ければその旨を出す", () => {
@@ -160,7 +206,7 @@ describe("ScheduleList", () => {
 
     await userEvent.click(
       screen.getByRole("button", {
-        name: "男子シングルス 1回戦 第1試合の下に区切りを挿入",
+        name: "2行目 男子シングルス 1回戦 第1試合の下に区切りを挿入",
       }),
     );
 

@@ -17,12 +17,18 @@ type DividerRow = Extract<ScheduleRowView, { kind: "divider" }>;
  */
 export function ScheduleDividerRow({
   row,
+  name,
   slug,
   tournamentId,
   updateAction,
   removeAction,
 }: {
   row: DividerRow;
+  /**
+   * この行の呼び名。操作の名前に差し込んで他の行と区別できるようにする。
+   * 見出しは既定のまま複数置けるので、一意性は呼び出し側（ScheduleList）が持つ。
+   */
+  name: string;
   slug: string;
   tournamentId: string;
   updateAction: ScheduleFormAction;
@@ -52,19 +58,20 @@ export function ScheduleDividerRow({
             type="text"
             name="label"
             defaultValue={row.label}
-            aria-label={`${row.label}の見出し`}
+            aria-label={`${name}の見出し`}
             className="w-48 rounded border border-slate-300 px-2 py-1 text-sm font-bold"
           />
           <input
             type="datetime-local"
             name="startsAt"
             defaultValue={toDateTimeLocalValue(row.startsAt)}
-            aria-label={`${row.label}の開始予定時刻`}
+            aria-label={`${name}の開始予定時刻`}
             className="rounded border border-slate-300 px-2 py-1 text-sm"
           />
           <button
             type="submit"
             disabled={updating}
+            aria-label={`${name}を保存`}
             className="rounded border border-slate-300 px-2 py-1 text-xs text-slate-700 disabled:opacity-30"
           >
             保存
@@ -78,6 +85,7 @@ export function ScheduleDividerRow({
           <button
             type="submit"
             disabled={removing}
+            aria-label={`${name}を削除`}
             className="rounded border border-slate-300 px-2 py-1 text-xs text-red-600 disabled:opacity-30"
           >
             区切りを削除

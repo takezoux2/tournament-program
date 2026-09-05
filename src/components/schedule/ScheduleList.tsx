@@ -81,14 +81,17 @@ function SortableRow({
 }
 
 /**
- * 行ごとの操作（ハンドル・挿入ボタン）の名前に差し込む、その行の呼び名。
+ * 行ごとの操作（ハンドル・挿入ボタン・区切りの入力欄）の名前に差し込む、その行の呼び名。
  * 一覧には同じ種類の行が並ぶので、名前にその行の中身を混ぜて区別できるようにする
  * （components/division/MatchNumberList.tsx と同じ形）。
+ *
+ * 見出しだけでなく position（1 始まりの並び順）も混ぜるのは、区切りは既定の見出しの
+ * まま複数置けるため、見出しだけだと名前が重なって区別できなくなるから。
  */
-const rowName = (row: ScheduleRowView): string =>
+const rowName = (row: ScheduleRowView, position: number): string =>
   row.kind === "match"
-    ? `${row.divisionName} ${row.label}`
-    : `区切り「${row.label}」`;
+    ? `${position}行目 ${row.divisionName} ${row.label}`
+    : `${position}行目 区切り「${row.label}」`;
 
 export function ScheduleList({
   slug,
@@ -191,34 +194,39 @@ export function ScheduleList({
       <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
         <SortableContext items={keys} strategy={verticalListSortingStrategy}>
           <ul className="space-y-2">
-            {rows.map((row) => (
-              <SortableRow
-                key={row.key}
-                id={row.key}
-                name={rowName(row)}
-                disabled={reordering}
-              >
-                {row.kind === "match" ? (
-                  <ScheduleMatchRow row={row} />
-                ) : (
-                  <ScheduleDividerRow
-                    row={row}
-                    slug={slug}
-                    tournamentId={tournamentId}
-                    updateAction={updateDividerAction}
-                    removeAction={removeDividerAction}
-                  />
-                )}
-                <button
-                  type="button"
-                  onClick={() => insertAfter(row.key)}
-                  aria-label={`${rowName(row)}の下に区切りを挿入`}
-                  className="shrink-0 rounded border border-slate-300 px-2 py-1 text-xs text-slate-700"
+            {rows.map((row, index) => {
+              const name = rowName(row, index + 1);
+
+              return (
+                <SortableRow
+                  key={row.key}
+                  id={row.key}
+                  name={name}
+                  disabled={reordering}
                 >
-                  この下に区切りを挿入
-                </button>
-              </SortableRow>
-            ))}
+                  {row.kind === "match" ? (
+                    <ScheduleMatchRow row={row} />
+                  ) : (
+                    <ScheduleDividerRow
+                      row={row}
+                      name={name}
+                      slug={slug}
+                      tournamentId={tournamentId}
+                      updateAction={updateDividerAction}
+                      removeAction={removeDividerAction}
+                    />
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => insertAfter(row.key)}
+                    aria-label={`${name}の下に区切りを挿入`}
+                    className="shrink-0 rounded border border-slate-300 px-2 py-1 text-xs text-slate-700"
+                  >
+                    この下に区切りを挿入
+                  </button>
+                </SortableRow>
+              );
+            })}
           </ul>
         </SortableContext>
       </DndContext>
