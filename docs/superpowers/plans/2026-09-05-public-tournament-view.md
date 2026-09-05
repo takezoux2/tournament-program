@@ -13,10 +13,11 @@
 ## Global Constraints
 
 - パッケージマネージャは **pnpm**。`pnpm test` / `pnpm typecheck` / `pnpm lint` を使う。
-- **vitest のファイル指定は正規表現として扱われる。** `src/app/t/[tournamentId]/page.test.tsx`
-  をそのまま渡すと `[tournamentId]` が文字クラスと解釈され、1 件もマッチしない。
-  角括弧を含むパスは `.+` で伏せて `"app/t/.+/page.test.tsx"` のように渡すこと。
-  この計画の Run 行はすでにその形になっている。
+- **vitest 4.x のファイル指定は部分一致で、正規表現ではない。** 角括弧を含むパスは
+  `"app/t/[tournamentId]/page.test.tsx"` のようにそのまま渡す。`.+` で伏せた
+  正規表現風の形は 1 件もマッチしない。この計画の初版は regex だと誤って書いており、
+  Task 7 の実装時に `node_modules/vitest` の `filterFiles` が substring 比較だと
+  確認して訂正した。Run 行はすでに正しい形になっている。
 - テストの置き場所は実装ファイルと同じディレクトリの `*.test.ts` / `*.test.tsx`。
 - ページのテストは既存の
   `src/app/orgs/[slug]/tournaments/[tournamentId]/matches/page.test.tsx` に倣い、
@@ -1252,7 +1253,7 @@ describe("PublicTournamentPage", () => {
 
 - [ ] **Step 2: テストを実行して失敗を確認する**
 
-Run: `pnpm test "app/t/.+/page.test.tsx"`
+Run: `pnpm test "app/t/[tournamentId]/page.test.tsx"`
 Expected: FAIL。`Failed to resolve import "./page"` になる。
 
 - [ ] **Step 3: 実装する**
@@ -1349,7 +1350,7 @@ Expected: エラーなく終わる。`PageProps<"/t/[tournamentId]">` が使え�
 
 - [ ] **Step 5: テストと型検査を実行して通ることを確認する**
 
-Run: `pnpm test "app/t/.+/page.test.tsx"`
+Run: `pnpm test "app/t/[tournamentId]/page.test.tsx"`
 Expected: PASS（9 件）
 
 Run: `pnpm typecheck`
@@ -1501,7 +1502,7 @@ describe("PublicSchedulePage", () => {
 
 - [ ] **Step 2: テストを実行して失敗を確認する**
 
-Run: `pnpm test "app/t/.+/schedule/page.test.tsx"`
+Run: `pnpm test "app/t/[tournamentId]/schedule/page.test.tsx"`
 Expected: FAIL。`Failed to resolve import "./page"` になる。
 
 - [ ] **Step 3: 実装する**
@@ -1578,7 +1579,7 @@ Expected: エラーなく終わる。
 
 - [ ] **Step 5: テストと型検査を実行して通ることを確認する**
 
-Run: `pnpm test "app/t/.+/schedule/page.test.tsx"`
+Run: `pnpm test "app/t/[tournamentId]/schedule/page.test.tsx"`
 Expected: PASS（8 件）
 
 Run: `pnpm typecheck`
@@ -1717,7 +1718,7 @@ describe("PublicParticipantsPage", () => {
 
 - [ ] **Step 2: テストを実行して失敗を確認する**
 
-Run: `pnpm test "app/t/.+/participants/page.test.tsx"`
+Run: `pnpm test "app/t/[tournamentId]/participants/page.test.tsx"`
 Expected: FAIL。`Failed to resolve import "./page"` になる。
 
 - [ ] **Step 3: 実装する**
@@ -1792,7 +1793,7 @@ Expected: エラーなく終わる。
 
 - [ ] **Step 5: テストと型検査を実行して通ることを確認する**
 
-Run: `pnpm test "app/t/.+/participants/page.test.tsx"`
+Run: `pnpm test "app/t/[tournamentId]/participants/page.test.tsx"`
 Expected: PASS（7 件）
 
 Run: `pnpm typecheck`
@@ -1903,7 +1904,7 @@ export function DivisionBracket({
 Run: `pnpm test src/components/division/DivisionBracket.test.tsx`
 Expected: PASS（既存の分岐のテストも含めて全件）
 
-Run: `pnpm test "app/orgs/.+/divisions/.+/page.test.tsx"`
+Run: `pnpm test "app/orgs/[slug]/tournaments/[tournamentId]/divisions/[divisionId]/page.test.tsx"`
 Expected: PASS。管理画面側は無変更で通る。
 
 - [ ] **Step 5: コミット**
@@ -2099,7 +2100,7 @@ describe("PublicDivisionPage", () => {
 
 - [ ] **Step 7: テストを実行して失敗を確認する**
 
-Run: `pnpm test "app/t/.+/divisions/.+/page.test.tsx"`
+Run: `pnpm test "app/t/[tournamentId]/divisions/[divisionId]/page.test.tsx"`
 Expected: FAIL。`Failed to resolve import "./page"` になる。
 
 - [ ] **Step 8: 実装する**
@@ -2208,7 +2209,7 @@ Expected: エラーなく終わる。
 
 - [ ] **Step 10: テストと型検査を実行して通ることを確認する**
 
-Run: `pnpm test "app/t/.+/divisions/.+/page.test.tsx"`
+Run: `pnpm test "app/t/[tournamentId]/divisions/[divisionId]/page.test.tsx"`
 Expected: PASS（9 件）
 
 Run: `pnpm typecheck`
@@ -2260,7 +2261,7 @@ MSG
 
 - [ ] **Step 2: テストを実行して失敗を確認する**
 
-Run: `pnpm test "app/orgs/.+/tournaments/[^/]+/page.test.tsx"`
+Run: `pnpm test "app/orgs/[slug]/tournaments/[tournamentId]/page.test.tsx"`
 Expected: FAIL。`Unable to find an accessible element with the role "link" and name "公開ページを開く"` になる。
 
 - [ ] **Step 3: リンクを足す**
@@ -2279,7 +2280,7 @@ Expected: FAIL。`Unable to find an accessible element with the role "link" and 
 
 - [ ] **Step 4: テストを実行して通ることを確認する**
 
-Run: `pnpm test "app/orgs/.+/tournaments/[^/]+/page.test.tsx"`
+Run: `pnpm test "app/orgs/[slug]/tournaments/[tournamentId]/page.test.tsx"`
 Expected: PASS（既存の分も含めて全件）
 
 - [ ] **Step 5: 全体の検証**
