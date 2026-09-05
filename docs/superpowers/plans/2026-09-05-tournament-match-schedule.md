@@ -164,7 +164,7 @@ Expected: `ScheduleItemKind` の const と type が生成されている（MATCH
 - [ ] **Step 6: Commit**
 
 ```bash
-git add prisma/schema.prisma prisma/migrations src/generated/prisma
+git add prisma/schema.prisma prisma/migrations
 git commit -m "feat(schedule): add ScheduleItem model for tournament match order"
 ```
 

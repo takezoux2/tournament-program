@@ -91,6 +91,42 @@ Json のパース、勝敗が記録済みかの確認、保存前の検証、`up
 1 つのトランザクションにまとめる。スライス側の `repository.ts` は
 「配列をどう変えるか」だけを書けばよくなる。
 
+## features/schedule
+
+大会の「進行順」（試合一覧の並びと区切り行）を持つ。試合の実体は
+`Division.matchingConfig`（Json）の中にあり、`ScheduleItem` は
+`(divisionId, matchId)` の文字列で指すだけなので、行と実体は必ずずれうる
+（組み合わせの再生成、部門の削除、新しい部門の組み合わせ）。
+
+このずれは読み出しの純粋関数 `buildScheduleView` が吸収する。保存された行を
+`order` 昇順に並べ、実体の無い行を落とし、行を持たない試合を
+「部門の order 昇順 → round 昇順 → order 昇順」で末尾へ足す。読み出しは
+副作用を持たず、DB の掃除は次の保存（全行の書き直し）でまとめて片付く。
+
+`schedule-store.ts` は 4 スライス（`reorder` / `insert-divider` /
+`update-divider` / `remove-divider`）共通の read-modify-write を持つ。
+`setup-store.ts` と同じ役割で、所有権つきの読み出し、マージ、変形、
+`deleteMany` + `createMany` による `order` の 0..n-1 振り直しを 1 つの
+トランザクションにまとめる。全行を作り直すため `@@unique([tournamentId, order])`
+に対する退避操作（`features/division/reorder` の `PARKING_ORDER`）は要らない。
+
+`features/schedule` は同列の `features/division` に依存できないため、
+試合の表示文言（「山田 vs 第 3 試合の勝者」）は `src/lib/division/label.ts` に
+下ろして共有する。`features/bracket` が `lib/division` を参照するのと同じ向きである。
+
+並べ替えは楽観ロックの列を持たない。送られたキーの集合が現在のマージ結果と
+一致するかどうかの確認（`reorderRows`）がその役目を果たす。
+この確認が守るのは並べ替えの経路だけで、区切りの挿入・更新・削除の 3 経路は
+同時編集を検出しない。2 つの編集が入れ違いになると、後から保存した側が先の変更を
+エラーも出さずに取りこぼす。大会の運営者は 1 人という前提のもとで、これを許容する。
+
+`<input type="datetime-local">` の表示（`toDateTimeLocalValue`）とパース
+（`optionalDateTimeLocalSchema`）は `src/lib/datetime/local.ts` に置き、
+`features/tournament` の開始日時と `features/schedule` の区切りの開始予定時刻で共有する。
+これも同列のカテゴリ同士では依存できないための下ろし方で、`lib/division` と同じ向きである。
+表示側は必ずサーバで文字列にしてから画面へ運ぶ。クライアントで組み立てると
+ブラウザの時刻帯で書き、サーバの時刻帯で `new Date` することになり、時差ぶんずれる。
+
 ## テナント分離の 2 原則
 
 `features/organization` と `features/organization-user` と `features/tournament` と

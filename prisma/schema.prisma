@@ -110,9 +110,10 @@ model Tournament {
   createdAt      DateTime         @default(now())
   updatedAt      DateTime         @updatedAt
 
-  organization Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  participants Participant[]
-  divisions    Division[]
+  organization  Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  participants  Participant[]
+  divisions     Division[]
+  scheduleItems ScheduleItem[]
 
   @@index([organizationId])
 }
@@ -166,7 +167,8 @@ model Division {
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
 
-  tournament Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  tournament    Tournament     @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  scheduleItems ScheduleItem[]
 
   @@unique([tournamentId, order])
   @@index([tournamentId])
@@ -181,6 +183,46 @@ enum DivisionFormat {
   DOUBLE_ELIMINATION_THIRD_PLACE
   /// リーグ（総当たり）
   ROUND_ROBIN
+}
+
+/// 大会の進行順。1 行が「試合」か「区切り」のどちらかを表す。
+/// 試合の実体は Division.matchingConfig（Json）の中にあるため、この行は
+/// (divisionId, matchId) の文字列で指すだけで、試合そのものへの外部キーにはならない。
+/// ずれ（組み合わせの再生成・部門の削除）は features/schedule の
+/// buildScheduleView が読み出し時に吸収する。
+model ScheduleItem {
+  id           String           @id @default(uuid())
+  tournamentId String
+  /// 進行順。0 始まりの連番。並べ替え・挿入・削除のたびに全行を振り直す。
+  order        Int
+  kind         ScheduleItemKind
+  /// MATCH のとき: 参照先の部門。DIVIDER のとき null。
+  divisionId   String?
+  /// MATCH のとき: matchingConfig 内の BracketMatch.id。DIVIDER のとき null。
+  matchId      String?
+  /// DIVIDER のとき: 見出し。MATCH のとき null。
+  label        String?
+  /// DIVIDER のとき: 開始予定時刻。未設定は null。MATCH のとき null。
+  startsAt     DateTime?
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  tournament Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  division   Division?  @relation(fields: [divisionId], references: [id], onDelete: Cascade)
+
+  @@unique([tournamentId, order])
+  /// 同じ試合が二重に並ぶのを防ぐ。PostgreSQL の一意制約は NULL 同士を
+  /// 相異なるものとして扱うため、両方 null になる DIVIDER 行は衝突しない。
+  @@unique([tournamentId, divisionId, matchId])
+  @@index([tournamentId])
+  @@index([divisionId])
+}
+
+enum ScheduleItemKind {
+  /// 試合の行
+  MATCH
+  /// 「----- 午前の部 -----」のような区切りの行
+  DIVIDER
 }
 
 /// Better Auth のセッション。DB 保存のため個別失効ができる。

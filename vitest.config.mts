@@ -16,6 +16,10 @@ export default defineConfig({
     },
   },
   test: {
+    // 日時を扱うテスト（datetime-local の表示とパースの往復など）は実行環境の
+    // 時刻帯で結果が変わる。開発機（JST）と CI（UTC）で挙動が分かれないよう、
+    // 利用者の時刻帯である Asia/Tokyo に固定する。
+    env: { TZ: "Asia/Tokyo" },
     environment: "jsdom",
     setupFiles: ["./vitest.setup.ts"],
     include: ["src/**/*.{test,spec}.{ts,tsx}"],
