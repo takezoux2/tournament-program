@@ -131,7 +131,11 @@ export const toSaveItems = (rows: ScheduleRowView[]): ScheduleSaveItem[] =>
       : { kind: "match", divisionId: row.divisionId, matchId: row.matchId },
   );
 
-/** 「先頭に挿す」を表すアンカー。画面の hidden input が空文字を送ってくる。 */
+/**
+ * 「先頭に挿す」を表すアンカー。画面（ScheduleList）はこの定数をそのまま
+ * anchorKey として送る。行のキーは必ず `match:` か `divider:` で始まるので、
+ * 空文字はどの行とも衝突しない。
+ */
 export const HEAD_ANCHOR_KEY = "";
 
 /**

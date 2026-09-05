@@ -16,7 +16,7 @@ export type InsertDividerPort = (
 ) => Effect.Effect<ScheduleOutcome<null>, ScheduleError>;
 
 /**
- * アンカーの直後（空文字なら先頭）へ区切りを挿す。
+ * アンカーの直後（HEAD_ANCHOR_KEY なら先頭）へ区切りを挿す。
  * id の採番はここで行い、domain 側は純粋関数のままにする。
  * アンカーが今の一覧に無いのは画面が古いということなので、reorder と同じく
  * ScheduleStaleError にして再読み込みを促す。
