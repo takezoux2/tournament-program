@@ -4,16 +4,26 @@ import { Cause, Effect, Exit, Option } from "effect";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { verificationNotice } from "@/features/auth/domain";
 import { loginSchema } from "@/features/auth/login/schema";
 import { login } from "@/features/auth/login/usecase";
 import { authErrorMessage } from "@/features/auth/messages";
 import { authClient } from "@/shared/lib/auth-client";
 import { runAuthCall } from "@/shared/lib/auth-effect";
 
-export function LoginForm({ redirectTo }: { redirectTo: string }) {
+export function LoginForm({
+  redirectTo,
+  verified = false,
+  verifyError = null,
+}: {
+  redirectTo: string;
+  verified?: boolean;
+  verifyError?: string | null;
+}) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const notice = verificationNotice(verified, verifyError);
 
   const onSubmit = async (formData: FormData) => {
     setError(null);
@@ -78,6 +88,16 @@ export function LoginForm({ redirectTo }: { redirectTo: string }) {
   return (
     <div className="w-full max-w-sm space-y-6">
       <h1 className="text-xl font-bold text-slate-800">ログイン</h1>
+
+      {notice !== null && (
+        // <output> は role="status" を暗黙に持つため、Biome の
+        // useSemanticElements ルール（role をベタ書きせず対応する
+        // セマンティック要素を使う）を満たしつつ、テストや
+        // スクリーンリーダーからは role="status" として見える。
+        <output className="rounded border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700">
+          {notice}
+        </output>
+      )}
 
       <form action={onSubmit} className="space-y-4">
         <div className="space-y-1">

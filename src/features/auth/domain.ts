@@ -19,3 +19,28 @@ export const safeRedirectPath = (raw: string | null | undefined): string => {
   if (/[\t\n\r]/.test(raw)) return "/";
   return raw;
 };
+
+/**
+ * 確認メールのリンクから /login へ戻ってきたときに出す案内文。
+ * 案内が要らない通常のログイン画面では null を返す。
+ *
+ * errorCode は Better Auth が verify-email の失敗時に callbackURL へ足す
+ * エラーコード。そのまま画面に出すと英大文字の内部コードが見えるため、
+ * ここで日本語へ写像する。未知のコードも「無効」に畳む。
+ * どのコードでも復帰手段は同じ（ログインを試すと再送される）ためである。
+ */
+export const verificationNotice = (
+  verified: boolean,
+  errorCode: string | null,
+): string | null => {
+  if (errorCode === "TOKEN_EXPIRED") {
+    return "リンクの有効期限が切れています。ログインすると確認メールを送り直します";
+  }
+  if (errorCode !== null) {
+    return "リンクが無効です。ログインすると確認メールを送り直します";
+  }
+  if (verified) {
+    return "登録が完了しました。ログインしてください";
+  }
+  return null;
+};
