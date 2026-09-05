@@ -1,8 +1,9 @@
-import type {
-  DivisionEntries,
-  MatchingConfig,
-  SlotSource,
-} from "@/lib/division/types";
+import {
+  createSlotLabeler,
+  matchCardLabel,
+  matchPositionLabel,
+} from "@/lib/division/label";
+import type { DivisionEntries, MatchingConfig } from "@/lib/division/types";
 import { toSlots } from "./build";
 
 /**
@@ -96,44 +97,21 @@ export type MatchNumberRowView = {
 /**
  * 全試合を round/order 順に並べた試合番号の編集用一覧。
  * toSetupView と違い 1 回戦以外も含む。勝者参照は相手の試合番号で表す。
+ * 表示文言は lib/division/label.ts を使う（大会の試合一覧と揃えるため）。
  */
 export const toMatchNumberView = (
   config: MatchingConfig,
   entries: DivisionEntries,
   participants: { id: string; name: string }[],
 ): MatchNumberRowView[] => {
-  const participantById = new Map(
-    participants.map((participant) => [participant.id, participant.name]),
-  );
-  const nameByEntryId = new Map(
-    entries.entries.map((entry) => [
-      entry.id,
-      participantById.get(entry.participantId) ?? null,
-    ]),
-  );
-  const numberByMatchId = new Map(
-    config.matches.map((match) => [match.id, match.matchNumber]),
-  );
-
-  const slotLabel = (slot: SlotSource): string => {
-    switch (slot.kind) {
-      case "entry":
-        return nameByEntryId.get(slot.entryId) ?? "（不明な参加者）";
-      case "winnerOf":
-        return `第${numberByMatchId.get(slot.matchId) ?? "?"}試合の勝者`;
-      case "loserOf":
-        return `第${numberByMatchId.get(slot.matchId) ?? "?"}試合の敗者`;
-      case "bye":
-        return "BYE";
-    }
-  };
+  const labelSlot = createSlotLabeler(config, entries, participants);
 
   return [...config.matches]
     .sort((left, right) => left.round - right.round || left.order - right.order)
     .map((match) => ({
       matchId: match.id,
       matchNumber: match.matchNumber,
-      label: `${match.round}回戦 第${match.order + 1}試合`,
-      card: `${slotLabel(match.slots[0])} vs ${slotLabel(match.slots[1])}`,
+      label: matchPositionLabel(match),
+      card: matchCardLabel(match, labelSlot),
     }));
 };
