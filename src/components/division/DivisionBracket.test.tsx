@@ -194,7 +194,10 @@ describe("DivisionBracket", () => {
 
   it("既定の高さは h-[28rem]（管理画面の見た目を変えない）", () => {
     const { container } = render(
-      <DivisionBracket division={buildDivision()} participants={participants} />,
+      <DivisionBracket
+        division={buildDivision()}
+        participants={participants}
+      />,
     );
 
     expect(container.querySelector(".h-\\[28rem\\]")).not.toBeNull();
