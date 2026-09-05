@@ -41,6 +41,12 @@ describe("reorderRows", () => {
     expect(reorderRows(rows, [keys[0], keys[1]])).toBeNull();
   });
 
+  it("キーが多すぎても null", () => {
+    expect(
+      reorderRows(rows, [keys[0], keys[1], keys[2], "match:dZ:m9-9"]),
+    ).toBeNull();
+  });
+
   it("知らないキーが混じっていれば null", () => {
     expect(reorderRows(rows, [keys[0], keys[1], "match:dZ:m9-9"])).toBeNull();
   });
@@ -71,6 +77,18 @@ describe("insertDividerAfter", () => {
   it("知らないアンカーは null", () => {
     expect(insertDividerAfter(rows, "match:dZ:m9-9", fresh)).toBeNull();
   });
+
+  it("末尾の行をアンカーにすると末尾に挿す", () => {
+    const next = insertDividerAfter(rows, keys[2], fresh);
+    expect(next?.map((row) => row.key)).toEqual([
+      keys[0],
+      keys[1],
+      keys[2],
+      dividerKey("s9"),
+    ]);
+    // アンカーより前の行は差し替わっていないこと。
+    expect(next?.slice(0, 3)).toEqual(rows);
+  });
 });
 
 describe("updateDividerRow", () => {
@@ -99,5 +117,18 @@ describe("removeDividerRow", () => {
 
   it("知らない id は null", () => {
     expect(removeDividerRow(rows, "s9")).toBeNull();
+  });
+
+  it("末尾の区切りも取り除ける", () => {
+    const rowsEndingWithDivider = [
+      match("dA", "m1-0"),
+      match("dA", "m1-1"),
+      divider("s2"),
+    ];
+    const next = removeDividerRow(rowsEndingWithDivider, "s2");
+    expect(next?.map((row) => row.key)).toEqual([
+      rowsEndingWithDivider[0].key,
+      rowsEndingWithDivider[1].key,
+    ]);
   });
 });
