@@ -16,11 +16,21 @@ describe("updateDividerSchema", () => {
     });
   });
 
-  it("datetime-local の値を Date にする", () => {
+  it("datetime-local の値をローカル時刻の Date にする", () => {
     const parsed = updateDividerSchema.parse(
       input("午前の部", "2026-09-05T09:00"),
     );
-    expect(parsed.startsAt).toEqual(new Date("2026-09-05T09:00"));
+    // new Date("2026-09-05T09:00") で期待値を作ると実装と同じ変換をなぞる
+    // だけになり何も検証できない（トートロジー）ため、ローカルのカレンダー
+    // フィールドを個別に確認して「ローカル時刻として解釈されている」こと
+    // 自体をピン留めする。
+    const startsAt = parsed.startsAt;
+    expect(startsAt).not.toBeNull();
+    expect(startsAt?.getFullYear()).toBe(2026);
+    expect(startsAt?.getMonth()).toBe(8); // 0始まりなので9月
+    expect(startsAt?.getDate()).toBe(5);
+    expect(startsAt?.getHours()).toBe(9);
+    expect(startsAt?.getMinutes()).toBe(0);
   });
 
   it("空のラベルは拒否する", () => {
