@@ -32,9 +32,23 @@ import { resolveDragReorder } from "./schedule-drag";
  *
  * transform を translate3d に自前で直しているのは、@dnd-kit/utilities を
  * 依存に足さないため。縦一列の並べ替えなので y だけ見れば足りる。
+ *
+ * name は行ごとの操作の名前を一意にするために受け取る。区切りは複数あるので、
+ * 固定文言のままだと支援技術には同じ名前のハンドルが並んで見える。
  */
-function SortableRow({ id, children }: { id: string; children: ReactNode }) {
-  const sortable = useSortable({ id });
+function SortableRow({
+  id,
+  name,
+  disabled,
+  children,
+}: {
+  id: string;
+  name: string;
+  /** 並べ替えの保存中。掴めてしまうと古い並びから計算して先の保存を打ち消す。 */
+  disabled: boolean;
+  children: ReactNode;
+}) {
+  const sortable = useSortable({ id, disabled });
 
   return (
     <li
@@ -53,8 +67,9 @@ function SortableRow({ id, children }: { id: string; children: ReactNode }) {
     >
       <button
         type="button"
-        aria-label="ドラッグして並べ替え"
-        className="cursor-grab rounded px-1 text-slate-400"
+        disabled={disabled}
+        aria-label={`${name}をドラッグして並べ替え`}
+        className="cursor-grab rounded px-1 text-slate-400 disabled:cursor-default disabled:opacity-30"
         {...sortable.listeners}
         {...sortable.attributes}
       >
@@ -64,6 +79,16 @@ function SortableRow({ id, children }: { id: string; children: ReactNode }) {
     </li>
   );
 }
+
+/**
+ * 行ごとの操作（ハンドル・挿入ボタン）の名前に差し込む、その行の呼び名。
+ * 一覧には同じ種類の行が並ぶので、名前にその行の中身を混ぜて区別できるようにする
+ * （components/division/MatchNumberList.tsx と同じ形）。
+ */
+const rowName = (row: ScheduleRowView): string =>
+  row.kind === "match"
+    ? `${row.divisionName} ${row.label}`
+    : `区切り「${row.label}」`;
 
 export function ScheduleList({
   slug,
@@ -83,7 +108,7 @@ export function ScheduleList({
   updateDividerAction: ScheduleFormAction;
   removeDividerAction: ScheduleFormAction;
 }) {
-  const [reorderState, reorder] = useActionState(
+  const [reorderState, reorder, reordering] = useActionState(
     reorderAction,
     INITIAL_SCHEDULE_FORM_STATE,
   );
@@ -137,8 +162,10 @@ export function ScheduleList({
 
   return (
     <div className="space-y-2">
-      <p className="text-xs text-slate-500">
-        左端をドラッグすると進行順を入れ替えられます
+      <p aria-live="polite" className="text-xs text-slate-500">
+        {reordering
+          ? "並べ替えを保存中..."
+          : "左端をドラッグすると進行順を入れ替えられます"}
       </p>
 
       {reorderState.error !== null && (
@@ -152,6 +179,7 @@ export function ScheduleList({
         </p>
       )}
 
+      {/* 空文字のアンカーは「先頭に挿す」（features/schedule/insert-divider の HEAD_ANCHOR_KEY と対）。 */}
       <button
         type="button"
         onClick={() => insertAfter("")}
@@ -164,7 +192,12 @@ export function ScheduleList({
         <SortableContext items={keys} strategy={verticalListSortingStrategy}>
           <ul className="space-y-2">
             {rows.map((row) => (
-              <SortableRow key={row.key} id={row.key}>
+              <SortableRow
+                key={row.key}
+                id={row.key}
+                name={rowName(row)}
+                disabled={reordering}
+              >
                 {row.kind === "match" ? (
                   <ScheduleMatchRow row={row} />
                 ) : (
@@ -179,6 +212,7 @@ export function ScheduleList({
                 <button
                   type="button"
                   onClick={() => insertAfter(row.key)}
+                  aria-label={`${rowName(row)}の下に区切りを挿入`}
                   className="shrink-0 rounded border border-slate-300 px-2 py-1 text-xs text-slate-700"
                 >
                   この下に区切りを挿入

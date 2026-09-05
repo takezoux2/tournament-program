@@ -52,14 +52,14 @@ export function ScheduleDividerRow({
             type="text"
             name="label"
             defaultValue={row.label}
-            aria-label="区切りの見出し"
+            aria-label={`${row.label}の見出し`}
             className="w-48 rounded border border-slate-300 px-2 py-1 text-sm font-bold"
           />
           <input
             type="datetime-local"
             name="startsAt"
             defaultValue={toDateTimeLocalValue(row.startsAt)}
-            aria-label="区切りの開始予定時刻"
+            aria-label={`${row.label}の開始予定時刻`}
             className="rounded border border-slate-300 px-2 py-1 text-sm"
           />
           <button
