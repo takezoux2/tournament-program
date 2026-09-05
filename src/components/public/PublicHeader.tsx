@@ -13,9 +13,12 @@ export type PublicCrumb = {
  *
  * 狭い画面では折り返す。nav の flex-wrap はパンくず同士の折り返しは
  * 面倒を見るが、1 つのラベルが区切りなしの長い文字列（英数字の名前など）
- * だと flex item は既定で縮まないため、それだけではページ全体が横スクロール
- * してしまう。ラベルの span に min-w-0 と wrap-break-word を付けているのは
- * そのため。
+ * だと、flex item の自動最小サイズ（min-content サイズ）がその文字列の幅で
+ * 決まってしまい、それだけではページ全体が横スクロールしてしまう。
+ * wrap-break-word（overflow-wrap: break-word）は見た目の折り返しには効くが
+ * 内在サイズ（intrinsic size）には影響しないため、これだけでは直らない。
+ * wrap-anywhere（overflow-wrap: anywhere）は内在サイズ自体を縮めるため、
+ * Link とプレーンな span の両方のラベルに付けている。
  */
 export function PublicHeader({ crumbs }: { crumbs: PublicCrumb[] }) {
   return (
@@ -29,11 +32,14 @@ export function PublicHeader({ crumbs }: { crumbs: PublicCrumb[] }) {
           <span key={index} className="flex items-center gap-2">
             {index > 0 && <span className="text-slate-400">/</span>}
             {crumb.href ? (
-              <Link href={crumb.href} className="text-slate-600 underline">
+              <Link
+                href={crumb.href}
+                className="wrap-anywhere text-slate-600 underline"
+              >
                 {crumb.label}
               </Link>
             ) : (
-              <span className="min-w-0 wrap-break-word font-bold text-slate-800">
+              <span className="wrap-anywhere font-bold text-slate-800">
                 {crumb.label}
               </span>
             )}
