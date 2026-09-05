@@ -1,4 +1,5 @@
 // @vitest-environment node
+import { unstable_doesMiddlewareMatch } from "next/experimental/testing/server";
 import { NextRequest } from "next/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -8,7 +9,7 @@ vi.mock("better-auth/cookies", () => ({
   getSessionCookie: (request: unknown) => getSessionCookie(request),
 }));
 
-const { proxy } = await import("./proxy");
+const { proxy, config } = await import("./proxy");
 
 const originalBypassAuth = process.env.BYPASS_AUTH;
 
@@ -77,5 +78,28 @@ describe("proxy", () => {
     const location = new URL(response.headers.get("location") as string);
 
     expect(location.pathname).toBe("/login");
+  });
+});
+
+describe("config.matcher", () => {
+  const matches = (path: string) =>
+    unstable_doesMiddlewareMatch({
+      config,
+      url: `http://localhost:3000${path}`,
+    });
+
+  it("公開ページ /t/... はミドルウェアの対象から除外される", () => {
+    expect(matches("/t/1")).toBe(false);
+    expect(matches("/t/1/schedule")).toBe(false);
+    expect(matches("/t/1/participants")).toBe(false);
+    expect(matches("/t/1/divisions/2")).toBe(false);
+  });
+
+  it("管理画面のパスは引き続きミドルウェアの対象になる", () => {
+    expect(matches("/orgs/tennis")).toBe(true);
+  });
+
+  it("t で始まるだけの管理系パスは除外されない（t/ ではなく t だと誤って除外される）", () => {
+    expect(matches("/tournaments")).toBe(true);
   });
 });
