@@ -1,4 +1,5 @@
 import "server-only";
+import { PUBLIC_TOURNAMENT_STATUSES } from "@/features/tournament/status";
 import type { TournamentStatus } from "@/generated/prisma/enums";
 import { prisma } from "@/shared/db/prisma";
 
@@ -51,9 +52,12 @@ export type PublicTournament = TournamentDetail & {
 };
 
 /**
- * 公開ページの唯一の入口。DRAFT を where で除外するのが要点で、
- * 取得してから status で弾く形にはしない。4 つある公開ページの
- * どれか 1 枚で確認を書き忘れても、この形なら「見つからない」に倒れる。
+ * 公開ページの唯一の入口。公開してよい状態を where で許可リストとして
+ * 絞り込むのが要点で、取得してから status で弾く形にはしない。4 つある
+ * 公開ページのどれか 1 枚で確認を書き忘れても、この形なら「見つからない」に
+ * 倒れる。PUBLIC_TOURNAMENT_STATUSES を除外リスト（DRAFT 以外)ではなく
+ * 許可リストにしてあるのは、TournamentStatus に値が増えたときに
+ * 書き忘れても新しい状態が世界に公開されてしまわないようにするため。
  * 組織スコープの findTournamentInOrganization とは別関数にしてあり、
  * 公開の判断がこの 1 箇所に閉じている。
  */
@@ -61,7 +65,7 @@ export const findPublicTournament = async (
   tournamentId: string,
 ): Promise<PublicTournament | null> => {
   const row = await prisma.tournament.findFirst({
-    where: { id: tournamentId, status: { not: "DRAFT" } },
+    where: { id: tournamentId, status: { in: PUBLIC_TOURNAMENT_STATUSES } },
     select: {
       id: true,
       name: true,

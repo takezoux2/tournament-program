@@ -14,6 +14,7 @@ vi.mock("@/shared/db/prisma", () => ({
 
 const { listTournamentsInOrganization, findTournamentInOrganization, findPublicTournament } =
   await import("./repository");
+const { PUBLIC_TOURNAMENT_STATUSES } = await import("./status");
 
 describe("listTournamentsInOrganization", () => {
   beforeEach(() => {
@@ -88,19 +89,27 @@ describe("findPublicTournament", () => {
     findFirst.mockReset();
   });
 
-  it("DRAFT を where で除外する（公開範囲の回帰テスト）", async () => {
+  it("公開してよい状態を where で許可リストとして絞り込む（公開範囲の回帰テスト）", async () => {
     // 取得してから status で弾く形にすると、4 ページのうち 1 枚で
     // 書き忘れた箇所がそのまま公開の穴になる。where に置けば
-    // 書き忘れは「見つからない」に倒れる。
+    // 書き忘れは「見つからない」に倒れる。除外リスト（status: { not: "DRAFT" }）
+    // ではなく許可リストにしているのは、enum に状態が増えたときに
+    // 書き忘れても新しい状態を世界に公開してしまわないため。
     findFirst.mockResolvedValue(null);
 
     await findPublicTournament("t1");
 
     expect(findFirst).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { id: "t1", status: { not: "DRAFT" } },
+        where: { id: "t1", status: { in: PUBLIC_TOURNAMENT_STATUSES } },
       }),
     );
+  });
+
+  it("DRAFT は公開対象に含まれない（許可リストの意図を固定する回帰テスト）", () => {
+    // enum に ARCHIVED などが増えても、ここが失敗しない限り DRAFT が
+    // 公開に混ざることはない、という保証をテストとして残しておく。
+    expect(PUBLIC_TOURNAMENT_STATUSES).not.toContain("DRAFT");
   });
 
   it("見つからない場合は null を返す", async () => {
