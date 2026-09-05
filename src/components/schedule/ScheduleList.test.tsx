@@ -127,6 +127,11 @@ describe("ScheduleList", () => {
     // 画面側で Date から組み立てるとブラウザの時刻帯になり、受け取って
     // new Date するサーバの時刻帯とずれる。運ばれてきた文字列をそのまま
     // value にしていることをここで固定する。
+    //
+    // startsAtInput には startsAt からはどの時刻帯でも作れない日付を置く。
+    // 時差ぶんだけずらした値（例えば UTC の 0 時に対する JST の 9 時）だと、
+    // 画面側で組み立て直す実装に戻しても JST の環境では同じ文字列になり、
+    // このテストが素通りしてしまう。
     renderList({
       rows: [
         {
@@ -135,14 +140,14 @@ describe("ScheduleList", () => {
           id: "s1",
           label: "午前の部",
           startsAt: new Date("2026-09-05T00:00:00Z"),
-          startsAtInput: "2026-09-05T09:00",
+          startsAtInput: "1999-01-01T00:00",
         },
       ],
     });
 
     expect(
       screen.getByLabelText("1行目 区切り「午前の部」の開始予定時刻"),
-    ).toHaveValue("2026-09-05T09:00");
+    ).toHaveValue("1999-01-01T00:00");
   });
 
   it("区切りの保存は itemId・label・startsAt を送る", async () => {
