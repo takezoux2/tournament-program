@@ -110,9 +110,9 @@ model Tournament {
   createdAt      DateTime         @default(now())
   updatedAt      DateTime         @updatedAt
 
-  organization Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  participants Participant[]
-  divisions    Division[]
+  organization  Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  participants  Participant[]
+  divisions     Division[]
   scheduleItems ScheduleItem[]
 
   @@index([organizationId])
@@ -167,7 +167,7 @@ model Division {
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
 
-  tournament Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  tournament    Tournament     @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
   scheduleItems ScheduleItem[]
 
   @@unique([tournamentId, order])
