@@ -159,6 +159,15 @@ describe("TournamentPage", () => {
     );
   });
 
+  it("公開ページへのリンクを出す", async () => {
+    const element = await Page(pageProps("tennis", "t1"));
+    render(element);
+
+    expect(
+      screen.getByRole("link", { name: "公開ページを開く" }),
+    ).toHaveAttribute("href", "/t/t1");
+  });
+
   it("部門の作成ページへの導線を出す", async () => {
     const element = await Page(pageProps("tennis", "t1"));
     render(element);

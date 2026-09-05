@@ -48,6 +48,13 @@ export default async function TournamentPage({
           試合一覧
         </Link>
 
+        <Link
+          href={`/t/${tournament.id}`}
+          className="ml-2 inline-block rounded border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-800"
+        >
+          公開ページを開く
+        </Link>
+
         <div className="flex items-center justify-between pt-4">
           <h2 className="text-sm font-bold text-slate-700">部門</h2>
           <Link
