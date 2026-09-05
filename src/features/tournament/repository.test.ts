@@ -12,7 +12,7 @@ vi.mock("@/shared/db/prisma", () => ({
   },
 }));
 
-const { listTournamentsInOrganization, findTournamentInOrganization } =
+const { listTournamentsInOrganization, findTournamentInOrganization, findPublicTournament } =
   await import("./repository");
 
 describe("listTournamentsInOrganization", () => {
@@ -78,6 +78,71 @@ describe("findTournamentInOrganization", () => {
     expect(findFirst).toHaveBeenCalledWith(
       expect.objectContaining({
         select: expect.objectContaining({ description: true }),
+      }),
+    );
+  });
+});
+
+describe("findPublicTournament", () => {
+  beforeEach(() => {
+    findFirst.mockReset();
+  });
+
+  it("DRAFT を where で除外する（公開範囲の回帰テスト）", async () => {
+    // 取得してから status で弾く形にすると、4 ページのうち 1 枚で
+    // 書き忘れた箇所がそのまま公開の穴になる。where に置けば
+    // 書き忘れは「見つからない」に倒れる。
+    findFirst.mockResolvedValue(null);
+
+    await findPublicTournament("t1");
+
+    expect(findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: "t1", status: { not: "DRAFT" } },
+      }),
+    );
+  });
+
+  it("見つからない場合は null を返す", async () => {
+    findFirst.mockResolvedValue(null);
+
+    await expect(findPublicTournament("t1")).resolves.toBeNull();
+  });
+
+  it("organization.name を organizationName へ平して返す", async () => {
+    findFirst.mockResolvedValue({
+      id: "t1",
+      name: "春季大会",
+      startsAt: null,
+      status: "IN_PROGRESS",
+      createdAt: new Date("2026-08-01T00:00:00Z"),
+      description: "",
+      organizationId: "o1",
+      organization: { name: "テニス部" },
+    });
+
+    const tournament = await findPublicTournament("t1");
+
+    expect(tournament).toMatchObject({
+      id: "t1",
+      organizationId: "o1",
+      organizationName: "テニス部",
+    });
+    // ネストしたままにすると、画面側が Prisma の select の形を知ることになる。
+    expect(tournament).not.toHaveProperty("organization");
+  });
+
+  it("select に description と organizationId を含める", async () => {
+    findFirst.mockResolvedValue(null);
+
+    await findPublicTournament("t1");
+
+    expect(findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        select: expect.objectContaining({
+          description: true,
+          organizationId: true,
+        }),
       }),
     );
   });
