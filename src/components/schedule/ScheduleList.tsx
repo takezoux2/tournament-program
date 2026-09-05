@@ -16,6 +16,7 @@ import {
 } from "@dnd-kit/sortable";
 import type { ReactNode } from "react";
 import { useActionState, useTransition } from "react";
+import { HEAD_ANCHOR_KEY } from "@/features/schedule/domain";
 import {
   INITIAL_SCHEDULE_FORM_STATE,
   type ScheduleFormAction,
@@ -186,10 +187,10 @@ export function ScheduleList({
         </p>
       )}
 
-      {/* 空文字のアンカーは「先頭に挿す」（features/schedule/domain.ts の HEAD_ANCHOR_KEY と対）。 */}
+      {/* 「先頭に挿す」を表すアンカー。コメントではなく定数を送って型で対応を保つ。 */}
       <button
         type="button"
-        onClick={() => insertAfter("")}
+        onClick={() => insertAfter(HEAD_ANCHOR_KEY)}
         disabled={inserting}
         className="rounded border border-slate-300 px-2 py-1 text-xs text-slate-700 disabled:opacity-30"
       >
