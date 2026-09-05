@@ -71,9 +71,14 @@
   第3節: A vs B / C vs D
 
 5 人（A, B, C, D, E）… 架空の 1 人 X を足して 6 人として回す
-  第1節: A vs E / B vs D   （C は休み = X と当たった）
+  第1節: B vs E / C vs D   （A は休み = X と当たった）
+  第2節: A vs E / B vs C   （D は休み）
   ... 全 5 節
 ```
+
+固定するのは配列の先頭（シード 1 位）で、架空の 1 人は末尾に置く。この置き方だと
+第1節はシード 1 位が休みになる。誰がどの節で休むかは回転から決まるので、
+同じエントリーからは必ず同じ割り当てになる。
 
 節数は偶数人で `n-1`、奇数人で `n`。試合数はどちらも `n * (n-1) / 2`。
 
@@ -304,7 +309,8 @@ props も `DivisionFormAction` を受け取るだけなので、変更なしで�
 * `features/schedule/domain.ts` — `ScheduleDivision` に `format` を足し、
   `repository.ts` の `select` にも足す
 * 部門の試合番号一覧 — `single-elimination/view.ts` の `toMatchNumberView` と、
-  新しい `round-robin/view.ts` の `toRoundView`。どちらも format を引数に取る
+  新しい `round-robin/view.ts` の `toRoundView`。どちらも扱う形式が決まっている
+  モジュールなので、引数では受け取らず定数を渡す
 
 ### 部門詳細のボタン
 
