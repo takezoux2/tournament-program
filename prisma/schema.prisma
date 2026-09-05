@@ -131,6 +131,9 @@ model Participant {
   memberId     String
   seed         Int?
   team         String?
+  /// 選手番号。表示用の文字列で、デフォルトはアプリ側が振る 1 始まりの連番。
+  /// 一意制約は付けない（重複は保存時に確認を挟んで許す）。
+  playerNumber String
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 

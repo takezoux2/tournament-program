@@ -10,8 +10,9 @@ vi.mock("@/shared/db/prisma", () => ({
   },
 }));
 
-const { listMembersInOrganization, listOrganizationsForUser } =
-  await import("./repository");
+const { listMembersInOrganization, listOrganizationsForUser } = await import(
+  "./repository"
+);
 
 describe("listOrganizationsForUser", () => {
   beforeEach(() => {

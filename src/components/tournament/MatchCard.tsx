@@ -53,6 +53,14 @@ export function MatchCard({ match }: { match: ResolvedMatch }) {
           {match.score}
         </span>
       ) : null}
+      {match.matchNumber !== null ? (
+        <span
+          data-testid={`match-number-${match.id}`}
+          className="absolute left-1 top-1 rounded bg-slate-100 px-1 text-[10px] leading-4 text-slate-500"
+        >
+          {match.matchNumber}
+        </span>
+      ) : null}
     </div>
   );
 }

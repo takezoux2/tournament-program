@@ -9,6 +9,8 @@ import {
   findDivisionInTournament,
   listParticipantsInTournament,
 } from "@/features/division/repository";
+import { setMatchNumberAction } from "@/features/division/set-match-number/handler";
+import { setPlayerNumberAction } from "@/features/division/set-player-number/handler";
 import { swapSlotsAction } from "@/features/division/swap-slots/handler";
 import { listMembersInOrganization } from "@/features/organization/repository";
 import { findTournamentInOrganization } from "@/features/tournament/repository";
@@ -68,6 +70,8 @@ export default async function DivisionSetupPage({
             reorderEntry: reorderEntryAction,
             generateMatching: generateMatchingAction,
             swapSlots: swapSlotsAction,
+            setMatchNumber: setMatchNumberAction,
+            setPlayerNumber: setPlayerNumberAction,
           }}
         />
       </div>

@@ -83,11 +83,13 @@ describe("listParticipantsInTournament", () => {
       {
         id: "p1",
         team: "青葉クラブ",
+        playerNumber: "1",
         member: { name: "佐藤 蓮", nameKana: "サトウ レン" },
       },
       {
         id: "p2",
         team: null,
+        playerNumber: "2",
         member: { name: "鈴木 陽菜", nameKana: "スズキ ハルナ" },
       },
     ]);
@@ -101,8 +103,20 @@ describe("listParticipantsInTournament", () => {
     );
     // team は bracket 側で省略可能なプロパティなので、null は undefined に畳む。
     expect(participants).toEqual([
-      { id: "p1", name: "佐藤 蓮", nameKana: "サトウ レン", team: "青葉クラブ" },
-      { id: "p2", name: "鈴木 陽菜", nameKana: "スズキ ハルナ", team: undefined },
+      {
+        id: "p1",
+        name: "佐藤 蓮",
+        nameKana: "サトウ レン",
+        playerNumber: "1",
+        team: "青葉クラブ",
+      },
+      {
+        id: "p2",
+        name: "鈴木 陽菜",
+        nameKana: "スズキ ハルナ",
+        playerNumber: "2",
+        team: undefined,
+      },
     ]);
   });
 });

@@ -98,6 +98,7 @@ describe("validateMatchingConfig", () => {
           bracket: "winners",
           round: 1,
           order: 0,
+          matchNumber: "1",
           slots: [{ kind: "entry", entryId: "e1" }, { kind: "bye" }],
         },
         {
@@ -105,6 +106,7 @@ describe("validateMatchingConfig", () => {
           bracket: "winners",
           round: 1,
           order: 1,
+          matchNumber: "2",
           slots: [
             { kind: "entry", entryId: "e2" },
             { kind: "entry", entryId: "e3" },
@@ -115,6 +117,7 @@ describe("validateMatchingConfig", () => {
           bracket: "winners",
           round: 2,
           order: 0,
+          matchNumber: "3",
           slots: [
             { kind: "winnerOf", matchId: "m1" },
             { kind: "winnerOf", matchId: "m2" },
@@ -135,6 +138,7 @@ describe("validateMatchingConfig", () => {
           bracket: "winners",
           round: 1,
           order: 0,
+          matchNumber: "1",
           slots: [{ kind: "entry", entryId: "e1" }, { kind: "bye" }],
         },
         {
@@ -142,6 +146,7 @@ describe("validateMatchingConfig", () => {
           bracket: "winners",
           round: 1,
           order: 1,
+          matchNumber: "2",
           slots: [{ kind: "entry", entryId: "e2" }, { kind: "bye" }],
         },
       ),
@@ -159,6 +164,7 @@ describe("validateMatchingConfig", () => {
         bracket: "winners",
         round: 1,
         order: 0,
+        matchNumber: "1",
         slots: [{ kind: "entry", entryId: "ghost" }, { kind: "bye" }],
       }),
       roster,
@@ -175,6 +181,7 @@ describe("validateMatchingConfig", () => {
         bracket: "winners",
         round: 2,
         order: 0,
+        matchNumber: "1",
         slots: [{ kind: "winnerOf", matchId: "ghost" }, { kind: "bye" }],
       }),
       roster,
@@ -192,6 +199,7 @@ describe("validateMatchingConfig", () => {
           bracket: "winners",
           round: 1,
           order: 0,
+          matchNumber: "1",
           slots: [{ kind: "entry", entryId: "e1" }, { kind: "bye" }],
         },
         {
@@ -199,6 +207,7 @@ describe("validateMatchingConfig", () => {
           bracket: "winners",
           round: 1,
           order: 1,
+          matchNumber: "2",
           slots: [{ kind: "winnerOf", matchId: "m1" }, { kind: "bye" }],
         },
       ),
@@ -217,6 +226,7 @@ describe("validateMatchingConfig", () => {
           bracket: "winners",
           round: 2,
           order: 0,
+          matchNumber: "1",
           slots: [{ kind: "entry", entryId: "e1" }, { kind: "bye" }],
         },
         {
@@ -224,6 +234,7 @@ describe("validateMatchingConfig", () => {
           bracket: "losers",
           round: 1,
           order: 0,
+          matchNumber: "2",
           slots: [{ kind: "loserOf", matchId: "m1" }, { kind: "bye" }],
         },
       ),
@@ -237,6 +248,57 @@ describe("validateMatchingConfig", () => {
   it("空の組み合わせは妥当とする", () => {
     expect(validateMatchingConfig(config(), roster)).toEqual([]);
   });
+
+  it("matchNumber が重複していたらエラー", () => {
+    // 既存テストの match fixture ヘルパーを使い、2 試合に同じ matchNumber "1" を与える
+    const errors = validateMatchingConfig(
+      {
+        version: 1,
+        matches: [
+          {
+            id: "m1-0",
+            bracket: "winners",
+            round: 1,
+            order: 0,
+            matchNumber: "1",
+            slots: [{ kind: "bye" }, { kind: "bye" }],
+          },
+          {
+            id: "m1-1",
+            bracket: "winners",
+            round: 1,
+            order: 1,
+            matchNumber: "1",
+            slots: [{ kind: "bye" }, { kind: "bye" }],
+          },
+        ],
+      },
+      { version: 1, entries: [] },
+    );
+    expect(errors).toContain(
+      "matchingConfig.matches[].matchNumber が重複しています: 1",
+    );
+  });
+
+  it("matchNumber が空文字ならエラー", () => {
+    const errors = validateMatchingConfig(
+      {
+        version: 1,
+        matches: [
+          {
+            id: "m1-0",
+            bracket: "winners",
+            round: 1,
+            order: 0,
+            matchNumber: "",
+            slots: [{ kind: "bye" }, { kind: "bye" }],
+          },
+        ],
+      },
+      { version: 1, entries: [] },
+    );
+    expect(errors).toContain("m1-0: matchNumber が空です");
+  });
 });
 
 /** 4 名のシングルエリミネーション。m3 が決勝。 */
@@ -246,6 +308,7 @@ const bracket = config(
     bracket: "winners",
     round: 1,
     order: 0,
+    matchNumber: "1",
     slots: [
       { kind: "entry", entryId: "e1" },
       { kind: "entry", entryId: "e2" },
@@ -256,6 +319,7 @@ const bracket = config(
     bracket: "winners",
     round: 1,
     order: 1,
+    matchNumber: "2",
     slots: [
       { kind: "entry", entryId: "e3" },
       { kind: "entry", entryId: "e4" },
@@ -266,6 +330,7 @@ const bracket = config(
     bracket: "winners",
     round: 2,
     order: 0,
+    matchNumber: "3",
     slots: [
       { kind: "winnerOf", matchId: "m1" },
       { kind: "winnerOf", matchId: "m2" },
@@ -296,6 +361,7 @@ describe("reachableEntryIds", () => {
         bracket: "winners",
         round: 1,
         order: 0,
+        matchNumber: "1",
         slots: [
           { kind: "entry", entryId: "e1" },
           { kind: "entry", entryId: "e2" },
@@ -306,6 +372,7 @@ describe("reachableEntryIds", () => {
         bracket: "losers",
         round: 2,
         order: 0,
+        matchNumber: "2",
         slots: [{ kind: "loserOf", matchId: "w1" }, { kind: "bye" }],
       },
     );

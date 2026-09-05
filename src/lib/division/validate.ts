@@ -67,6 +67,19 @@ export const validateMatchingConfig = (
     errors.push(`matchingConfig.matches[].id が重複しています: ${id}`);
   }
 
+  for (const matchNumber of duplicates(
+    matches.map((match) => match.matchNumber),
+  )) {
+    errors.push(
+      `matchingConfig.matches[].matchNumber が重複しています: ${matchNumber}`,
+    );
+  }
+  for (const match of matches) {
+    if (match.matchNumber === "") {
+      errors.push(`${match.id}: matchNumber が空です`);
+    }
+  }
+
   const entryIds = new Set(entries.entries.map((entry) => entry.id));
   const roundById = new Map(matches.map((match) => [match.id, match.round]));
 

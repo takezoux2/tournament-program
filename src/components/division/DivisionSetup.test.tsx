@@ -8,7 +8,7 @@ vi.mock("./DivisionBracket", () => ({
   DivisionBracket: () => <div>bracket</div>,
 }));
 
-// 5 つとも同じ vi.fn を使い回すと、EntryList/MatchingSection への配線で
+// 7 つとも同じ vi.fn を使い回すと、EntryList/MatchingSection への配線で
 // prop を取り違えても（例: reorderAction と removeAction の入れ替え）
 // 参照が同じなので検知できない。ここでは配線チェックのため別々にしている。
 const actions = {
@@ -17,6 +17,8 @@ const actions = {
   reorderEntry: vi.fn(async () => ({ error: null })),
   generateMatching: vi.fn(async () => ({ error: null })),
   swapSlots: vi.fn(async () => ({ error: null })),
+  setMatchNumber: vi.fn(async () => ({ error: null })),
+  setPlayerNumber: vi.fn(async () => ({ error: null })),
 };
 
 const division = (overrides: Partial<DivisionDetail> = {}): DivisionDetail => ({
@@ -108,10 +110,10 @@ describe("DivisionSetup", () => {
     ).toBeInTheDocument();
   });
 
-  it("5 つのアクションがそれぞれ正しい子コンポーネントの prop に届く", async () => {
+  it("7 つのアクションがそれぞれ正しい子コンポーネントの prop に届く", async () => {
     // 子を実物のままにすると、reorderAction と removeAction の入れ替えのような
     // 配線ミスは「ボタンを押して呼ばれた関数を見る」形でしか検知できず、
-    // 5 つの Server Action を全部押下確認するのは重い。ここだけ子を
+    // 7 つの Server Action を全部押下確認するのは重い。ここだけ子を
     // スタブに差し替え、DivisionSetup が渡した prop を直接検査する。
     // vi.mock は他のテストにも効いてしまうため、resetModules + 動的 import で
     // このテストの中だけ差し替える。
@@ -120,6 +122,7 @@ describe("DivisionSetup", () => {
     let entryListProps: Record<string, unknown> | undefined;
     let addEntryFormProps: Record<string, unknown> | undefined;
     let matchingSectionProps: Record<string, unknown> | undefined;
+    let matchNumberListProps: Record<string, unknown> | undefined;
 
     vi.doMock("./EntryList", () => ({
       EntryList: (p: Record<string, unknown>) => {
@@ -139,6 +142,12 @@ describe("DivisionSetup", () => {
         return <div>matching-section-stub</div>;
       },
     }));
+    vi.doMock("./MatchNumberList", () => ({
+      MatchNumberList: (p: Record<string, unknown>) => {
+        matchNumberListProps = p;
+        return <div>match-number-list-stub</div>;
+      },
+    }));
 
     try {
       const { DivisionSetup: IsolatedDivisionSetup } = await import(
@@ -148,14 +157,18 @@ describe("DivisionSetup", () => {
       render(<IsolatedDivisionSetup {...props} division={division()} />);
 
       // toBe で参照そのものを比較する。値の形（DivisionFormAction）は
-      // 5 つとも同じなので、中身の一致比較では入れ替えを見逃してしまう。
+      // 7 つとも同じなので、中身の一致比較では入れ替えを見逃してしまう。
       expect(entryListProps?.reorderAction).toBe(actions.reorderEntry);
       expect(entryListProps?.removeAction).toBe(actions.removeEntry);
+      expect(entryListProps?.setPlayerNumberAction).toBe(
+        actions.setPlayerNumber,
+      );
       expect(addEntryFormProps?.action).toBe(actions.addEntry);
       expect(matchingSectionProps?.generateAction).toBe(
         actions.generateMatching,
       );
       expect(matchingSectionProps?.swapAction).toBe(actions.swapSlots);
+      expect(matchNumberListProps?.action).toBe(actions.setMatchNumber);
       expect(entryListProps?.disabled).toBe(false);
 
       // 施錠状態が子まで届くことも同じ仕掛けで見る。EntryList を実物にすると
@@ -181,6 +194,7 @@ describe("DivisionSetup", () => {
       vi.doUnmock("./EntryList");
       vi.doUnmock("./AddEntryForm");
       vi.doUnmock("./MatchingSection");
+      vi.doUnmock("./MatchNumberList");
       vi.resetModules();
     }
   });

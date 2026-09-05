@@ -35,6 +35,7 @@ describe("buildFromSlots", () => {
         bracket: "winners",
         round: 1,
         order: 0,
+        matchNumber: "1",
         slots: [entry("a"), entry("b")],
       },
     ]);
@@ -113,6 +114,32 @@ describe("buildFromSlots", () => {
       }
     }
   });
+
+  it("試合番号を round 昇順 → order 昇順で 1 始まりの連番で振る", () => {
+    const config = buildFromSlots([
+      entry("e1"),
+      entry("e2"),
+      entry("e3"),
+      entry("e4"),
+    ]);
+
+    const numbers = config.matches
+      .sort((a, b) => a.round - b.round || a.order - b.order)
+      .map((match) => match.matchNumber);
+    expect(numbers).toEqual(["1", "2", "3"]);
+  });
+
+  it("bye 試合にも試合番号を振る", () => {
+    const config = buildFromSlots([
+      { kind: "entry", entryId: "e1" },
+      { kind: "entry", entryId: "e2" },
+      { kind: "entry", entryId: "e3" },
+    ]);
+
+    for (const match of config.matches) {
+      expect(match.matchNumber).toMatch(/^\d+$/);
+    }
+  });
 });
 
 describe("toSlots", () => {
@@ -131,6 +158,7 @@ describe("toSlots", () => {
           bracket: "winners",
           round: 1,
           order: 1,
+          matchNumber: "2",
           slots: [entry("c"), entry("d")],
         },
         {
@@ -138,6 +166,7 @@ describe("toSlots", () => {
           bracket: "winners",
           round: 1,
           order: 0,
+          matchNumber: "1",
           slots: [entry("a"), entry("b")],
         },
       ],

@@ -125,6 +125,7 @@ export function fromDivision(
       id: source.id,
       round: source.round,
       order: source.order,
+      matchNumber: source.matchNumber,
       slots: [first, second],
     });
   }

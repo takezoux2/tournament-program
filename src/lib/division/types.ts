@@ -33,6 +33,8 @@ export type BracketMatch = {
   round: number;
   /** ラウンド内の上からの位置。0 始まり */
   order: number;
+  /** 表示用の試合番号。部門内で一意。デフォルトは round/order 順の連番 */
+  matchNumber: string;
   slots: [SlotSource, SlotSource];
 };
 

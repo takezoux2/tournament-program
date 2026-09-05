@@ -8,6 +8,7 @@ const memberFindFirst = vi.fn();
 const memberCreate = vi.fn();
 const participantFindFirst = vi.fn();
 const participantCreate = vi.fn();
+const participantFindMany = vi.fn();
 
 vi.mock("../setup-store", () => ({
   runDivisionSetup: (
@@ -28,6 +29,7 @@ const tx = {
   participant: {
     findFirst: (args: unknown) => participantFindFirst(args),
     create: (args: unknown) => participantCreate(args),
+    findMany: (args: unknown) => participantFindMany(args),
   },
 };
 
@@ -47,11 +49,13 @@ beforeEach(() => {
   memberCreate.mockReset();
   participantFindFirst.mockReset();
   participantCreate.mockReset();
+  participantFindMany.mockReset();
   runDivisionSetup.mockReturnValue(
     Effect.succeed({ found: true, value: null }),
   );
   participantFindFirst.mockResolvedValue(null);
   participantCreate.mockResolvedValue({ id: "p1" });
+  participantFindMany.mockResolvedValue([]);
 });
 
 describe("addEntryInDb", () => {
@@ -114,7 +118,7 @@ describe("addEntryInDb", () => {
     // Participant.seed は @@unique([tournamentId, seed]) を持つ。自動採番すると
     // 衝突するので null のままにし、部門内の順序は DivisionEntry.seed が持つ。
     expect(participantCreate).toHaveBeenCalledWith({
-      data: { tournamentId: "t1", memberId: "m1" },
+      data: { tournamentId: "t1", memberId: "m1", playerNumber: "1" },
       select: { id: true },
     });
   });
@@ -235,5 +239,73 @@ describe("addEntryInDb", () => {
         },
       }),
     ).rejects.toMatchObject({ _tag: "DivisionEntryLimitError" });
+  });
+});
+
+describe("playerNumber の採番", () => {
+  it("最初の参加者は 1", async () => {
+    memberFindFirst.mockResolvedValue({ id: "m1" });
+    participantFindMany.mockResolvedValue([]);
+
+    await Effect.runPromise(
+      addEntryInDb(ids, { mode: "existing", memberId: "m1" }),
+    );
+    await callMutate(empty);
+
+    expect(participantCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ playerNumber: "1" }),
+      }),
+    );
+  });
+
+  it("数値として読める最大の番号 + 1 を振る", async () => {
+    memberFindFirst.mockResolvedValue({ id: "m1" });
+    participantFindMany.mockResolvedValue([
+      { playerNumber: "2" },
+      { playerNumber: "10" },
+    ]);
+
+    await Effect.runPromise(
+      addEntryInDb(ids, { mode: "existing", memberId: "m1" }),
+    );
+    await callMutate(empty);
+
+    expect(participantCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ playerNumber: "11" }),
+      }),
+    );
+  });
+
+  it("数値でない番号は最大値の計算から除外する", async () => {
+    memberFindFirst.mockResolvedValue({ id: "m1" });
+    participantFindMany.mockResolvedValue([
+      { playerNumber: "A-99" },
+      { playerNumber: "3" },
+    ]);
+
+    await Effect.runPromise(
+      addEntryInDb(ids, { mode: "existing", memberId: "m1" }),
+    );
+    await callMutate(empty);
+
+    expect(participantCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ playerNumber: "4" }),
+      }),
+    );
+  });
+
+  it("既存の Participant を使い回すときは採番しない", async () => {
+    memberFindFirst.mockResolvedValue({ id: "m1" });
+    participantFindFirst.mockResolvedValue({ id: "p1" });
+
+    await Effect.runPromise(
+      addEntryInDb(ids, { mode: "existing", memberId: "m1" }),
+    );
+    await callMutate(empty);
+
+    expect(participantCreate).not.toHaveBeenCalled();
   });
 });

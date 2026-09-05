@@ -9,8 +9,8 @@ const entries: DivisionEntry[] = [
 ];
 
 const participants = [
-  { id: "p1", name: "山田太郎", nameKana: "やまだたろう" },
-  { id: "p2", name: "佐藤花子", nameKana: "さとうはなこ" },
+  { id: "p1", name: "山田太郎", nameKana: "やまだたろう", playerNumber: "1" },
+  { id: "p2", name: "佐藤花子", nameKana: "さとうはなこ", playerNumber: "2" },
 ];
 
 const props = {
@@ -21,6 +21,7 @@ const props = {
   divisionId: "d1",
   reorderAction: vi.fn(async () => ({ error: null })),
   removeAction: vi.fn(async () => ({ error: null })),
+  setPlayerNumberAction: vi.fn(async () => ({ error: null })),
   disabled: false,
 };
 
@@ -62,8 +63,8 @@ describe("EntryList", () => {
 
     const row = screen.getAllByRole("listitem")[0];
 
-    // 並べ替え用フォームと削除用フォームの 2 つが独立して存在すること。
-    expect(row.querySelectorAll("form")).toHaveLength(2);
+    // 選手番号フォーム、並べ替え用フォーム、削除用フォームの 3 つが独立して存在すること。
+    expect(row.querySelectorAll("form")).toHaveLength(3);
 
     // 削除ボタンを包む form の中に direction という名前の要素が無いこと。
     // 同じフォームにまとめると削除の送信にも direction が乗ってしまい、
@@ -88,7 +89,7 @@ describe("EntryList", () => {
     render(<EntryList {...props} />);
 
     expect(
-      screen.getByText("削除すると組み合わせが変わることがあります"),
+      screen.getByText(/削除すると組み合わせが変わることがあります/),
     ).toBeInTheDocument();
   });
 
@@ -98,5 +99,13 @@ describe("EntryList", () => {
     for (const button of screen.getAllByLabelText("削除")) {
       expect(button).toBeDisabled();
     }
+  });
+
+  it("選手番号の編集フォームを行ごとに出す", () => {
+    render(<EntryList {...props} />);
+
+    expect(
+      screen.getByLabelText(`${participants[0].name}の選手番号`),
+    ).toHaveValue(participants[0].playerNumber);
   });
 });
