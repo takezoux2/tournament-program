@@ -1,5 +1,5 @@
 import type { MailAddress, MailMessage } from "@/shared/lib/mail/types";
-import { VERIFICATION_LINK_EXPIRES_IN_HOURS } from "./email-verification-policy";
+import { VERIFICATION_LINK_EXPIRES_LABEL } from "./email-verification-policy";
 
 export const VERIFICATION_EMAIL_SUBJECT = "【大会運営】メールアドレスの確認";
 
@@ -31,8 +31,10 @@ export const buildVerificationEmail = ({
   to: MailAddress;
   url: string;
 }): MailMessage => {
-  const greetingName = to.name ?? to.email;
-  const expiresIn = `${VERIFICATION_LINK_EXPIRES_IN_HOURS} 時間`;
+  // User.name はスキーマ上 NOT NULL なので、実運用で到達しうる欠損の形は
+  // undefined ではなく空文字。トリムした上で ?? ではなく || で判定しないと
+  // 「 様」になってしまう。
+  const greetingName = to.name?.trim() || to.email;
 
   const text = [
     `${greetingName} 様`,
@@ -42,7 +44,7 @@ export const buildVerificationEmail = ({
     "",
     url,
     "",
-    `このリンクは ${expiresIn} で無効になります。`,
+    `このリンクは${VERIFICATION_LINK_EXPIRES_LABEL}で無効になります。`,
     "期限が切れた場合は、ログインを試すと確認メールを送り直します。",
     "",
     "心当たりが無い場合は、このメールを破棄してください。",
@@ -50,11 +52,13 @@ export const buildVerificationEmail = ({
 
   const safeUrl = escapeHtml(url);
   const html = [
+    '<html><head><meta charset="utf-8"></head><body>',
     `<p>${escapeHtml(greetingName)} 様</p>`,
     "<p>ご登録ありがとうございます。現在は仮登録の状態です。<br>次のリンクを開くと登録が完了します。</p>",
     `<p><a href="${safeUrl}">${safeUrl}</a></p>`,
-    `<p>このリンクは ${expiresIn} で無効になります。<br>期限が切れた場合は、ログインを試すと確認メールを送り直します。</p>`,
+    `<p>このリンクは${VERIFICATION_LINK_EXPIRES_LABEL}で無効になります。<br>期限が切れた場合は、ログインを試すと確認メールを送り直します。</p>`,
     "<p>心当たりが無い場合は、このメールを破棄してください。</p>",
+    "</body></html>",
   ].join("\n");
 
   return {

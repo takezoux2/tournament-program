@@ -3,12 +3,13 @@
 import { Cause, Effect, Exit, Option } from "effect";
 import Link from "next/link";
 import { useState } from "react";
+import { verificationCallbackURL } from "@/features/auth/domain";
 import { authErrorMessage } from "@/features/auth/messages";
 import { signupSchema } from "@/features/auth/signup/schema";
 import { signup } from "@/features/auth/signup/usecase";
 import { authClient } from "@/shared/lib/auth-client";
 import { runAuthCall } from "@/shared/lib/auth-effect";
-import { VERIFICATION_LINK_EXPIRES_IN_HOURS } from "@/shared/lib/email-verification-policy";
+import { VERIFICATION_LINK_EXPIRES_LABEL } from "@/shared/lib/email-verification-policy";
 import { MIN_PASSWORD_LENGTH } from "@/shared/lib/password-policy";
 
 export function SignupForm({ redirectTo }: { redirectTo: string }) {
@@ -31,12 +32,9 @@ export function SignupForm({ redirectTo }: { redirectTo: string }) {
       return;
     }
 
-    // 確認リンクを踏んだ後の戻り先。Better Auth がこの値を verify-email の
-    // callbackURL に埋め、成功時はここへ、失敗時は ?error=... を足してここへ返す。
-    const callbackURL = `/login?${new URLSearchParams({
-      verified: "1",
-      redirect: redirectTo,
-    })}`;
+    // 確認リンクを踏んだ後の戻り先。login と同じ組み立てを共有する
+    // （login 側は sendOnSignIn による再送メールで使われる）。
+    const callbackURL = verificationCallbackURL(redirectTo);
 
     setPending(true);
     const exit = await Effect.runPromiseExit(
@@ -97,12 +95,11 @@ export function SignupForm({ redirectTo }: { redirectTo: string }) {
           確認メールを送信しました
         </h1>
         <p className="text-sm text-slate-700">
-          {sentTo}{" "}
-          宛に確認メールを送信しました。メール内のリンクを開くと登録が完了します。
+          {sentTo} 宛のメールにあるリンクを開くと登録が完了します。
         </p>
         <p className="text-xs text-slate-500">
-          メールが届かない場合は迷惑メールフォルダをご確認ください。リンクの有効期限は
-          {VERIFICATION_LINK_EXPIRES_IN_HOURS} 時間です。
+          リンクの有効期限は{VERIFICATION_LINK_EXPIRES_LABEL}です。メールが届かない場合は迷惑メールフォルダをご確認ください。
+          それでも見つからないときは、ログイン画面からログインを試すと確認メールを送り直します。
         </p>
         <Link href="/login" className="text-sm text-slate-600 underline">
           ログイン画面へ

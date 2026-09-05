@@ -55,6 +55,14 @@ Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/bui
 | `MAIL_FROM_ADDRESS` | 確認メールの差出人アドレス。未設定でも既定値で動く |
 | `MAIL_FROM_NAME` | 確認メールの差出人名。未設定でも既定値で動く |
 
+### デプロイ順序
+
+`prisma/migrations/20260905120000_verify_existing_users` は、既存ユーザーを
+確認済み扱いにするマイグレーション。`prisma migrate deploy` は**アプリの
+新コードより先に**適用すること。逆にすると、新コードが「メール未確認」を
+理由にログインを拒否する一方でマイグレーションがまだ既存ユーザーを確認済みに
+していない、という期間が生まれ、その間ずっと既存ユーザー全員がログインできなくなる。
+
 ### Google OAuth クライアントの発行
 
 この作業は自動化できないため手動で行う。

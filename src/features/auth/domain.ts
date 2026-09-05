@@ -44,3 +44,13 @@ export const verificationNotice = (
   }
   return null;
 };
+
+/**
+ * 確認メールのリンクを踏んだ後に戻ってくる URL。
+ * Better Auth はこの値を verify-email の callbackURL に埋め、成功時はここへ、
+ * 失敗時は ?error=... を足してここへ返す。signup と signin の両方が同じ値を
+ * 渡す必要がある（signin 側は sendOnSignIn による再送で使われる）。
+ * 渡し忘れると Better Auth は "/" を使い、案内も元の遷移先も失われる。
+ */
+export const verificationCallbackURL = (redirectTo: string): string =>
+  `/login?${new URLSearchParams({ verified: "1", redirect: redirectTo })}`;

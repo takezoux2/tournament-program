@@ -29,7 +29,7 @@ describe("buildVerificationEmail", () => {
     });
 
     expect(mail.text).toContain(url);
-    expect(mail.text).toContain("24 時間");
+    expect(mail.text).toContain("24時間");
     expect(mail.text).toContain("竹添");
   });
 
@@ -67,5 +67,17 @@ describe("buildVerificationEmail", () => {
 
     expect(mail.text).toContain(url);
     expect(mail.html).toContain("user@example.com");
+  });
+
+  it("名前が空文字ならメールアドレスで呼びかける", () => {
+    const mail = buildVerificationEmail({
+      from,
+      to: { email: "user@example.com", name: "" },
+      url,
+    });
+
+    // User.name は NOT NULL なので undefined ではなく空文字が現実的な欠損の形。
+    // そのまま使うと「 様」になる。
+    expect(mail.text).toContain("user@example.com 様");
   });
 });

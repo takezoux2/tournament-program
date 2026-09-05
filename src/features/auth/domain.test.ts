@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { safeRedirectPath, verificationNotice } from "./domain";
+import {
+  safeRedirectPath,
+  verificationCallbackURL,
+  verificationNotice,
+} from "./domain";
 
 describe("safeRedirectPath", () => {
   it("同一オリジンの絶対パスは通す", () => {
@@ -92,5 +96,19 @@ describe("verificationNotice", () => {
 
   it("確認リンク経由でなければ何も出さない", () => {
     expect(verificationNotice(false, null)).toBeNull();
+  });
+});
+
+describe("verificationCallbackURL", () => {
+  it("遷移先を redirect に載せて /login への callbackURL を組み立てる", () => {
+    expect(verificationCallbackURL("/orgs")).toBe(
+      "/login?verified=1&redirect=%2Forgs",
+    );
+  });
+
+  it("遷移先が / でも組み立てられる", () => {
+    expect(verificationCallbackURL("/")).toBe(
+      "/login?verified=1&redirect=%2F",
+    );
   });
 });

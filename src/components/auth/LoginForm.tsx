@@ -4,7 +4,10 @@ import { Cause, Effect, Exit, Option } from "effect";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { verificationNotice } from "@/features/auth/domain";
+import {
+  verificationCallbackURL,
+  verificationNotice,
+} from "@/features/auth/domain";
 import { loginSchema } from "@/features/auth/login/schema";
 import { login } from "@/features/auth/login/usecase";
 import { authErrorMessage } from "@/features/auth/messages";
@@ -39,7 +42,11 @@ export function LoginForm({
 
     setPending(true);
     const exit = await Effect.runPromiseExit(
-      login((input) => authClient.signIn.email(input), parsed.data),
+      login(
+        (input) => authClient.signIn.email(input),
+        parsed.data,
+        verificationCallbackURL(redirectTo),
+      ),
     );
     setPending(false);
 
@@ -94,7 +101,7 @@ export function LoginForm({
         // useSemanticElements ルール（role をベタ書きせず対応する
         // セマンティック要素を使う）を満たしつつ、テストや
         // スクリーンリーダーからは role="status" として見える。
-        <output className="rounded border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700">
+        <output className="block rounded border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700">
           {notice}
         </output>
       )}

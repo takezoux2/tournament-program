@@ -93,13 +93,25 @@ describe("SignupForm のメール登録", () => {
 
     // requireEmailVerification によりセッションは発行されない。
     // 遷移するとログインしていない画面へ飛ばすことになる。
-    // 見出しと本文の両方に文言が含まれるため、findByText は複数要素に
-    // マッチしてしまう。findAllByText で存在確認のみ行う。
-    const [confirmation] =
-      await screen.findAllByText(/確認メールを送信しました/);
-    expect(confirmation).toBeInTheDocument();
+    expect(
+      await screen.findByRole("heading", { name: "確認メールを送信しました" }),
+    ).toBeInTheDocument();
     expect(screen.getByText(/user@example.com/)).toBeInTheDocument();
     expect(push).not.toHaveBeenCalled();
+  });
+
+  it("メールが届かない場合はログインで再送できることを案内する", async () => {
+    signUpEmail.mockResolvedValue({ error: null });
+    render(<SignupForm redirectTo="/orgs" />);
+
+    fillAndSubmit();
+
+    await screen.findByRole("heading", { name: "確認メールを送信しました" });
+    // 再登録は列挙対策で成功したふりになり何も送られないため、
+    // 復帰手段はログインでの再送しかない。それを画面上で案内する。
+    expect(
+      screen.getByText(/ログインを試すと確認メールを送り直します/),
+    ).toBeInTheDocument();
   });
 
   it("確認リンクの戻り先に redirect を引き継ぐ", async () => {
@@ -108,7 +120,7 @@ describe("SignupForm のメール登録", () => {
 
     fillAndSubmit();
 
-    await screen.findAllByText(/確認メールを送信しました/);
+    await screen.findByRole("heading", { name: "確認メールを送信しました" });
     expect(signUpEmail).toHaveBeenCalledWith(
       expect.objectContaining({
         email: "user@example.com",

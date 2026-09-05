@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { LoginForm } from "./LoginForm";
 
@@ -81,6 +81,29 @@ describe("LoginForm の確認メール案内", () => {
     render(<LoginForm redirectTo="/" />);
 
     expect(screen.queryByRole("status")).not.toBeInTheDocument();
+  });
+
+  it("ログイン時に callbackURL を渡す", async () => {
+    signInEmail.mockResolvedValue({ error: null });
+    render(<LoginForm redirectTo="/orgs" />);
+
+    fireEvent.change(screen.getByLabelText("メールアドレス"), {
+      target: { value: "user@example.com" },
+    });
+    fireEvent.change(screen.getByLabelText("パスワード"), {
+      target: { value: "password123" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "ログイン" }));
+
+    // sendOnSignIn による再送メールの戻り先。渡し忘れると Better Auth は
+    // "/" を使ってしまい、案内も元の遷移先も失われる。
+    await waitFor(() =>
+      expect(signInEmail).toHaveBeenCalledWith(
+        expect.objectContaining({
+          callbackURL: "/login?verified=1&redirect=%2Forgs",
+        }),
+      ),
+    );
   });
 
   it("未確認のままログインした場合に再送を伝える", async () => {

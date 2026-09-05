@@ -29,6 +29,8 @@ describe("signup", () => {
     });
   });
 
+  // requireEmailVerification により、この経路は signup からは到達しなくなった
+  // （Better Auth が列挙対策で汎用レスポンスを返す）。写像の網羅として残している。
   it("メール重複を EmailAlreadyExists として返す", async () => {
     const port: SignUpPort = vi.fn().mockResolvedValue({
       error: { code: "USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL" },
