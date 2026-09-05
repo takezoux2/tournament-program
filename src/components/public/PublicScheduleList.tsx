@@ -42,7 +42,9 @@ export function PublicScheduleList({ rows }: { rows: ScheduleRowView[] }) {
               <span className="shrink-0 rounded bg-slate-100 px-2 py-0.5 text-xs font-bold">
                 第{row.matchNumber}試合
               </span>
-              <span className="font-medium">{row.card}</span>
+              <span className="min-w-0 wrap-break-word font-medium">
+                {row.card}
+              </span>
             </p>
             <p className="mt-1 text-xs text-slate-500">
               {row.divisionName} / {row.label}

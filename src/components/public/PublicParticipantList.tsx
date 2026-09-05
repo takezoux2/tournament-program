@@ -35,7 +35,9 @@ export function PublicParticipantList({
           <span className="shrink-0 rounded bg-slate-100 px-2 py-0.5 text-xs font-bold text-slate-600">
             No.{participant.playerNumber}
           </span>
-          <span className="font-medium text-slate-800">{participant.name}</span>
+          <span className="min-w-0 wrap-break-word font-medium text-slate-800">
+            {participant.name}
+          </span>
           {participant.team !== undefined && (
             <span className="text-xs text-slate-500">{participant.team}</span>
           )}

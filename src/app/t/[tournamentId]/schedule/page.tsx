@@ -28,11 +28,15 @@ export default async function PublicSchedulePage({
 }: PageProps<"/t/[tournamentId]/schedule">) {
   const { tournamentId } = await params;
 
+  // 公開ゲート。DRAFT の除外はこの関数の where が持つ。
   const tournament = await findPublicTournament(tournamentId);
   if (tournament === null) {
     notFound();
   }
 
+  // ゲートが返した organizationId を渡す。この値はゲートで取得済みの行に
+  // 由来するため、以降の where はトートロジーにしかならず、公開可否は
+  // ゲート単独で決まっている。それでも渡しておくのは無害な多層防御になる。
   const rows = await loadScheduleView(tournament.organizationId, tournament.id);
 
   return (

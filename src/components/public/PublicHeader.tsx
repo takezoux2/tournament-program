@@ -11,8 +11,11 @@ export type PublicCrumb = {
  * LogoutButton（クライアントコンポーネント）を含むため。ログイン前提の部品を
  * 公開側へ持ち込まない。
  *
- * 狭い画面では折り返す。大会名が長いと 1 行に収まらず、はみ出すと
- * ページ全体が横スクロールしてしまう。
+ * 狭い画面では折り返す。nav の flex-wrap はパンくず同士の折り返しは
+ * 面倒を見るが、1 つのラベルが区切りなしの長い文字列（英数字の名前など）
+ * だと flex item は既定で縮まないため、それだけではページ全体が横スクロール
+ * してしまう。ラベルの span に min-w-0 と wrap-break-word を付けているのは
+ * そのため。
  */
 export function PublicHeader({ crumbs }: { crumbs: PublicCrumb[] }) {
   return (
@@ -30,7 +33,9 @@ export function PublicHeader({ crumbs }: { crumbs: PublicCrumb[] }) {
                 {crumb.label}
               </Link>
             ) : (
-              <span className="font-bold text-slate-800">{crumb.label}</span>
+              <span className="min-w-0 wrap-break-word font-bold text-slate-800">
+                {crumb.label}
+              </span>
             )}
           </span>
         ))}

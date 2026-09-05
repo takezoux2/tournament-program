@@ -33,8 +33,9 @@ export default async function PublicTournamentPage({
     notFound();
   }
 
-  // ゲートが返した organizationId を渡すことで、既存リポジトリの
-  // 所有権チェックをそのまま使える。
+  // ゲートが返した organizationId を渡す。この値はゲートで取得済みの行に
+  // 由来するため、以降の where はトートロジーにしかならず、公開可否は
+  // ゲート単独で決まっている。それでも渡しておくのは無害な多層防御になる。
   const divisions = await listDivisionsInTournament(
     tournament.organizationId,
     tournament.id,
