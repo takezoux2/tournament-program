@@ -60,3 +60,72 @@ describe("SignupForm の Google 登録ボタン", () => {
     expect(screen.getByLabelText("ユーザー名")).toBeInTheDocument();
   });
 });
+
+const fillAndSubmit = () => {
+  fireEvent.change(screen.getByLabelText("名前"), {
+    target: { value: "竹添" },
+  });
+  fireEvent.change(screen.getByLabelText("ユーザー名"), {
+    target: { value: "takezo" },
+  });
+  fireEvent.change(screen.getByLabelText("メールアドレス"), {
+    target: { value: "user@example.com" },
+  });
+  fireEvent.change(screen.getByLabelText("パスワード"), {
+    target: { value: "password123" },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "登録する" }));
+};
+
+describe("SignupForm のメール登録", () => {
+  beforeEach(() => {
+    signUpEmail.mockReset();
+    signInSocial.mockReset();
+    push.mockClear();
+    refresh.mockClear();
+  });
+
+  it("成功しても遷移せず、確認メールの案内を出す", async () => {
+    signUpEmail.mockResolvedValue({ error: null });
+    render(<SignupForm redirectTo="/orgs" />);
+
+    fillAndSubmit();
+
+    // requireEmailVerification によりセッションは発行されない。
+    // 遷移するとログインしていない画面へ飛ばすことになる。
+    // 見出しと本文の両方に文言が含まれるため、findByText は複数要素に
+    // マッチしてしまう。findAllByText で存在確認のみ行う。
+    const [confirmation] =
+      await screen.findAllByText(/確認メールを送信しました/);
+    expect(confirmation).toBeInTheDocument();
+    expect(screen.getByText(/user@example.com/)).toBeInTheDocument();
+    expect(push).not.toHaveBeenCalled();
+  });
+
+  it("確認リンクの戻り先に redirect を引き継ぐ", async () => {
+    signUpEmail.mockResolvedValue({ error: null });
+    render(<SignupForm redirectTo="/orgs" />);
+
+    fillAndSubmit();
+
+    await screen.findAllByText(/確認メールを送信しました/);
+    expect(signUpEmail).toHaveBeenCalledWith(
+      expect.objectContaining({
+        email: "user@example.com",
+        callbackURL: "/login?verified=1&redirect=%2Forgs",
+      }),
+    );
+  });
+
+  it("失敗した場合はフォームのままアラートを出す", async () => {
+    signUpEmail.mockResolvedValue({ error: { code: "FAILED_TO_CREATE_USER" } });
+    render(<SignupForm redirectTo="/orgs" />);
+
+    fillAndSubmit();
+
+    expect(await screen.findByRole("alert")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "登録する" }),
+    ).toBeInTheDocument();
+  });
+});
