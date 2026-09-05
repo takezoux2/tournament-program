@@ -49,6 +49,11 @@ Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/bui
 | `GOOGLE_CLIENT_ID` | 下記の手順で発行する |
 | `GOOGLE_CLIENT_SECRET` | 下記の手順で発行する |
 | `BYPASS_AUTH` | 開発用の認証バイパス。`"1"` のときだけ有効になる。**本番環境では絶対に設定しないこと**（下記参照） |
+| `MAILTRAP_TOKEN` | Mailtrap の API トークン。未設定の場合はメールを送らず、確認 URL をサーバログに出力する。ただし `NODE_ENV=production` かつ未設定だと例外になる |
+| `MAILTRAP_SANDBOX` | `"1"` のとき Mailtrap の Email Testing（サンドボックス受信箱）へ送る。実際のメールアドレスには届かないため、開発中はこちらを使う |
+| `MAILTRAP_TEST_INBOX_ID` | `MAILTRAP_SANDBOX="1"` のとき必須の受信箱 ID |
+| `MAIL_FROM_ADDRESS` | 確認メールの差出人アドレス。未設定でも既定値で動く |
+| `MAIL_FROM_NAME` | 確認メールの差出人名。未設定でも既定値で動く |
 
 ### Google OAuth クライアントの発行
 
