@@ -3,9 +3,9 @@ import { AppHeader } from "@/components/layout/AppHeader";
 import { DeleteTournamentForm } from "@/components/tournament/DeleteTournamentForm";
 import { TournamentForm } from "@/components/tournament/TournamentForm";
 import { deleteTournamentAction } from "@/features/tournament/delete/handler";
-import { toDateTimeLocalValue } from "@/features/tournament/format";
 import { findTournamentInOrganization } from "@/features/tournament/repository";
 import { updateTournamentAction } from "@/features/tournament/update/handler";
+import { toDateTimeLocalValue } from "@/lib/datetime/local";
 import { requireOrganization } from "@/shared/middleware/require-organization";
 
 export default async function EditTournamentPage({

@@ -106,6 +106,7 @@ describe("runSchedule", () => {
             id: "s9",
             label: "午前の部",
             startsAt: null,
+            startsAtInput: "",
           },
           ...rows,
         ],

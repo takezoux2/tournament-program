@@ -48,6 +48,13 @@ export type ScheduleRowView =
       id: string;
       label: string;
       startsAt: Date | null;
+      /**
+       * startsAt を <input type="datetime-local"> の value 形式にしたもの。
+       * 画面側で組み立てないのは、行を描くのがクライアントコンポーネントで、
+       * 組み立てるとブラウザの時刻帯、受け取って new Date するのはサーバの
+       * 時刻帯になり、時差のぶん保存値がずれるため。サーバで作って運ぶ。
+       */
+      startsAtInput: string;
     };
 
 /** 書き戻す 1 行。order は保存時に 0..n-1 で振り直すので持たない。 */

@@ -6,7 +6,6 @@ import {
   type ScheduleFormAction,
 } from "@/features/schedule/state";
 import type { ScheduleRowView } from "@/features/schedule/types";
-import { toDateTimeLocalValue } from "@/features/tournament/format";
 
 type DividerRow = Extract<ScheduleRowView, { kind: "divider" }>;
 
@@ -61,10 +60,15 @@ export function ScheduleDividerRow({
             aria-label={`${name}の見出し`}
             className="w-48 rounded border border-slate-300 px-2 py-1 text-sm font-bold"
           />
+          {/*
+            value はサーバで組み立てた文字列（startsAtInput）をそのまま使う。
+            ここで Date から組み立てるとブラウザの時刻帯で書くことになり、
+            受け取って new Date するサーバの時刻帯とずれる。
+          */}
           <input
             type="datetime-local"
             name="startsAt"
-            defaultValue={toDateTimeLocalValue(row.startsAt)}
+            defaultValue={row.startsAtInput}
             aria-label={`${name}の開始予定時刻`}
             className="rounded border border-slate-300 px-2 py-1 text-sm"
           />

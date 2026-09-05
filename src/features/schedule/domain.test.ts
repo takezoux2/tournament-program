@@ -100,7 +100,9 @@ describe("buildScheduleView", () => {
         kind: "divider",
         id: "s2",
         label: "午前の部",
-        startsAt: new Date("2026-09-05T09:00:00Z"),
+        // ローカル時刻で組み立てる。startsAtInput はローカル時刻の文字列なので、
+        // UTC 指定だと実行環境の時刻帯で期待値が変わってしまう。
+        startsAt: new Date(2026, 8, 5, 9, 0),
       },
       { kind: "match", id: "s3", divisionId: "dA", matchId: "m1-0" },
     ];
@@ -120,7 +122,8 @@ describe("buildScheduleView", () => {
       key: dividerKey("s2"),
       id: "s2",
       label: "午前の部",
-      startsAt: new Date("2026-09-05T09:00:00Z"),
+      startsAt: new Date(2026, 8, 5, 9, 0),
+      startsAtInput: "2026-09-05T09:00",
     });
   });
 

@@ -29,6 +29,7 @@ const rows: ScheduleRowView[] = [
     id: "s1",
     label: "午前の部",
     startsAt: null,
+    startsAtInput: "",
   },
 ];
 

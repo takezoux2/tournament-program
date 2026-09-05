@@ -26,6 +26,7 @@ const divider = (id: string): ScheduleRowView => ({
   id,
   label: "午前の部",
   startsAt: null,
+  startsAtInput: "",
 });
 
 const rows = [match("dA", "m1-0"), divider("s1"), match("dA", "m1-1")];
@@ -93,7 +94,9 @@ describe("insertDividerAfter", () => {
 
 describe("updateDividerRow", () => {
   it("ラベルと開始予定時刻を差し替える", () => {
-    const at = new Date("2026-09-05T09:00:00Z");
+    // ローカル時刻で組み立てる。startsAtInput はローカル時刻の文字列なので、
+    // UTC 指定だと実行環境の時刻帯で期待値が変わってしまう。
+    const at = new Date(2026, 8, 5, 9, 0);
     const next = updateDividerRow(rows, "s1", "午後の部", at);
     expect(next?.[1]).toEqual({
       kind: "divider",
@@ -101,6 +104,7 @@ describe("updateDividerRow", () => {
       id: "s1",
       label: "午後の部",
       startsAt: at,
+      startsAtInput: "2026-09-05T09:00",
     });
   });
 

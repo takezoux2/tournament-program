@@ -1,5 +1,5 @@
 import type { DndContextProps, DragEndEvent } from "@dnd-kit/core";
-import { act, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createElement } from "react";
 import { describe, expect, it, vi } from "vitest";
@@ -56,6 +56,7 @@ const rows: ScheduleRowView[] = [
     id: "s1",
     label: "午前の部",
     startsAt: null,
+    startsAtInput: "",
   },
   {
     kind: "match",
@@ -76,6 +77,8 @@ const renderList = (
     rows?: ScheduleRowView[];
     reorderAction?: ScheduleFormAction;
     insertDividerAction?: ScheduleFormAction;
+    updateDividerAction?: ScheduleFormAction;
+    removeDividerAction?: ScheduleFormAction;
   } = {},
 ) =>
   render(
@@ -85,10 +88,18 @@ const renderList = (
       rows={overrides.rows ?? rows}
       reorderAction={overrides.reorderAction ?? noop}
       insertDividerAction={overrides.insertDividerAction ?? noop}
-      updateDividerAction={noop}
-      removeDividerAction={noop}
+      updateDividerAction={overrides.updateDividerAction ?? noop}
+      removeDividerAction={overrides.removeDividerAction ?? noop}
     />,
   );
+
+/** 送られた FormData を溜めるだけの Server Action の替え玉。 */
+const recordingAction =
+  (sent: FormData[]): ScheduleFormAction =>
+  async (_state: ScheduleFormState, data: FormData) => {
+    sent.push(data);
+    return { error: null };
+  };
 
 describe("ScheduleList", () => {
   it("試合行に試合番号・対戦カード・部門名を出す", () => {
@@ -110,6 +121,80 @@ describe("ScheduleList", () => {
     expect(
       screen.getByLabelText("1行目 区切り「午前の部」の開始予定時刻"),
     ).toHaveValue("");
+  });
+
+  it("開始予定時刻はサーバで組み立てた文字列をそのまま出す", () => {
+    // 画面側で Date から組み立てるとブラウザの時刻帯になり、受け取って
+    // new Date するサーバの時刻帯とずれる。運ばれてきた文字列をそのまま
+    // value にしていることをここで固定する。
+    renderList({
+      rows: [
+        {
+          kind: "divider",
+          key: "divider:s1",
+          id: "s1",
+          label: "午前の部",
+          startsAt: new Date("2026-09-05T00:00:00Z"),
+          startsAtInput: "2026-09-05T09:00",
+        },
+      ],
+    });
+
+    expect(
+      screen.getByLabelText("1行目 区切り「午前の部」の開始予定時刻"),
+    ).toHaveValue("2026-09-05T09:00");
+  });
+
+  it("区切りの保存は itemId・label・startsAt を送る", async () => {
+    // サーバ側（update-divider/handler.ts）が読む項目名と、この画面が出す
+    // 項目名の対応はどちらか片方を直しただけでは型で落ちない。
+    // 実際に送られる FormData をここで固定する。
+    const sent: FormData[] = [];
+    renderList({
+      rows: [
+        {
+          kind: "divider",
+          key: "divider:s1",
+          id: "s1",
+          label: "午前の部",
+          startsAt: null,
+          startsAtInput: "",
+        },
+      ],
+      updateDividerAction: recordingAction(sent),
+    });
+
+    const label = screen.getByLabelText("1行目 区切り「午前の部」の見出し");
+    await userEvent.clear(label);
+    await userEvent.type(label, "午後の部");
+    fireEvent.change(
+      screen.getByLabelText("1行目 区切り「午前の部」の開始予定時刻"),
+      { target: { value: "2026-09-05T13:00" } },
+    );
+    await userEvent.click(
+      screen.getByRole("button", { name: "1行目 区切り「午前の部」を保存" }),
+    );
+
+    expect(sent).toHaveLength(1);
+    expect(sent[0].get("slug")).toBe("acme");
+    expect(sent[0].get("tournamentId")).toBe("t1");
+    expect(sent[0].get("itemId")).toBe("s1");
+    expect(sent[0].get("label")).toBe("午後の部");
+    expect(sent[0].get("startsAt")).toBe("2026-09-05T13:00");
+  });
+
+  it("区切りの削除は itemId を送る", async () => {
+    const sent: FormData[] = [];
+    renderList({ removeDividerAction: recordingAction(sent) });
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "1行目 区切り「午前の部」を削除" }),
+    );
+
+    expect(sent).toHaveLength(1);
+    expect(sent[0].get("slug")).toBe("acme");
+    expect(sent[0].get("tournamentId")).toBe("t1");
+    expect(sent[0].get("itemId")).toBe("s1");
   });
 
   it("行ごとの操作にはその行の名前を付ける", () => {
@@ -143,6 +228,7 @@ describe("ScheduleList", () => {
         id: "s1",
         label: "区切り",
         startsAt: null,
+        startsAtInput: "",
       },
       {
         kind: "divider",
@@ -150,6 +236,7 @@ describe("ScheduleList", () => {
         id: "s2",
         label: "区切り",
         startsAt: null,
+        startsAtInput: "",
       },
     ];
     renderList({ rows: duplicated });

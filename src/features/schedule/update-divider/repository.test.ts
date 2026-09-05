@@ -29,6 +29,7 @@ const rows: ScheduleRowView[] = [
     id: "s1",
     label: "午前の部",
     startsAt: null,
+    startsAtInput: "",
   },
 ];
 
@@ -50,7 +51,9 @@ beforeEach(() => {
 
 describe("updateDividerInDb", () => {
   it("ラベルと開始予定時刻を差し替える", async () => {
-    const startsAt = new Date("2026-09-05T09:00:00Z");
+    // ローカル時刻で組み立てる。startsAtInput はローカル時刻の文字列なので、
+    // UTC 指定だと実行環境の時刻帯で期待値が変わってしまう。
+    const startsAt = new Date(2026, 8, 5, 9, 0);
     await Effect.runPromise(
       updateDividerInDb(ids, {
         itemId: "s1",
@@ -66,6 +69,7 @@ describe("updateDividerInDb", () => {
       id: "s1",
       label: "午後の部",
       startsAt,
+      startsAtInput: "2026-09-05T09:00",
     });
     // 対象外の行は差し替わっていないこと。
     expect(next?.[0]).toEqual(rows[0]);

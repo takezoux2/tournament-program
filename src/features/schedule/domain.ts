@@ -1,3 +1,4 @@
+import { toDateTimeLocalValue } from "@/lib/datetime/local";
 import {
   createSlotLabeler,
   matchCardLabel,
@@ -17,6 +18,25 @@ export const matchKey = (divisionId: string, matchId: string): string =>
 
 /** 区切り行を指すキー。 */
 export const dividerKey = (id: string): string => `divider:${id}`;
+
+/**
+ * 区切りの表示行を作る唯一の入り口。3 箇所（マージ・挿入・更新）で組み立てるため
+ * 1 つにまとめてある。startsAtInput をここで作るのは、この関数がサーバでしか
+ * 動かない（読み出しと Server Action の中だけ）ため。画面側で組み立てると
+ * ブラウザの時刻帯で書き、サーバの時刻帯で読むことになり、時差ぶんずれる。
+ */
+const dividerRow = (divider: {
+  id: string;
+  label: string;
+  startsAt: Date | null;
+}): ScheduleRowView => ({
+  kind: "divider",
+  key: dividerKey(divider.id),
+  id: divider.id,
+  label: divider.label,
+  startsAt: divider.startsAt,
+  startsAtInput: toDateTimeLocalValue(divider.startsAt),
+});
 
 /**
  * 全部門の試合を、部門の order 昇順 → round 昇順 → order 昇順で並べた行にする。
@@ -75,13 +95,7 @@ export const buildScheduleView = (
 
   for (const item of items) {
     if (item.kind === "divider") {
-      rows.push({
-        kind: "divider",
-        key: dividerKey(item.id),
-        id: item.id,
-        label: item.label,
-        startsAt: item.startsAt,
-      });
+      rows.push(dividerRow(item));
       continue;
     }
 
@@ -160,13 +174,7 @@ export const insertDividerAfter = (
   anchorKey: string,
   divider: { id: string; label: string; startsAt: Date | null },
 ): ScheduleRowView[] | null => {
-  const row: ScheduleRowView = {
-    kind: "divider",
-    key: dividerKey(divider.id),
-    id: divider.id,
-    label: divider.label,
-    startsAt: divider.startsAt,
-  };
+  const row = dividerRow(divider);
 
   if (anchorKey === HEAD_ANCHOR_KEY) {
     return [row, ...rows];
@@ -195,13 +203,7 @@ export const updateDividerRow = (
   }
 
   const next = [...rows];
-  next[index] = {
-    kind: "divider",
-    key: dividerKey(id),
-    id,
-    label,
-    startsAt,
-  };
+  next[index] = dividerRow({ id, label, startsAt });
   return next;
 };
 
