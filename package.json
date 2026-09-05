@@ -27,6 +27,7 @@
     "@xyflow/react": "^12.11.5",
     "better-auth": "^1.7.2",
     "effect": "^3.22.1",
+    "mailtrap": "^4.10.0",
     "next": "16.3.3",
     "react": "19.2.8",
     "react-dom": "19.2.8",
