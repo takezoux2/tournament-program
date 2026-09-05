@@ -41,12 +41,21 @@ export default async function TournamentPage({
       <div className="mx-auto max-w-2xl space-y-4 px-6 py-8">
         <TournamentDetailView slug={slug} tournament={tournament} />
 
-        <Link
-          href={`/orgs/${slug}/tournaments/${tournament.id}/matches`}
-          className="inline-block rounded border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-800"
-        >
-          試合一覧
-        </Link>
+        <div className="flex flex-wrap gap-2">
+          <Link
+            href={`/orgs/${slug}/tournaments/${tournament.id}/matches`}
+            className="rounded border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-800"
+          >
+            試合一覧
+          </Link>
+
+          <Link
+            href={`/t/${tournament.id}`}
+            className="rounded border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-800"
+          >
+            公開ページを開く
+          </Link>
+        </div>
 
         <div className="flex items-center justify-between pt-4">
           <h2 className="text-sm font-bold text-slate-700">部門</h2>
