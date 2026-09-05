@@ -112,6 +112,13 @@ describe("findPublicTournament", () => {
     expect(PUBLIC_TOURNAMENT_STATUSES).not.toContain("DRAFT");
   });
 
+  it("許可リストの中身そのものを固定する（IN_PROGRESS と COMPLETED が抜けないことの回帰テスト）", () => {
+    // 上の objectContaining は PUBLIC_TOURNAMENT_STATUSES 自体と比較しているため
+    // 中身がどう変わっても通ってしまう。status.ts 側で例えば
+    // IN_PROGRESS: false に倒しても、この一件だけがそれを検知する。
+    expect(PUBLIC_TOURNAMENT_STATUSES).toEqual(["IN_PROGRESS", "COMPLETED"]);
+  });
+
   it("見つからない場合は null を返す", async () => {
     findFirst.mockResolvedValue(null);
 

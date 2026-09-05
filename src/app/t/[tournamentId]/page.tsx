@@ -27,7 +27,7 @@ export default async function PublicTournamentPage({
 }: PageProps<"/t/[tournamentId]">) {
   const { tournamentId } = await params;
 
-  // 公開ゲート。DRAFT の除外はこの関数の where が持つ。
+  // 公開ゲート。公開してよい状態だけを where で許可するのはこの関数が持つ。
   const tournament = await findPublicTournament(tournamentId);
   if (tournament === null) {
     notFound();

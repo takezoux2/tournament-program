@@ -44,14 +44,14 @@ export default async function TournamentPage({
         <div className="flex flex-wrap gap-2">
           <Link
             href={`/orgs/${slug}/tournaments/${tournament.id}/matches`}
-            className="inline-block rounded border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-800"
+            className="rounded border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-800"
           >
             試合一覧
           </Link>
 
           <Link
             href={`/t/${tournament.id}`}
-            className="inline-block rounded border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-800"
+            className="rounded border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-800"
           >
             公開ページを開く
           </Link>

@@ -39,15 +39,17 @@ export default async function PublicDivisionPage({
 }: PageProps<"/t/[tournamentId]/divisions/[divisionId]">) {
   const { tournamentId, divisionId } = await params;
 
-  // 公開ゲート。DRAFT の除外はこの関数の where が持つ。
+  // 公開ゲート。公開してよい状態だけを where で許可するのはこの関数が持つ。
   const tournament = await findPublicTournament(tournamentId);
   if (tournament === null) {
     notFound();
   }
 
-  // ゲートが返した organizationId を渡す。この値はゲートで取得済みの行に
-  // 由来するため、以降の where はトートロジーにしかならず、公開可否は
-  // ゲート単独で決まっている。それでも渡しておくのは無害な多層防御になる。
+  // ゲートが返した organizationId を渡す。findDivisionInTournament の where は
+  // tournament: { id: tournamentId, organizationId } なので、organizationId の
+  // 一致はゲートで取得済みの行に由来しトートロジーにしかならない。一方
+  // tournament: { id } は divisionId が URL 由来であるため実効的なチェックで、
+  // 他の大会に属する部門がこの URL 配下に出てしまうのを防いでいる。
   const division = await findDivisionInTournament(
     tournament.organizationId,
     tournament.id,
