@@ -35,6 +35,7 @@ const divisionA: ScheduleDivision = {
   id: "dA",
   name: "男子",
   order: 0,
+  format: "SINGLE_ELIMINATION",
   entries: {
     version: 1,
     entries: [
@@ -49,6 +50,7 @@ const divisionB: ScheduleDivision = {
   id: "dB",
   name: "女子",
   order: 1,
+  format: "SINGLE_ELIMINATION",
   entries: {
     version: 1,
     entries: [
@@ -153,6 +155,44 @@ describe("buildScheduleView", () => {
       matchKey("dA", "m1-1"),
       matchKey("dA", "m1-0"),
     ]);
+  });
+
+  it("リーグの部門は節の文言で並べる", () => {
+    const league: ScheduleDivision = {
+      id: "dL",
+      name: "リーグ",
+      order: 2,
+      format: "ROUND_ROBIN",
+      entries: {
+        version: 1,
+        entries: [
+          { id: "g1", participantId: "p1", seed: 0 },
+          { id: "g2", participantId: "p2", seed: 1 },
+        ],
+      },
+      matchingConfig: {
+        version: 1,
+        matches: [
+          {
+            id: "r1-0",
+            bracket: "winners",
+            round: 1,
+            order: 0,
+            matchNumber: "1",
+            slots: [
+              { kind: "entry", entryId: "g1" },
+              { kind: "entry", entryId: "g2" },
+            ],
+          },
+        ],
+      },
+    };
+
+    const rows = buildScheduleView([league], participants, []);
+
+    expect(rows).toHaveLength(1);
+    expect(rows[0].kind).toBe("match");
+    expect(rows[0].kind === "match" && rows[0].label).toBe("第1節 第1試合");
   });
 });
 

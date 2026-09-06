@@ -68,7 +68,7 @@ const buildMatchRows = (
             divisionName: division.name,
             matchId: match.id,
             matchNumber: match.matchNumber,
-            label: matchPositionLabel(match),
+            label: matchPositionLabel(match, division.format),
             card: matchCardLabel(match, labelSlot),
           }),
         );

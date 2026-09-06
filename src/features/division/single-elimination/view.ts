@@ -111,7 +111,7 @@ export const toMatchNumberView = (
     .map((match) => ({
       matchId: match.id,
       matchNumber: match.matchNumber,
-      label: matchPositionLabel(match),
+      label: matchPositionLabel(match, "SINGLE_ELIMINATION"),
       card: matchCardLabel(match, labelSlot),
     }));
 };

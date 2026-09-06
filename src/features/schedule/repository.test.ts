@@ -44,7 +44,14 @@ beforeEach(() => {
   participantFindMany.mockReset();
   scheduleItemFindMany.mockReset();
   divisionFindMany.mockResolvedValue([
-    { id: "dA", name: "男子", order: 0, entries, matchingConfig },
+    {
+      id: "dA",
+      name: "男子",
+      order: 0,
+      format: "SINGLE_ELIMINATION",
+      entries,
+      matchingConfig,
+    },
   ]);
   participantFindMany.mockResolvedValue([
     { id: "p1", member: { name: "山田" } },

@@ -39,6 +39,7 @@ const loadDivisions = async (
       id: true,
       name: true,
       order: true,
+      format: true,
       entries: true,
       matchingConfig: true,
     },
@@ -49,6 +50,7 @@ const loadDivisions = async (
     id: row.id,
     name: row.name,
     order: row.order,
+    format: row.format,
     entries: parseDivisionEntries(row.entries),
     matchingConfig: parseMatchingConfig(row.matchingConfig),
   }));
