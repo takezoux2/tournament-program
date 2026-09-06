@@ -1,0 +1,151 @@
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { DivisionFormAction } from "@/features/division/state";
+import type { ResultRowView } from "@/features/schedule/result-rows";
+import { MatchResultList } from "./MatchResultList";
+
+const action = vi.fn<DivisionFormAction>(async () => ({ error: null }));
+
+const matchRow = (
+  overrides: Partial<Extract<ResultRowView, { kind: "match" }>> = {},
+): ResultRowView => ({
+  kind: "match",
+  key: "match:d1:m1-0",
+  divisionId: "d1",
+  divisionName: "男子",
+  matchId: "m1-0",
+  matchNumber: "1",
+  label: "1回戦 第1試合",
+  slots: [
+    { label: "山田", entryId: "e1" },
+    { label: "佐藤", entryId: "e2" },
+  ],
+  winnerEntryId: null,
+  state: "ready",
+  downstreamRecordedCount: 0,
+  ...overrides,
+});
+
+const renderList = (rows: ResultRowView[]) =>
+  render(
+    <MatchResultList
+      rows={rows}
+      slug="tennis"
+      tournamentId="t1"
+      action={action}
+    />,
+  );
+
+beforeEach(() => {
+  action.mockClear();
+  vi.restoreAllMocks();
+});
+
+describe("MatchResultList", () => {
+  it("押した側を勝者として送る", async () => {
+    const user = userEvent.setup();
+    renderList([matchRow()]);
+
+    await user.click(
+      screen.getByRole("button", { name: "第1試合 佐藤の勝ち" }),
+    );
+
+    expect(action).toHaveBeenCalled();
+    const formData = action.mock.calls[0][1] as FormData;
+    expect(formData.get("slug")).toBe("tennis");
+    expect(formData.get("tournamentId")).toBe("t1");
+    expect(formData.get("divisionId")).toBe("d1");
+    expect(formData.get("matchId")).toBe("m1-0");
+    expect(formData.get("winnerEntryId")).toBe("e2");
+  });
+
+  it("記録済みの行は勝者が押された状態になり、取り消しを出す", () => {
+    renderList([matchRow({ state: "recorded", winnerEntryId: "e1" })]);
+
+    expect(
+      screen.getByRole("button", { name: "第1試合 山田の勝ち" }),
+    ).toHaveAttribute("aria-pressed", "true");
+    expect(
+      screen.getByRole("button", { name: "第1試合の結果を取り消す" }),
+    ).toBeInTheDocument();
+  });
+
+  it("未確定の行と不戦勝の行は押せない", () => {
+    renderList([
+      matchRow({
+        state: "waiting",
+        slots: [
+          { label: "第1試合の勝者", entryId: null },
+          { label: "佐藤", entryId: "e2" },
+        ],
+      }),
+    ]);
+
+    expect(
+      screen.getByRole("button", { name: "第1試合 佐藤の勝ち" }),
+    ).toBeDisabled();
+    expect(screen.getByText("第1試合の勝者")).toBeInTheDocument();
+  });
+
+  it("下流の記録があるときだけ確認してから送る", async () => {
+    const user = userEvent.setup();
+    const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
+    renderList([
+      matchRow({
+        state: "recorded",
+        winnerEntryId: "e1",
+        downstreamRecordedCount: 2,
+      }),
+    ]);
+
+    await user.click(
+      screen.getByRole("button", { name: "第1試合 佐藤の勝ち" }),
+    );
+
+    expect(confirm).toHaveBeenCalledWith(
+      "この試合の結果を変えると、あとの試合の結果 2 件も取り消されます。よろしいですか？",
+    );
+    expect(action).not.toHaveBeenCalled();
+  });
+
+  it("下流の記録が無ければ確認しない", async () => {
+    const user = userEvent.setup();
+    const confirm = vi.spyOn(window, "confirm").mockReturnValue(true);
+    renderList([matchRow()]);
+
+    await user.click(
+      screen.getByRole("button", { name: "第1試合 山田の勝ち" }),
+    );
+
+    expect(confirm).not.toHaveBeenCalled();
+    expect(action).toHaveBeenCalled();
+  });
+
+  it("取り消しは空文字を送る", async () => {
+    const user = userEvent.setup();
+    renderList([matchRow({ state: "recorded", winnerEntryId: "e1" })]);
+
+    await user.click(
+      screen.getByRole("button", { name: "第1試合の結果を取り消す" }),
+    );
+
+    const formData = action.mock.calls[0][1] as FormData;
+    expect(formData.get("winnerEntryId")).toBe("");
+  });
+
+  it("区切りは見出しとして出す", () => {
+    renderList([
+      { kind: "divider", key: "divider:x1", label: "午前の部" },
+      matchRow(),
+    ]);
+
+    expect(screen.getByText("午前の部")).toBeInTheDocument();
+  });
+
+  it("試合が無ければその旨を出す", () => {
+    renderList([]);
+
+    expect(screen.getByText("まだ試合がありません")).toBeInTheDocument();
+  });
+});
