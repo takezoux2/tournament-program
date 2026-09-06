@@ -39,6 +39,26 @@ describe("EntryRowActions", () => {
     );
   });
 
+  it("並べ替えの通知も画面に出す", async () => {
+    // handler が返す notice は削除だけでなく並べ替えでも起こりうる
+    // （リーグの再生成、または上限超過による取り消し）。今まではここに
+    // 出す先が無く、reorder-entry/handler.ts の notice が画面に届いて
+    // いなかった。
+    const reorderAction = vi.fn(
+      async (): Promise<DivisionFormState> => ({
+        error: null,
+        notice: "並べ替えに合わせて対戦表を作り直しました",
+      }),
+    );
+    render(<EntryRowActions {...props} reorderAction={reorderAction} />);
+
+    await userEvent.click(screen.getByLabelText("下へ移動"));
+
+    expect(await screen.findByRole("status")).toHaveTextContent(
+      "並べ替えに合わせて対戦表を作り直しました",
+    );
+  });
+
   it("通知が無ければ何も出さない", async () => {
     const removeAction = vi.fn(
       async (): Promise<DivisionFormState> => ({ error: null }),
