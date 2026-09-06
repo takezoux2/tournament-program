@@ -14,6 +14,10 @@ export class UsernameAlreadyExists extends Data.TaggedError(
   readonly code: string;
 }> {}
 
+export class InvalidUsername extends Data.TaggedError("InvalidUsername")<{
+  readonly code: string;
+}> {}
+
 export class WeakPassword extends Data.TaggedError("WeakPassword")<{
   readonly code: string;
 }> {}
@@ -34,6 +38,7 @@ export type AuthError =
   | InvalidCredentials
   | EmailAlreadyExists
   | UsernameAlreadyExists
+  | InvalidUsername
   | WeakPassword
   | EmailNotVerified
   | UnexpectedAuthError;
@@ -50,19 +55,24 @@ export const toAuthError = (
 ): AuthError => {
   switch (code) {
     case "INVALID_EMAIL_OR_PASSWORD":
+    case "INVALID_USERNAME_OR_PASSWORD":
     case "USER_NOT_FOUND":
     case "CREDENTIAL_ACCOUNT_NOT_FOUND":
       return new InvalidCredentials({ code });
     case "USER_ALREADY_EXISTS":
     case "USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL":
       return new EmailAlreadyExists({ code });
-    // Better Auth はメール重複だけを事前に弾く。username は unique 制約に任せて
-    // いるため、重複は internalAdapter.createUser の中で Prisma の P2002 になり、
-    // FAILED_TO_CREATE_USER として返る（better-auth/dist/api/routes/sign-up.mjs）。
-    // このコードは厳密には「作成に失敗した」一般形だが、signup 経路で現実に
-    // 起きるのはほぼ username 重複なので、最も可能性の高い原因として案内する。
-    case "FAILED_TO_CREATE_USER":
+    // username プラグインが /sign-up/email の前段で重複を弾いたときのコード。
+    // 以前は Prisma の P2002 が FAILED_TO_CREATE_USER として返るのを重複と
+    // 見なしていたが、今は原因を推測せずに済む。
+    case "USERNAME_IS_ALREADY_TAKEN":
       return new UsernameAlreadyExists({ code });
+    // クライアント側の検証を通さない直接 POST か、プラグインのオプションが
+    // usernameSchema からずれたときに返る。
+    case "USERNAME_TOO_SHORT":
+    case "USERNAME_TOO_LONG":
+    case "INVALID_USERNAME":
+      return new InvalidUsername({ code });
     case "PASSWORD_TOO_SHORT":
     case "PASSWORD_TOO_LONG":
       return new WeakPassword({ code });

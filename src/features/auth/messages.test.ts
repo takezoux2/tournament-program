@@ -3,11 +3,14 @@ import { toAuthError } from "@/shared/errors/auth-error";
 import { authErrorMessage } from "./messages";
 
 describe("authErrorMessage", () => {
-  it("ログイン失敗ではどちらが誤りか示さない", () => {
+  it("ログイン失敗ではどれが誤りか示さない", () => {
     const message = authErrorMessage(
       toAuthError("INVALID_EMAIL_OR_PASSWORD", null),
     );
-    expect(message).toBe("メールアドレスまたはパスワードが正しくありません");
+    // ユーザー名でログインした人にも当てはまる文言にする。
+    expect(message).toBe(
+      "ユーザー名・メールアドレスまたはパスワードが正しくありません",
+    );
   });
 
   it("メール重複を伝える", () => {
@@ -24,11 +27,15 @@ describe("authErrorMessage", () => {
     );
   });
 
-  it("ユーザー名重複の可能性を伝える", () => {
-    // FAILED_TO_CREATE_USER は「作成に失敗した」一般形で、接続断や
-    // アダプタの不具合でも返る。断定すると無関係な改名を促すことになる。
-    expect(authErrorMessage(toAuthError("FAILED_TO_CREATE_USER", null))).toBe(
-      "そのユーザー名は既に使われている可能性があります。別の名前でお試しください",
+  it("ユーザー名重複を伝える", () => {
+    expect(
+      authErrorMessage(toAuthError("USERNAME_IS_ALREADY_TAKEN", null)),
+    ).toBe("そのユーザー名は既に使われています。別の名前でお試しください");
+  });
+
+  it("ユーザー名の形式の不備を伝える", () => {
+    expect(authErrorMessage(toAuthError("INVALID_USERNAME", null))).toBe(
+      "ユーザー名の形式が正しくありません",
     );
   });
 

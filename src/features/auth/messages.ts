@@ -9,8 +9,9 @@ export const authErrorMessage: (error: AuthError) => string =
   Match.type<AuthError>().pipe(
     Match.tag(
       "InvalidCredentials",
-      // どちらが誤りかを示すとアカウントの存在を推測されるため、まとめた文言にする。
-      () => "メールアドレスまたはパスワードが正しくありません",
+      // どれが誤りかを示すとアカウントの存在を推測されるため、まとめた文言にする。
+      // 識別子はユーザー名でもメールアドレスでもよいので両方を並べる。
+      () => "ユーザー名・メールアドレスまたはパスワードが正しくありません",
     ),
     Match.tag(
       "EmailAlreadyExists",
@@ -18,13 +19,11 @@ export const authErrorMessage: (error: AuthError) => string =
     ),
     Match.tag(
       "UsernameAlreadyExists",
-      // 元の FAILED_TO_CREATE_USER は「作成に失敗した」一般形で、
-      // 接続断やアダプタの不具合でも返る。ユーザー名重複が最も
-      // 可能性が高いというだけなので、断定はしない。
-      () =>
-        "そのユーザー名は既に使われている可能性があります。別の名前でお試しください",
+      // プラグインが登録前に重複を弾いた結果なので、断定してよい。
+      () => "そのユーザー名は既に使われています。別の名前でお試しください",
     ),
     Match.tag("WeakPassword", () => "パスワードの長さが要件を満たしていません"),
+    Match.tag("InvalidUsername", () => "ユーザー名の形式が正しくありません"),
     Match.tag(
       "EmailNotVerified",
       // sendOnSignIn により、この失敗と同時に確認メールが送り直される。
