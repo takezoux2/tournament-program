@@ -2,13 +2,12 @@ import "server-only";
 import type { Effect } from "effect";
 import type { DivisionEntries } from "@/lib/division/types";
 import type { DivisionError } from "../errors";
+import { regenerateMatching } from "../matching-strategy";
 import {
   type DivisionIds,
   type DivisionSetupOutcome,
   runDivisionSetup,
 } from "../setup-store";
-import { buildFromSlots } from "../single-elimination/build";
-import { generateSlots } from "../single-elimination/edit";
 import type { RemoveEntryInput } from "./schema";
 
 /**
@@ -46,15 +45,17 @@ export const removeEntryInDb: RemoveEntryPort = (ids, input) =>
         .map((entry, index) => ({ ...entry, seed: index })),
     };
 
-    // 穴を bye として残すより、シード順から作り直した方が結果が読みやすい。
-    // 手動で入れ替えた配置はここで失われるので、画面には再生成した旨を出す。
+    // 穴を残すより、シード順から作り直した方が結果が読みやすい。
+    // トーナメントで手動入れ替えした配置と、両形式で手で変えた試合番号は
+    // ここで失われるので、画面には再生成した旨を出す。
     const hadMatching = current.matchingConfig.matches.length > 0;
     const matchingConfig = hadMatching
-      ? buildFromSlots(generateSlots(entries.entries))
+      ? regenerateMatching(current.format, entries.entries)
       : current.matchingConfig;
 
-    // 判定は除去「後」の結果で行う。残りが 2 人未満だと木は作れず空になるため、
-    // 除去前だけを見て「再生成しました」と伝えると画面の文言が事実とずれる。
+    // 判定は除去「後」の結果で行う。残りが 2 人未満だと組み合わせは作れず
+    // 空になるため、除去前だけを見て「再生成しました」と伝えると
+    // 画面の文言が事実とずれる。
     const matching = !hadMatching
       ? "unchanged"
       : matchingConfig.matches.length === 0
@@ -62,7 +63,7 @@ export const removeEntryInDb: RemoveEntryPort = (ids, input) =>
         : "regenerated";
 
     return {
-      next: { entries, matchingConfig },
+      next: { format: current.format, entries, matchingConfig },
       value: { removed: true, matching },
     };
   });

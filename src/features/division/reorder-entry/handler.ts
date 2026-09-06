@@ -45,5 +45,9 @@ export const reorderEntryAction = async (
 
   // moved: false は「端まで来ている」。エラーにする必要はない。
   revalidateDivisionSetup(slug, tournamentId, divisionId);
-  return { error: null };
+
+  // 手で変えた試合番号が消えるのは驚きになりうるので、起きたことを明示する。
+  return exit.value.value.regenerated
+    ? { error: null, notice: "並べ替えに合わせて対戦表を作り直しました" }
+    : { error: null };
 };

@@ -53,7 +53,10 @@ beforeEach(() => {
   notFound.mockClear();
   requireOrganization.mockResolvedValue({ organization: { id: "o1" } });
   reorderEntryInDb.mockReturnValue(
-    Effect.succeed({ found: true, value: { moved: true } }),
+    Effect.succeed({
+      found: true,
+      value: { moved: true, regenerated: false },
+    }),
   );
 });
 
@@ -82,7 +85,10 @@ describe("reorderEntryAction", () => {
 
   it("端まで来ていてもエラーにしない", async () => {
     reorderEntryInDb.mockReturnValue(
-      Effect.succeed({ found: true, value: { moved: false } }),
+      Effect.succeed({
+        found: true,
+        value: { moved: false, regenerated: false },
+      }),
     );
 
     const state = await reorderEntryAction(
@@ -91,6 +97,25 @@ describe("reorderEntryAction", () => {
     );
 
     expect(state.error).toBeNull();
+  });
+
+  it("作り直したときだけ通知を出す", async () => {
+    reorderEntryInDb.mockReturnValue(
+      Effect.succeed({
+        found: true,
+        value: { moved: true, regenerated: true },
+      }),
+    );
+
+    const state = await reorderEntryAction(
+      INITIAL_DIVISION_FORM_STATE,
+      formData("e2", "up"),
+    );
+
+    expect(state).toEqual({
+      error: null,
+      notice: "並べ替えに合わせて対戦表を作り直しました",
+    });
   });
 
   it("向きが不正ならポートを呼ばない", async () => {
