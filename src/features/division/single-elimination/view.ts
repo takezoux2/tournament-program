@@ -85,11 +85,6 @@ export const toSetupView = (
   return matches;
 };
 
-// MatchNumberRowView はトーナメントとリーグの両方の試合番号一覧が使うため、
-// 共通の祖先である features/division 直下（match-number-view.ts）へ移した。
-// 既存の import 元を壊さないよう、ここでは再エクスポートだけしておく。
-export type { MatchNumberRowView };
-
 /**
  * 全試合を round/order 順に並べた試合番号の編集用一覧。
  * toSetupView と違い 1 回戦以外も含む。勝者参照は相手の試合番号で表す。
