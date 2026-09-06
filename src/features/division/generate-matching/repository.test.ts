@@ -143,4 +143,28 @@ describe("generateMatchingInDb", () => {
     expect(failureTag(exit)).toBe("DivisionNotEnoughEntriesError");
     expect(divisionUpdateMany).not.toHaveBeenCalled();
   });
+
+  it("リーグは 16 人を超えるエントリーでの生成を拒否する", async () => {
+    // 128 人のトーナメントを /edit で ROUND_ROBIN に切り替えたあと
+    // 生成を押すと、add-entry の上限チェックを経由せずに 8128 試合の
+    // 総当たりが組み立てられてしまう。生成の直前でも弾く必要がある。
+    divisionFindFirst.mockResolvedValue({
+      format: "ROUND_ROBIN",
+      entries: {
+        version: 1,
+        entries: Array.from({ length: 17 }, (_, index) => ({
+          id: `e${index}`,
+          participantId: `p${index}`,
+          seed: index,
+        })),
+      },
+      matchingConfig: { version: 1, matches: [] },
+      results: { version: 1, matches: [] },
+    });
+
+    const exit = await Effect.runPromiseExit(generateMatchingInDb(ids));
+
+    expect(failureTag(exit)).toBe("DivisionEntryLimitError");
+    expect(divisionUpdateMany).not.toHaveBeenCalled();
+  });
 });
