@@ -59,6 +59,43 @@ describe("EntryRowActions", () => {
     );
   });
 
+  it("並べ替えのあとに削除すると、新しい通知だけを表示する", async () => {
+    // reorderState と removeState は別々の useActionState なので、片方を
+    // 更新してももう片方の notice は古いまま残る。両方をそのまま並べて出すと
+    // この操作で 2 行の <output role="status"> が同じ行に残ってしまう。
+    const reorderAction = vi.fn(
+      async (): Promise<DivisionFormState> => ({
+        error: null,
+        notice: "並べ替えに合わせて対戦表を作り直しました",
+      }),
+    );
+    const removeAction = vi.fn(
+      async (): Promise<DivisionFormState> => ({
+        error: null,
+        notice: "エントリーを削除し、組み合わせを再生成しました",
+      }),
+    );
+    render(
+      <EntryRowActions
+        {...props}
+        reorderAction={reorderAction}
+        removeAction={removeAction}
+      />,
+    );
+
+    await userEvent.click(screen.getByLabelText("下へ移動"));
+    expect(await screen.findByRole("status")).toHaveTextContent(
+      "並べ替えに合わせて対戦表を作り直しました",
+    );
+
+    await userEvent.click(screen.getByLabelText("削除"));
+    const statuses = await screen.findAllByRole("status");
+    expect(statuses).toHaveLength(1);
+    expect(statuses[0]).toHaveTextContent(
+      "エントリーを削除し、組み合わせを再生成しました",
+    );
+  });
+
   it("通知が無ければ何も出さない", async () => {
     const removeAction = vi.fn(
       async (): Promise<DivisionFormState> => ({ error: null }),
