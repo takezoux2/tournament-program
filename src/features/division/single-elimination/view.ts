@@ -4,6 +4,7 @@ import {
   matchPositionLabel,
 } from "@/lib/division/label";
 import type { DivisionEntries, MatchingConfig } from "@/lib/division/types";
+import type { MatchNumberRowView } from "../match-number-view";
 import { toSlots } from "./build";
 
 /**
@@ -84,15 +85,10 @@ export const toSetupView = (
   return matches;
 };
 
-/** 試合番号一覧の 1 行。 */
-export type MatchNumberRowView = {
-  matchId: string;
-  matchNumber: string;
-  /** 「1回戦 第1試合」のような構造上の位置 */
-  label: string;
-  /** 「山田 vs 佐藤」のような対戦の表示 */
-  card: string;
-};
+// MatchNumberRowView はトーナメントとリーグの両方の試合番号一覧が使うため、
+// 共通の祖先である features/division 直下（match-number-view.ts）へ移した。
+// 既存の import 元を壊さないよう、ここでは再エクスポートだけしておく。
+export type { MatchNumberRowView };
 
 /**
  * 全試合を round/order 順に並べた試合番号の編集用一覧。

@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
-import type { MatchNumberRowView } from "@/features/division/single-elimination/view";
+import type { MatchNumberRowView } from "@/features/division/match-number-view";
 import {
   type DivisionFormAction,
   INITIAL_DIVISION_FORM_STATE,
