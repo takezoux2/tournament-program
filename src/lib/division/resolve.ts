@@ -1,14 +1,15 @@
-import type {
-  DivisionResults,
-  MatchingConfig,
-  SlotSource,
-} from "./types";
+import type { DivisionResults, MatchingConfig, SlotSource } from "./types";
 
 /** スロットに誰が立っているか。pending は前の試合の結果待ち。 */
 export type ResolvedSlot =
   | { state: "entry"; entryId: string }
   | { state: "pending" }
   | { state: "bye" };
+
+/** find の戻り値は型を絞らないため、絞り込み用の型述語を 1 つ置いて使い回す。 */
+const isEntry = (
+  slot: ResolvedSlot,
+): slot is Extract<ResolvedSlot, { state: "entry" }> => slot.state === "entry";
 
 /** 1 試合ぶんの解決結果。winnerEntryId は BYE の自動勝ち上がりを含む。 */
 export type ResolvedMatch = {
@@ -31,17 +32,15 @@ const decideWinner = (
 ): string | null => {
   const hasBye = slots.some((slot) => slot.state === "bye");
   if (hasBye) {
-    const standing = slots.find((slot) => slot.state === "entry");
-    return standing !== undefined && standing.state === "entry"
-      ? standing.entryId
-      : null;
+    const standing = slots.find(isEntry);
+    return standing !== undefined ? standing.entryId : null;
   }
 
   if (recorded === undefined || recorded === null) {
     return null;
   }
   const stands = slots.some(
-    (slot) => slot.state === "entry" && slot.entryId === recorded,
+    (slot) => isEntry(slot) && slot.entryId === recorded,
   );
   return stands ? recorded : null;
 };
@@ -81,11 +80,10 @@ export const resolveMatchSlots = (
         }
         // 勝者が決まっていても、敗者側が entry として確定しているとは限らない
         // （BYE 相手の不戦勝など）。その場合は pending のままにする。
-        const loser = origin.slots.find(
-          (slot) =>
-            slot.state === "entry" && slot.entryId !== origin.winnerEntryId,
-        );
-        return loser !== undefined && loser.state === "entry"
+        const loser = origin.slots
+          .filter(isEntry)
+          .find((slot) => slot.entryId !== origin.winnerEntryId);
+        return loser !== undefined
           ? { state: "entry", entryId: loser.entryId }
           : { state: "pending" };
       }

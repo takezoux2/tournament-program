@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { DivisionFormAction } from "@/features/division/state";
@@ -71,7 +71,7 @@ describe("MatchResultList", () => {
     ).toBeInTheDocument();
   });
 
-  it("未確定の行と不戦勝の行は押せない", () => {
+  it("未確定の行は押せない", () => {
     renderList([
       matchRow({
         state: "waiting",
@@ -86,6 +86,25 @@ describe("MatchResultList", () => {
       screen.getByRole("button", { name: "男子 第1試合 佐藤の勝ち" }),
     ).toBeDisabled();
     expect(screen.getByText("第1試合の勝者")).toBeInTheDocument();
+  });
+
+  it("不戦勝の行は両方のボタンが押せない", () => {
+    renderList([
+      matchRow({
+        state: "bye",
+        slots: [
+          { label: "山田", entryId: "e1" },
+          { label: "BYE", entryId: null },
+        ],
+      }),
+    ]);
+
+    expect(
+      screen.getByRole("button", { name: "男子 第1試合 山田の勝ち" }),
+    ).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: "男子 第1試合 BYEの勝ち" }),
+    ).toBeDisabled();
   });
 
   it("下流の記録があるときだけ確認してから送る", async () => {
@@ -151,6 +170,48 @@ describe("MatchResultList", () => {
 
     const formData = action.mock.calls[0][1] as FormData;
     expect(formData.get("winnerEntryId")).toBe("");
+  });
+
+  it("保存中はボタンが無効になる", async () => {
+    // let だと閉じたスコープ内の代入が外側で never に絞り込まれてしまうため、
+    // オブジェクトのプロパティ越しに保持する。
+    const deferred: {
+      resolve: ((value: { error: string | null }) => void) | null;
+    } = { resolve: null };
+    const pendingAction = vi.fn<DivisionFormAction>(
+      () =>
+        new Promise((resolve) => {
+          deferred.resolve = resolve;
+        }),
+    );
+    const user = userEvent.setup();
+    render(
+      <MatchResultList
+        rows={[matchRow()]}
+        slug="tennis"
+        tournamentId="t1"
+        action={pendingAction}
+      />,
+    );
+
+    await user.click(
+      screen.getByRole("button", { name: "男子 第1試合 山田の勝ち" }),
+    );
+
+    expect(
+      await screen.findByRole("button", { name: "男子 第1試合 山田の勝ち" }),
+    ).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: "男子 第1試合 佐藤の勝ち" }),
+    ).toBeDisabled();
+
+    // act 警告を避けるため、テストを終える前に保留中の action を解決しておく。
+    deferred.resolve?.({ error: null });
+    await waitFor(() =>
+      expect(
+        screen.getByRole("button", { name: "男子 第1試合 山田の勝ち" }),
+      ).not.toBeDisabled(),
+    );
   });
 
   it("区切りは見出しとして出す", () => {

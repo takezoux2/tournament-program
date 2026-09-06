@@ -204,6 +204,33 @@ describe("recordResultInDb", () => {
     );
   });
 
+  it("引き分け（winnerEntryId: null）の記録がある試合を取り消せる", async () => {
+    // 「記録の有無」だけで変更なしを判定すると、引き分けの記録（winnerEntryId:
+    // null）は「記録が無い」と区別が付かず、取り消し（空文字）を送っても
+    // 何も書かずに成功を返してしまう。それだと結果が 1 件でもあれば部門を
+    // 編集不能にする仕様のもとで、この試合が永久に編集できなくなる。
+    findFirst.mockResolvedValue(
+      division({
+        version: 1,
+        matches: [{ matchId: "m1-0", winnerEntryId: null }],
+      }),
+    );
+
+    await run({ matchId: "m1-0", winnerEntryId: "" });
+
+    expect(updateMany).toHaveBeenCalledWith({
+      where: {
+        id: "d1",
+        revision: 3,
+        tournament: { id: "t1", organizationId: "o1" },
+      },
+      data: {
+        results: { version: 1, matches: [] },
+        revision: 4,
+      },
+    });
+  });
+
   it("同じ勝者の押し直しでは書き込まない", async () => {
     findFirst.mockResolvedValue(
       division({

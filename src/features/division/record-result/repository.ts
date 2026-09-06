@@ -60,7 +60,6 @@ export const recordResultInDb: RecordResultPort = (ids, input) =>
           where: ownership,
           select: {
             format: true,
-            entries: true,
             matchingConfig: true,
             results: true,
             revision: true,
@@ -76,9 +75,9 @@ export const recordResultInDb: RecordResultPort = (ids, input) =>
           throw new DivisionMatchNotFoundError({ matchId: input.matchId });
         }
 
-        const previous =
-          current.matches.find((record) => record.matchId === input.matchId)
-            ?.winnerEntryId ?? null;
+        const existing = current.matches.find(
+          (record) => record.matchId === input.matchId,
+        );
         const nextWinner =
           input.winnerEntryId === "" ? null : input.winnerEntryId;
 
@@ -100,7 +99,16 @@ export const recordResultInDb: RecordResultPort = (ids, input) =>
           }
         }
 
-        if (nextWinner === previous) {
+        // 「変更なし」は記録の有無と勝者の値の両方で見る。winnerEntryId: null
+        // （引き分け）の記録は前者だけで比べると「記録が無い」と区別が付かず、
+        // 取り消し（空文字）を送っても何も書かずに成功を返してしまう。
+        // 結果が 1 件でもあれば部門を編集不能にする setup-store の仕様上、
+        // 取り消しはその唯一の逃げ道なので、ここで塞いではいけない。
+        const unchanged =
+          nextWinner === null
+            ? existing === undefined
+            : existing?.winnerEntryId === nextWinner;
+        if (unchanged) {
           return { found: true, value: null };
         }
 
