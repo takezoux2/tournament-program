@@ -65,6 +65,15 @@ describe("regenerateMatching", () => {
     // 黙って書かないよう、ここでも弾く。
     expect(regenerateMatching("ROUND_ROBIN", entriesOf(17))).toEqual(EMPTY);
   });
+
+  it("リーグは上限ちょうどの 16 人なら通常どおり全試合を作る", () => {
+    // 17 人（超過）のすぐ下の境界。比較が > ではなく >= になっていると
+    // ちょうど 16 人のリーグまで巻き込んで空にしてしまう。
+    // n(n-1)/2 = 16*15/2 = 120 試合が作られるはず。
+    const result = regenerateMatching("ROUND_ROBIN", entriesOf(16));
+    expect(result.matches).toHaveLength(120);
+    expect(result).toEqual(buildRoundRobin(entriesOf(16)));
+  });
 });
 
 describe("applyEntryAdded", () => {
@@ -180,5 +189,15 @@ describe("applyEntryReordered", () => {
     expect(applyEntryReordered("ROUND_ROBIN", current, entriesOf(17))).toEqual(
       EMPTY,
     );
+  });
+
+  it("リーグは上限ちょうどの 16 人なら並べ替えても全試合を保つ", () => {
+    // 17 人テストの境界を挟んで反対側を確認する。比較が > ではなく
+    // >= になっていると、並べ替えのたびにちょうど 16 人のリーグが
+    // 消えてしまう。n(n-1)/2 = 16*15/2 = 120 試合を保つはず。
+    const current = buildRoundRobin(entriesOf(16));
+    const result = applyEntryReordered("ROUND_ROBIN", current, entriesOf(16));
+    expect(result.matches).toHaveLength(120);
+    expect(result).toEqual(buildRoundRobin(entriesOf(16)));
   });
 });
