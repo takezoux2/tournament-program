@@ -1,6 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import type { DivisionDetail } from "@/features/division/repository";
+import { buildRoundRobin } from "@/features/division/round-robin/build";
 import { LeagueSetup } from "./LeagueSetup";
 
 // 6 つとも別の vi.fn にする。同じ参照を使い回すと、配線で prop を
@@ -14,35 +15,22 @@ const actions = {
   setPlayerNumber: vi.fn(async () => ({ error: null })),
 };
 
-const leagueMatching = {
-  version: 1,
-  matches: [
-    {
-      id: "r1-0",
-      bracket: "winners",
-      round: 1,
-      order: 0,
-      matchNumber: "1",
-      slots: [
-        { kind: "entry", entryId: "e1" },
-        { kind: "entry", entryId: "e2" },
-      ],
-    },
-  ],
-};
+// hardcode した固定値ではなく実物の buildRoundRobin / toCrossTableView /
+// toRoundView が描いた結果を検証するため、4 人ぶんの実データを組み立てる。
+const leagueEntries = [
+  { id: "e1", participantId: "p1", seed: 0 },
+  { id: "e2", participantId: "p2", seed: 1 },
+  { id: "e3", participantId: "p3", seed: 2 },
+  { id: "e4", participantId: "p4", seed: 3 },
+];
+const leagueMatching = buildRoundRobin(leagueEntries);
 
 const division = (overrides: Partial<DivisionDetail> = {}): DivisionDetail => ({
   id: "d1",
   name: "総当たりリーグ",
   order: 0,
   format: "ROUND_ROBIN",
-  entries: {
-    version: 1,
-    entries: [
-      { id: "e1", participantId: "p1", seed: 0 },
-      { id: "e2", participantId: "p2", seed: 1 },
-    ],
-  },
+  entries: { version: 1, entries: leagueEntries },
   matchingConfig: leagueMatching,
   results: { version: 1, matches: [] },
   createdAt: new Date("2026-01-01T00:00:00Z"),
@@ -55,6 +43,8 @@ const props = {
   participants: [
     { id: "p1", name: "山田", nameKana: "やまだ", playerNumber: "1" },
     { id: "p2", name: "佐藤", nameKana: "さとう", playerNumber: "2" },
+    { id: "p3", name: "鈴木", nameKana: "すずき", playerNumber: "3" },
+    { id: "p4", name: "田中", nameKana: "たなか", playerNumber: "4" },
   ],
   members: [],
   actions,
@@ -70,6 +60,17 @@ describe("LeagueSetup", () => {
     expect(screen.getByRole("heading", { name: "対戦表" })).toBeInTheDocument();
     expect(
       screen.getByRole("heading", { name: "節ごとの試合" }),
+    ).toBeInTheDocument();
+
+    // 見出しの有無だけでは mismatched 分岐の両側で真になってしまい、
+    // 本物の toCrossTableView / toRoundView が描かれたことの証明にならない。
+    // 実データでしか出ない星取表のマスと節見出しを見て、本物が描かれた
+    // ことを確かめる。
+    // 星取表は対称なので同じ試合が 2 マスに出る。ここでは「本物の
+    // toCrossTableView が描かれたか」だけを見たいので存在確認にとどめる。
+    expect(screen.getAllByText("第1試合").length).toBeGreaterThan(0);
+    expect(
+      screen.getByRole("heading", { name: "第1節" }),
     ).toBeInTheDocument();
   });
 
