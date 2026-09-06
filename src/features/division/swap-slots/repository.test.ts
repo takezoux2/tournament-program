@@ -112,4 +112,44 @@ describe("swapSlotsInDb", () => {
     expect(result).toEqual({ found: true, value: { swapped: false } });
     expect(divisionUpdateMany).not.toHaveBeenCalled();
   });
+
+  it("format は SINGLE_ELIMINATION でもリーグの星取表を持つ部門は弾く", async () => {
+    // /edit は format を無条件に書き換えられるので、ROUND_ROBIN で組んだ
+    // 星取表を持ったまま SINGLE_ELIMINATION になった部門が存在しうる。
+    // toSlots は 1 回戦しか見ないため、通すと 2 節目以降が丸ごと消える。
+    divisionFindFirst.mockResolvedValue({
+      format: "SINGLE_ELIMINATION",
+      entries,
+      matchingConfig: {
+        version: 1,
+        matches: [
+          {
+            id: "r1-0",
+            bracket: "winners",
+            round: 1,
+            order: 0,
+            matchNumber: "1",
+            slots: [entry("e1"), entry("e2")],
+          },
+          {
+            id: "r2-0",
+            bracket: "winners",
+            round: 2,
+            order: 0,
+            matchNumber: "2",
+            slots: [entry("e1"), entry("e3")],
+          },
+        ],
+      },
+      results: { version: 1, matches: [] },
+    });
+
+    const result = await Effect.runPromise(
+      swapSlotsInDb(ids, { indexA: 0, indexB: 1 }),
+    );
+
+    // ここも「入れ替えられない」という既存の応答と区別しない。
+    expect(result).toEqual({ found: true, value: { swapped: false } });
+    expect(divisionUpdateMany).not.toHaveBeenCalled();
+  });
 });

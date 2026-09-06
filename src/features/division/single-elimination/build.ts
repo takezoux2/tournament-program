@@ -98,6 +98,24 @@ export const buildFromSlots = (slots: SlotSource[]): MatchingConfig => {
 };
 
 /**
+ * 保存されている組み合わせがトーナメントの形をしているか。
+ *
+ * 部門の編集画面（/edit）は format を無条件に書き換えられるため、
+ * リーグで組んだ星取表を持ったまま SINGLE_ELIMINATION になった部門が
+ * 存在しうる。その星取表は 2 回戦以降が無く全スロットが entry なので、
+ * 2 回戦以降の全スロットが winnerOf かどうかで見分けられる。
+ * 空の組み合わせは「まだ作っていない」であって形が違うわけではないので true。
+ *
+ * 1 試合だけの組み合わせ（1 回戦のみ）は両形式で区別が付かない。
+ * 2 人の総当たりも 2 人のトーナメントも「1 試合だけ」という同じ形になり、
+ * 同じサイズでは両者が同型（isomorphic）だから区別する意味も無い。
+ */
+export const isSingleEliminationShape = (config: MatchingConfig): boolean =>
+  config.matches
+    .filter((match) => match.round >= 2)
+    .every((match) => match.slots.every((slot) => slot.kind === "winnerOf"));
+
+/**
  * 木から 1 回戦のスロット割当を取り出す。buildFromSlots の逆向き。
  * Json の配列順は当てにできないので order で並べ直す。
  */
