@@ -50,6 +50,13 @@ export default async function TournamentPage({
           </Link>
 
           <Link
+            href={`/orgs/${slug}/tournaments/${tournament.id}/results`}
+            className="rounded border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-800"
+          >
+            結果入力
+          </Link>
+
+          <Link
             href={`/t/${tournament.id}`}
             className="rounded border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-800"
           >
