@@ -1,11 +1,9 @@
 import { z } from "zod";
-import { normalizeEmail } from "@/shared/lib/email";
+import { loginIdentifierSchema } from "./identifier";
 
 export const loginSchema = z.object({
-  email: z
-    .string()
-    .transform(normalizeEmail)
-    .pipe(z.email("メールアドレスの形式が正しくありません")),
+  // ユーザー名とメールアドレスのどちらでも受け付ける。振り分けは identifier.ts。
+  identifier: loginIdentifierSchema,
   // 既存ユーザーのパスワードがポリシー変更前の長さでも弾かないよう、
   // ここでは空でないことだけを確認する。
   password: z.string().min(1, "パスワードを入力してください"),

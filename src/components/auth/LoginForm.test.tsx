@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { LoginForm } from "./LoginForm";
 
 const signInEmail = vi.fn();
+const signInUsername = vi.fn();
 const signInSocial = vi.fn();
 const push = vi.fn();
 const refresh = vi.fn();
@@ -11,6 +12,7 @@ vi.mock("@/shared/lib/auth-client", () => ({
   authClient: {
     signIn: {
       email: (...args: unknown[]) => signInEmail(...args),
+      username: (...args: unknown[]) => signInUsername(...args),
       social: (...args: unknown[]) => signInSocial(...args),
     },
   },
@@ -23,6 +25,7 @@ vi.mock("next/navigation", () => ({
 describe("LoginForm の Google ログインボタン", () => {
   beforeEach(() => {
     signInEmail.mockReset();
+    signInUsername.mockReset();
     signInSocial.mockReset();
     push.mockClear();
     refresh.mockClear();
@@ -56,6 +59,7 @@ describe("LoginForm の Google ログインボタン", () => {
 describe("LoginForm の確認メール案内", () => {
   beforeEach(() => {
     signInEmail.mockReset();
+    signInUsername.mockReset();
     signInSocial.mockReset();
     push.mockClear();
     refresh.mockClear();
@@ -87,7 +91,7 @@ describe("LoginForm の確認メール案内", () => {
     signInEmail.mockResolvedValue({ error: null });
     render(<LoginForm redirectTo="/orgs" />);
 
-    fireEvent.change(screen.getByLabelText("メールアドレス"), {
+    fireEvent.change(screen.getByLabelText("ユーザー名またはメールアドレス"), {
       target: { value: "user@example.com" },
     });
     fireEvent.change(screen.getByLabelText("パスワード"), {
@@ -110,7 +114,7 @@ describe("LoginForm の確認メール案内", () => {
     signInEmail.mockResolvedValue({ error: { code: "EMAIL_NOT_VERIFIED" } });
     render(<LoginForm redirectTo="/" />);
 
-    fireEvent.change(screen.getByLabelText("メールアドレス"), {
+    fireEvent.change(screen.getByLabelText("ユーザー名またはメールアドレス"), {
       target: { value: "user@example.com" },
     });
     fireEvent.change(screen.getByLabelText("パスワード"), {
@@ -122,5 +126,59 @@ describe("LoginForm の確認メール案内", () => {
       "メールアドレスが未確認です。確認メールを再送しました",
     );
     expect(push).not.toHaveBeenCalled();
+  });
+});
+
+describe("LoginForm の識別子", () => {
+  beforeEach(() => {
+    signInEmail.mockReset();
+    signInUsername.mockReset();
+    signInSocial.mockReset();
+    push.mockClear();
+    refresh.mockClear();
+  });
+
+  const submit = (identifier: string) => {
+    render(<LoginForm redirectTo="/orgs" />);
+    fireEvent.change(screen.getByLabelText("ユーザー名またはメールアドレス"), {
+      target: { value: identifier },
+    });
+    fireEvent.change(screen.getByLabelText("パスワード"), {
+      target: { value: "password123" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "ログイン" }));
+  };
+
+  it("ユーザー名を入力するとユーザー名でサインインする", async () => {
+    signInUsername.mockResolvedValue({ error: null });
+    submit("takezoux2");
+
+    await waitFor(() =>
+      expect(signInUsername).toHaveBeenCalledWith(
+        expect.objectContaining({ username: "takezoux2" }),
+      ),
+    );
+    expect(signInEmail).not.toHaveBeenCalled();
+  });
+
+  it("メールアドレスを入力するとメールでサインインする", async () => {
+    signInEmail.mockResolvedValue({ error: null });
+    submit("user@example.com");
+
+    await waitFor(() =>
+      expect(signInEmail).toHaveBeenCalledWith(
+        expect.objectContaining({ email: "user@example.com" }),
+      ),
+    );
+    expect(signInUsername).not.toHaveBeenCalled();
+  });
+
+  it("識別子欄をメール専用にしない", () => {
+    // type="email" のままだと、ブラウザの検証がユーザー名の入力を
+    // 送信前に弾いてしまう（jsdom では再現しないので属性で固定する）。
+    render(<LoginForm redirectTo="/" />);
+    expect(
+      screen.getByLabelText("ユーザー名またはメールアドレス"),
+    ).toHaveAttribute("type", "text");
   });
 });
