@@ -79,6 +79,13 @@ export function LeagueSetup({
 
   // 勝敗が入ったあとに対戦表を変えると結果の参照が壊れる。
   // サーバ側でも拒否するが、押せてしまう前に理由を見せる。
+  //
+  // locked と後述の mismatched（星取表の形が違う）は両方成立しうる。
+  // その場合「作り直してください」という案内なのに、生成ボタンではなく
+  // locked が締める側（エントリー・対戦表の編集）が効いて詰む見た目になる。
+  // 今は Division.results を書く経路が無い（recordMatchResult
+  // （src/lib/division/results.ts）に呼び出し元が無い）ので locked は
+  // 常に false であり到達しない。結果記録を実装するときは見直すこと。
   const locked = parsed.results.matches.length > 0;
 
   const entries = [...parsed.entries.entries].sort(
