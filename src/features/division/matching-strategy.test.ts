@@ -1,0 +1,122 @@
+import { describe, expect, it } from "vitest";
+import type { DivisionEntry, MatchingConfig } from "@/lib/division/types";
+import {
+  applyEntryAdded,
+  applyEntryReordered,
+  isEditableFormat,
+  maxEntries,
+  regenerateMatching,
+} from "./matching-strategy";
+import { buildRoundRobin } from "./round-robin/build";
+import { buildFromSlots } from "./single-elimination/build";
+import { generateSlots } from "./single-elimination/edit";
+
+const entriesOf = (count: number): DivisionEntry[] =>
+  Array.from({ length: count }, (_, index) => ({
+    id: `e${index + 1}`,
+    participantId: `p${index + 1}`,
+    seed: index,
+  }));
+
+const EMPTY: MatchingConfig = { version: 1, matches: [] };
+
+describe("isEditableFormat", () => {
+  it("編集画面のある 2 形式だけを通す", () => {
+    expect(isEditableFormat("SINGLE_ELIMINATION")).toBe(true);
+    expect(isEditableFormat("ROUND_ROBIN")).toBe(true);
+    expect(isEditableFormat("DOUBLE_ELIMINATION_GRAND_FINAL")).toBe(false);
+    expect(isEditableFormat("DOUBLE_ELIMINATION_THIRD_PLACE")).toBe(false);
+  });
+});
+
+describe("maxEntries", () => {
+  it("リーグは試合数が二乗で増えるため小さい上限にする", () => {
+    expect(maxEntries("ROUND_ROBIN")).toBe(16);
+  });
+
+  it("トーナメントは従来どおり 128 人", () => {
+    expect(maxEntries("SINGLE_ELIMINATION")).toBe(128);
+  });
+});
+
+describe("regenerateMatching", () => {
+  it("トーナメントはシード順から木を作る", () => {
+    expect(regenerateMatching("SINGLE_ELIMINATION", entriesOf(4))).toEqual(
+      buildFromSlots(generateSlots(entriesOf(4))),
+    );
+  });
+
+  it("リーグはシード順から総当たりを作る", () => {
+    expect(regenerateMatching("ROUND_ROBIN", entriesOf(4))).toEqual(
+      buildRoundRobin(entriesOf(4)),
+    );
+  });
+
+  it("どちらも 2 人未満なら空を返す", () => {
+    expect(regenerateMatching("SINGLE_ELIMINATION", entriesOf(1))).toEqual(
+      EMPTY,
+    );
+    expect(regenerateMatching("ROUND_ROBIN", entriesOf(1))).toEqual(EMPTY);
+  });
+});
+
+describe("applyEntryAdded", () => {
+  it("トーナメントは末尾の bye を埋め、既存のカードを壊さない", () => {
+    // 2 人ぶんの木に 3 人目を足すと 1 段拡張されて 4 席になる。
+    const current = buildFromSlots(generateSlots(entriesOf(2)));
+    const next = applyEntryAdded(
+      "SINGLE_ELIMINATION",
+      current,
+      entriesOf(3),
+      "e3",
+    );
+    expect(next.matches.filter((match) => match.round === 1)).toHaveLength(2);
+  });
+
+  it("リーグは丸ごと作り直す。1 人増えれば全員の試合が増えるため", () => {
+    const current = buildRoundRobin(entriesOf(3));
+    expect(applyEntryAdded("ROUND_ROBIN", current, entriesOf(4), "e4")).toEqual(
+      buildRoundRobin(entriesOf(4)),
+    );
+  });
+
+  it("組み合わせが未作成ならどちらの形式でも空のまま", () => {
+    // 生成は運営者が明示的にボタンを押したときだけ起きる。
+    expect(
+      applyEntryAdded("ROUND_ROBIN", EMPTY, entriesOf(4), "e4"),
+    ).toEqual(EMPTY);
+    expect(
+      applyEntryAdded("SINGLE_ELIMINATION", EMPTY, entriesOf(4), "e4"),
+    ).toEqual(EMPTY);
+  });
+});
+
+describe("applyEntryReordered", () => {
+  it("トーナメントは組み合わせに触らない", () => {
+    const current = buildFromSlots(generateSlots(entriesOf(4)));
+    expect(
+      applyEntryReordered("SINGLE_ELIMINATION", current, entriesOf(4)),
+    ).toBe(current);
+  });
+
+  it("リーグは新しいシード順で作り直す", () => {
+    // 円卓法の出力はシード順から決まるので、並べ替えたのに古い対戦表が
+    // 残ると画面の 2 箇所が食い違う。
+    const swapped = [
+      { id: "e2", participantId: "p2", seed: 0 },
+      { id: "e1", participantId: "p1", seed: 1 },
+      { id: "e3", participantId: "p3", seed: 2 },
+      { id: "e4", participantId: "p4", seed: 3 },
+    ];
+    const current = buildRoundRobin(entriesOf(4));
+    expect(applyEntryReordered("ROUND_ROBIN", current, swapped)).toEqual(
+      buildRoundRobin(swapped),
+    );
+  });
+
+  it("組み合わせが未作成ならリーグでも空のまま", () => {
+    expect(applyEntryReordered("ROUND_ROBIN", EMPTY, entriesOf(4))).toEqual(
+      EMPTY,
+    );
+  });
+});
