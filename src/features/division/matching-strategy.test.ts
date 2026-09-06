@@ -58,6 +58,13 @@ describe("regenerateMatching", () => {
     );
     expect(regenerateMatching("ROUND_ROBIN", entriesOf(1))).toEqual(EMPTY);
   });
+
+  it("リーグは上限を超えたエントリー数だと空を返す", () => {
+    // 128 人のトーナメントを /edit で ROUND_ROBIN に切り替えた部門は、
+    // 生成ボタンを経由せずここへ来ることがある。8128 試合の Json を
+    // 黙って書かないよう、ここでも弾く。
+    expect(regenerateMatching("ROUND_ROBIN", entriesOf(17))).toEqual(EMPTY);
+  });
 });
 
 describe("applyEntryAdded", () => {
@@ -156,5 +163,15 @@ describe("applyEntryReordered", () => {
     // 後続の処理が参照比較で「再生成されたか」を判定するため、
     // 同じオブジェクト参照を返すことが必須。
     expect(applyEntryReordered("ROUND_ROBIN", EMPTY, entriesOf(4))).toBe(EMPTY);
+  });
+
+  it("リーグは上限を超えたエントリー数だと並べ替えても空になる", () => {
+    // 並べ替え自体はエントリー数を変えないので、これは /edit で
+    // トーナメントから切り替わった直後で上限超過のエントリーを残した
+    // リーグでだけ起こる。8128 試合ぶんの Json を書かせないためのガード。
+    const current = buildFromSlots(generateSlots(entriesOf(17)));
+    expect(applyEntryReordered("ROUND_ROBIN", current, entriesOf(17))).toEqual(
+      EMPTY,
+    );
   });
 });

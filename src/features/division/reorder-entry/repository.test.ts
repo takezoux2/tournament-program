@@ -85,7 +85,7 @@ describe("reorderEntryInDb", () => {
 
     expect(result).toEqual({
       found: true,
-      value: { moved: true, regenerated: false },
+      value: { moved: true, matching: "unchanged" },
     });
   });
 
@@ -162,11 +162,46 @@ describe("reorderEntryInDb", () => {
 
     expect(result).toEqual({
       found: true,
-      value: { moved: true, regenerated: true },
+      value: { moved: true, matching: "regenerated" },
     });
     expect(
       divisionUpdateMany.mock.calls[0][0].data.matchingConfig.matches,
     ).toHaveLength(3);
+  });
+
+  it("リーグの上限を超えたエントリーが残っていれば、並べ替えても組み合わせは空にする", async () => {
+    // 128 人のトーナメントを /edit で ROUND_ROBIN に切り替えた直後の部門は、
+    // 生成ボタンを経由していない上限超過のエントリーとブラケット形の
+    // matchingConfig を持つ。並べ替えはエントリー数を変えないので、
+    // これが唯一 clearedOverCap に到達する経路になる。
+    const entries = Array.from({ length: 17 }, (_, index) => ({
+      id: `e${index + 1}`,
+      participantId: `p${index + 1}`,
+      seed: index,
+    }));
+    divisionFindFirst.mockResolvedValue({
+      format: "ROUND_ROBIN",
+      entries: { version: 1, entries },
+      matchingConfig: buildFromSlots(
+        entries.map((entry) => ({ kind: "entry" as const, entryId: entry.id })),
+      ),
+      results: { version: 1, matches: [] },
+    });
+    participantFindMany.mockResolvedValue(
+      entries.map((entry) => ({ id: entry.participantId })),
+    );
+
+    const result = await Effect.runPromise(
+      reorderEntryInDb(ids, { entryId: "e2", direction: "up" }),
+    );
+
+    expect(result).toEqual({
+      found: true,
+      value: { moved: true, matching: "clearedOverCap" },
+    });
+    expect(
+      divisionUpdateMany.mock.calls[0][0].data.matchingConfig.matches,
+    ).toEqual([]);
   });
 
   it("組み合わせが未作成なら作り直さない", async () => {
@@ -190,7 +225,7 @@ describe("reorderEntryInDb", () => {
 
     expect(result).toEqual({
       found: true,
-      value: { moved: true, regenerated: false },
+      value: { moved: true, matching: "unchanged" },
     });
   });
 
@@ -218,7 +253,7 @@ describe("reorderEntryInDb", () => {
 
     expect(result).toEqual({
       found: true,
-      value: { moved: false, regenerated: false },
+      value: { moved: false },
     });
     expect(divisionUpdateMany).not.toHaveBeenCalled();
   });

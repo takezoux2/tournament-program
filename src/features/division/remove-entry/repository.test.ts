@@ -206,6 +206,41 @@ describe("removeEntryInDb", () => {
     ).toHaveLength(3);
   });
 
+  it("リーグの上限を超えたエントリーが残っていれば、削除しても組み合わせは空のまま", async () => {
+    // 128 人のトーナメントを /edit で ROUND_ROBIN に切り替えた直後の部門は、
+    // 生成ボタンを経由していない上限超過のエントリーとブラケット形の
+    // matchingConfig を持つ。1 人消しても 127 人でまだ上限（16 人）を超えて
+    // いるため、regenerateMatching は空を返す。運営者は上限以下になるまで
+    // 削除を続けられる必要があるので、削除自体は成功し続けることを確かめる。
+    const entries = Array.from({ length: 128 }, (_, index) => ({
+      id: `e${index + 1}`,
+      participantId: `p${index + 1}`,
+      seed: index,
+    }));
+    divisionFindFirst.mockResolvedValue({
+      format: "ROUND_ROBIN",
+      entries: { version: 1, entries },
+      matchingConfig: buildFromSlots(entries.map((e) => entry(e.id))),
+      results: { version: 1, matches: [] },
+    });
+    participantFindMany.mockResolvedValue(
+      entries.map((e) => ({ id: e.participantId })),
+    );
+
+    const result = await Effect.runPromise(
+      removeEntryInDb(ids, { entryId: "e1" }),
+    );
+
+    expect(result).toEqual({
+      found: true,
+      value: { removed: true, matching: "clearedOverCap" },
+    });
+    const written = divisionUpdateMany.mock.calls[0][0].data;
+    expect(written.matchingConfig.matches).toEqual([]);
+    // 削除そのものは反映されている（運営者が上限以下まで減らしていける）。
+    expect(written.entries.entries).toHaveLength(127);
+  });
+
   it("リーグでも残りが 2 人未満なら組み合わせを空にする", async () => {
     divisionFindFirst.mockResolvedValue({
       format: "ROUND_ROBIN",

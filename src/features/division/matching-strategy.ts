@@ -43,6 +43,21 @@ export const maxEntries = (format: EditableFormat): number =>
   MAX_ENTRIES[format];
 
 /**
+ * 円卓法の組み合わせを上限内でだけ組み立てる。
+ *
+ * /edit は format を無条件に書き換えられるため、128 人のトーナメントを
+ * ROUND_ROBIN にした部門が、生成ボタンを一度も押さないまま残ることがある。
+ * 並べ替え・削除はどちらも生成ボタンを経由せずここへ来るので、ここで
+ * 弾かないと 8128 試合ぶんの Json が黙って書き込まれてしまう。上限超過
+ * なら空を返す。空にしておけば、エントリーを減らして上限内に戻したあと
+ * 通常どおり生成し直せる（運営者を詰ませない）。
+ */
+const buildRoundRobinWithinCap = (entries: DivisionEntry[]): MatchingConfig =>
+  entries.length > MAX_ENTRIES.ROUND_ROBIN
+    ? { version: 1, matches: [] }
+    : buildRoundRobin(entries);
+
+/**
  * エントリーのシード順から組み合わせを丸ごと作り直す。
  * 2 人未満ならどちらの形式でも空を返す。
  */
@@ -54,7 +69,7 @@ export const regenerateMatching = (
     case "SINGLE_ELIMINATION":
       return buildFromSlots(generateSlots(entries));
     case "ROUND_ROBIN":
-      return buildRoundRobin(entries);
+      return buildRoundRobinWithinCap(entries);
   }
 };
 
@@ -118,6 +133,6 @@ export const applyEntryReordered = (
     case "SINGLE_ELIMINATION":
       return current;
     case "ROUND_ROBIN":
-      return buildRoundRobin(entries);
+      return buildRoundRobinWithinCap(entries);
   }
 };

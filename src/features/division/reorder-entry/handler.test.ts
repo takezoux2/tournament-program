@@ -55,7 +55,7 @@ beforeEach(() => {
   reorderEntryInDb.mockReturnValue(
     Effect.succeed({
       found: true,
-      value: { moved: true, regenerated: false },
+      value: { moved: true, matching: "unchanged" },
     }),
   );
 });
@@ -87,7 +87,7 @@ describe("reorderEntryAction", () => {
     reorderEntryInDb.mockReturnValue(
       Effect.succeed({
         found: true,
-        value: { moved: false, regenerated: false },
+        value: { moved: false },
       }),
     );
 
@@ -103,7 +103,7 @@ describe("reorderEntryAction", () => {
     reorderEntryInDb.mockReturnValue(
       Effect.succeed({
         found: true,
-        value: { moved: true, regenerated: true },
+        value: { moved: true, matching: "regenerated" },
       }),
     );
 
@@ -115,6 +115,28 @@ describe("reorderEntryAction", () => {
     expect(state).toEqual({
       error: null,
       notice: "並べ替えに合わせて対戦表を作り直しました",
+    });
+  });
+
+  it("リーグの上限超過で取り消されたときはその旨を伝える", async () => {
+    // EntryRowActions.tsx が reorderState.notice を表示するようになった
+    // ので、handler が返す文言が事実と違うと画面がそのまま嘘をつく。
+    reorderEntryInDb.mockReturnValue(
+      Effect.succeed({
+        found: true,
+        value: { moved: true, matching: "clearedOverCap" },
+      }),
+    );
+
+    const state = await reorderEntryAction(
+      INITIAL_DIVISION_FORM_STATE,
+      formData("e2", "up"),
+    );
+
+    expect(state).toEqual({
+      error: null,
+      notice:
+        "並べ替えは反映しましたが、リーグの上限を超えたままのため組み合わせは取り消したままです",
     });
   });
 

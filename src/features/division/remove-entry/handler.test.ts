@@ -118,6 +118,30 @@ describe("removeEntryAction", () => {
     );
   });
 
+  it("リーグの上限を超えたままなら、2 人未満とは違う理由を伝える", async () => {
+    // /edit で切り替わった直後のリーグが上限を超えたエントリーを残していると、
+    // regenerateMatching は上限超過を理由に空を返す。「2 人未満」の文言を
+    // 使い回すと原因が事実と違って伝わるため、別の通知になっているか確かめる。
+    removeEntryInDb.mockReturnValue(
+      Effect.succeed({
+        found: true,
+        value: { removed: true, matching: "clearedOverCap" },
+      }),
+    );
+
+    const state = await removeEntryAction(
+      INITIAL_DIVISION_FORM_STATE,
+      formData("e1"),
+    );
+
+    expect(state.notice).not.toBe(
+      "エントリーを削除し、残りが 2 人未満になったため組み合わせを取り消しました",
+    );
+    expect(state.notice).toBe(
+      "エントリーを削除しましたが、リーグの上限を超えたままのため組み合わせは取り消したままです。上限以下になるまで削除してから生成し直してください",
+    );
+  });
+
   it("何も消えていなければ通知を出さない", async () => {
     // 対象が無かった場合。存在を漏らさないためエラーにはしないが、
     // 「削除しました」と出すと消えていない行が消えたように見える。

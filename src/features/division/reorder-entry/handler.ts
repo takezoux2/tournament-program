@@ -6,9 +6,27 @@ import { requireOrganization } from "@/shared/middleware/require-organization";
 import { divisionErrorFormState } from "../effect-to-form-state";
 import { revalidateDivisionSetup } from "../revalidate";
 import type { DivisionFormState } from "../state";
-import { reorderEntryInDb } from "./repository";
+import { type ReorderEntryResult, reorderEntryInDb } from "./repository";
 import { reorderEntrySchema } from "./schema";
 import { reorderEntry } from "./usecase";
+
+/**
+ * 並べ替えたときだけ出す文言。組み合わせに何が起きたかで言い分ける。
+ * remove-entry と同じ理由。unchanged は通知するようなことが起きていない
+ * （トーナメントは触らない、もしくは組み合わせが未作成）ので null にする。
+ */
+const REORDERED_NOTICE: Record<
+  Extract<ReorderEntryResult, { moved: true }>["matching"],
+  string | null
+> = {
+  unchanged: null,
+  regenerated: "並べ替えに合わせて対戦表を作り直しました",
+  // 並べ替え自体はエントリー数を変えないため、ここに来るのはリーグの上限を
+  // 残りエントリーが超えたままだったときだけ。「作り直しました」と言うと
+  // 対戦表が存在するかのように読めてしまうので、取り消した旨を伝える。
+  clearedOverCap:
+    "並べ替えは反映しましたが、リーグの上限を超えたままのため組み合わせは取り消したままです",
+};
 
 export const reorderEntryAction = async (
   _prevState: DivisionFormState,
@@ -46,8 +64,13 @@ export const reorderEntryAction = async (
   // moved: false は「端まで来ている」。エラーにする必要はない。
   revalidateDivisionSetup(slug, tournamentId, divisionId);
 
-  // 手で変えた試合番号が消えるのは驚きになりうるので、起きたことを明示する。
-  return exit.value.value.regenerated
-    ? { error: null, notice: "並べ替えに合わせて対戦表を作り直しました" }
-    : { error: null };
+  // 対象が無かった／端まで来ていたときは何も起きていない。通知は出さない。
+  if (!exit.value.value.moved) {
+    return { error: null };
+  }
+
+  // 手で変えた試合番号が消える、または組み合わせが取り消されるのは
+  // 驚きになりうるので、起きたことを明示する。
+  const notice = REORDERED_NOTICE[exit.value.value.matching];
+  return notice === null ? { error: null } : { error: null, notice };
 };
