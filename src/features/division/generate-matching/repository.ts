@@ -1,8 +1,8 @@
 import "server-only";
 import type { Effect } from "effect";
 import {
-  type DivisionError,
   DivisionEntryLimitError,
+  type DivisionError,
   DivisionNotEnoughEntriesError,
 } from "../errors";
 import { maxEntries, regenerateMatching } from "../matching-strategy";
