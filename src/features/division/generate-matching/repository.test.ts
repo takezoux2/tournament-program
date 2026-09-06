@@ -144,6 +144,43 @@ describe("generateMatchingInDb", () => {
     expect(divisionUpdateMany).not.toHaveBeenCalled();
   });
 
+  it("リーグはちょうど 16 人なら生成できる", async () => {
+    // 上限チェックは `>` であって `>=` ではない。境界を実際に踏んで固定する。
+    divisionFindFirst.mockResolvedValue({
+      format: "ROUND_ROBIN",
+      entries: entries(16),
+      matchingConfig: { version: 1, matches: [] },
+      results: { version: 1, matches: [] },
+    });
+    participantFindMany.mockResolvedValue(participants(16));
+
+    await Effect.runPromise(generateMatchingInDb(ids));
+
+    const written = divisionUpdateMany.mock.calls[0][0].data.matchingConfig;
+    // 16 人の総当たりは 16*15/2 = 120 試合。
+    expect(written.matches).toHaveLength(120);
+  });
+
+  it("トーナメントはちょうど 128 人なら生成できる", async () => {
+    // こちらも `>` と `>=` の境界を実際に踏んで固定する。
+    divisionFindFirst.mockResolvedValue({
+      format: "SINGLE_ELIMINATION",
+      entries: entries(128),
+      matchingConfig: { version: 1, matches: [] },
+      results: { version: 1, matches: [] },
+    });
+    participantFindMany.mockResolvedValue(participants(128));
+
+    await Effect.runPromise(generateMatchingInDb(ids));
+
+    const written = divisionUpdateMany.mock.calls[0][0].data.matchingConfig;
+    // 128 人の 1 回戦は 64 試合、木全体では 127 試合。
+    expect(
+      written.matches.filter((match: { round: number }) => match.round === 1),
+    ).toHaveLength(64);
+    expect(written.matches).toHaveLength(127);
+  });
+
   it("リーグは 16 人を超えるエントリーでの生成を拒否する", async () => {
     // 128 人のトーナメントを /edit で ROUND_ROBIN に切り替えたあと
     // 生成を押すと、add-entry の上限チェックを経由せずに 8128 試合の
