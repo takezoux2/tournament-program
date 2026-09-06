@@ -6,6 +6,7 @@ import {
   type DivisionFormAction,
   INITIAL_DIVISION_FORM_STATE,
 } from "@/features/division/state";
+import { GenerateMatchingForm } from "./GenerateMatchingForm";
 import { MatchingEditor } from "./MatchingEditor";
 
 /**
@@ -29,10 +30,6 @@ export function MatchingSection({
   swapAction: DivisionFormAction;
   disabled: boolean;
 }) {
-  const [generateState, generateFormAction, generatePending] = useActionState(
-    generateAction,
-    INITIAL_DIVISION_FORM_STATE,
-  );
   const [swapState, swapFormAction, swapPending] = useActionState(
     swapAction,
     INITIAL_DIVISION_FORM_STATE,
@@ -52,29 +49,15 @@ export function MatchingSection({
 
   return (
     <div className="space-y-3">
-      <form action={generateFormAction}>
-        <input type="hidden" name="slug" value={slug} />
-        <input type="hidden" name="tournamentId" value={tournamentId} />
-        <input type="hidden" name="divisionId" value={divisionId} />
-        <button
-          type="submit"
-          disabled={generatePending || disabled}
-          className="rounded border border-slate-300 px-3 py-2 text-sm text-slate-700 disabled:opacity-50"
-        >
-          {generatePending ? "生成中..." : "組み合わせを生成"}
-        </button>
-      </form>
+      <GenerateMatchingForm
+        slug={slug}
+        tournamentId={tournamentId}
+        divisionId={divisionId}
+        action={generateAction}
+        disabled={disabled}
+        label="組み合わせを生成"
+      />
 
-      {generateState.error !== null && (
-        <p role="alert" className="text-sm text-red-600">
-          {generateState.error}
-        </p>
-      )}
-      {generateState.notice !== undefined && (
-        <output className="text-sm text-slate-600">
-          {generateState.notice}
-        </output>
-      )}
       {swapState.error !== null && (
         <p role="alert" className="text-sm text-red-600">
           {swapState.error}

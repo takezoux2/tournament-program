@@ -19,6 +19,7 @@ import { DivisionBracket } from "./DivisionBracket";
 import { EntryList } from "./EntryList";
 import { MatchingSection } from "./MatchingSection";
 import { MatchNumberList } from "./MatchNumberList";
+import { Notice } from "./Notice";
 
 export type DivisionSetupActions = {
   addEntry: DivisionFormAction;
@@ -29,12 +30,6 @@ export type DivisionSetupActions = {
   setMatchNumber: DivisionFormAction;
   setPlayerNumber: DivisionFormAction;
 };
-
-const Notice = ({ children }: { children: React.ReactNode }) => (
-  <p className="rounded border border-slate-200 bg-white px-4 py-6 text-center text-sm text-slate-600">
-    {children}
-  </p>
-);
 
 export function DivisionSetup({
   division,

@@ -13,12 +13,7 @@ import {
   parseDivisionResults,
   parseMatchingConfig,
 } from "@/lib/division/parse";
-
-const Notice = ({ children }: { children: React.ReactNode }) => (
-  <p className="rounded border border-slate-200 bg-white px-4 py-6 text-center text-sm text-slate-600">
-    {children}
-  </p>
-);
+import { Notice } from "./Notice";
 
 export function DivisionBracket({
   division,
