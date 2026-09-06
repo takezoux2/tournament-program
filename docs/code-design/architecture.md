@@ -62,16 +62,15 @@ DB への読み書きが責務であり、描画には関わらない。
 
 ## features/division の共有ドメイン
 
-`features/division/single-elimination/` はスライスではなく、カテゴリ直下に置く
-共有ドメインである。`handler.ts` と `repository.ts` を持たないことで
-スライスと見分けられる。5 つの編集スライス（`add-entry` / `remove-entry` /
-`reorder-entry` / `generate-matching` / `swap-slots`）のうち、組み合わせ
-（`matchingConfig`）を書き換える 4 つ（`add-entry` / `remove-entry` /
-`generate-matching` / `swap-slots`）がここへ祖先方向に依存する。`reorder-entry`
-はシード順（`entries`）だけを書き換え `matchingConfig` には触らないため、
-single-elimination には依存しない。5 スライスとも依存先は `../setup-store`
-や `../errors` のような上位のモジュールに限られ、スライス同士の依存
-（例えば `add-entry` が `remove-entry` を import する経路）は存在しない。
+`features/division/single-elimination/` と `features/division/round-robin/` は
+スライスではなく、カテゴリ直下に置く共有ドメインである。`handler.ts` と
+`repository.ts` を持たないことでスライスと見分けられる。
+
+形式ごとの違いは `matching-strategy.ts` が引き受ける。エントリーを足した／
+消した／並べ替えたときに `matchingConfig` をどう作り直すかと、形式ごとの
+エントリー上限をここが決め、スライス側は「エントリー配列をどう変えるか」
+だけを書く。`switch` は `EditableFormat`（編集画面を持つ形式）に対して
+網羅的に書くので、対応形式を足すと分岐の書き忘れがコンパイルエラーになる。
 
 シングルエリミネーションのブラケットは「1 回戦のスロット割当配列（長さ 2 の冪）」
 だけで完全に決まる。2 回戦以降のスロットは必ず `winnerOf` だからである。
@@ -86,10 +85,20 @@ single-elimination には依存しない。5 スライスとも依存先は `../
 2 の冪でない（1 回戦の試合数が 2 の冪でない）場合、この往復で正規形に矯正される。
 つまりこの埋め立ては死んだコードではなく、外から入った歪な値を直す経路そのものである。
 
-`setup-store.ts` は 5 スライス共通の read-modify-write を持つ。所有権つきの読み出し、
+リーグ（総当たり）は円卓法で節に割る。試合 id は `r{節}-{節内の位置}` で、
+やはり決定的である。エントリーが 1 人増えれば全員の試合が増えるため、
+トーナメントの「一番下の bye を埋める」に相当する部分更新が存在しない。
+追加・削除・並べ替えのいずれでも対戦表を丸ごと作り直す。奇数人の休みは
+試合として保存しない（保存すると `features/schedule` が実在しない試合の行を
+出してしまう）。誰が休みかは `round-robin/view.ts` が節ごとの差分から算出する。
+
+`setup-store.ts` は全スライス共通の read-modify-write を持つ。所有権つきの読み出し、
 Json のパース、勝敗が記録済みかの確認、保存前の検証、`updateMany` での書き戻しを
-1 つのトランザクションにまとめる。スライス側の `repository.ts` は
-「配列をどう変えるか」だけを書けばよくなる。
+1 つのトランザクションにまとめる。形式の判定もここに置き、編集画面を持たない形式は
+「その部門は無い」として `{ found: false }` に倒す。Server Action はページを
+経由せず直接叩ける別の入口なので、画面の分岐だけでは守れない。
+`swap-slots` だけは 1 回戦スロットの入れ替えという勝ち上がり木専用の操作なので、
+スライス側でさらに `SINGLE_ELIMINATION` に絞る。
 
 ## features/schedule
 
