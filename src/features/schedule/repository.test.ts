@@ -12,7 +12,7 @@ vi.mock("@/shared/db/prisma", () => ({
   },
 }));
 
-const { loadScheduleView } = await import("./repository");
+const { loadResultRows, loadScheduleView } = await import("./repository");
 
 const matchingConfig = {
   version: 1,
@@ -51,6 +51,7 @@ beforeEach(() => {
       format: "SINGLE_ELIMINATION",
       entries,
       matchingConfig,
+      results: { version: 1, matches: [] },
     },
   ]);
   participantFindMany.mockResolvedValue([
@@ -114,5 +115,40 @@ describe("loadScheduleView", () => {
     const rows = await loadScheduleView("o1", "t1");
 
     expect(rows.map((row) => row.key)).toEqual(["match:dA:m1-0"]);
+  });
+});
+
+describe("loadResultRows", () => {
+  it("進行順の行を結果入力用の形にして返す", async () => {
+    const rows = await loadResultRows("o1", "t1");
+
+    expect(rows).toEqual([
+      {
+        kind: "match",
+        key: "match:dA:m1-0",
+        divisionId: "dA",
+        divisionName: "男子",
+        matchId: "m1-0",
+        matchNumber: "1",
+        label: "1回戦 第1試合",
+        slots: [
+          { label: "山田", entryId: "e1" },
+          { label: "佐藤", entryId: "e2" },
+        ],
+        winnerEntryId: null,
+        state: "ready",
+        downstreamRecordedCount: 0,
+      },
+    ]);
+  });
+
+  it("部門の読み出しに所有条件を入れる", async () => {
+    await loadResultRows("o1", "t1");
+
+    expect(divisionFindMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { tournament: { id: "t1", organizationId: "o1" } },
+      }),
+    );
   });
 });

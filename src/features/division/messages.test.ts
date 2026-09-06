@@ -7,6 +7,8 @@ import {
   DivisionNotEnoughEntriesError,
   DivisionOrderConflictError,
   DivisionResultsRecordedError,
+  DivisionRevisionConflictError,
+  DivisionSlotNotDecidedError,
   UnexpectedDivisionError,
 } from "./errors";
 import { divisionErrorMessage } from "./messages";
@@ -79,5 +81,19 @@ describe("divisionErrorMessage（追加分）", () => {
         new DivisionEntryLimitError({ divisionId: "d1", limit: 16 }),
       ),
     ).toBe("エントリーは16人までです");
+  });
+
+  it("楽観ロックの競合は再読み込みを促す", () => {
+    expect(
+      divisionErrorMessage(
+        new DivisionRevisionConflictError({ divisionId: "d1" }),
+      ),
+    ).toBe("他の人が更新しました。画面を再読み込みしてください");
+  });
+
+  it("未確定の試合への入力はその旨を返す", () => {
+    expect(
+      divisionErrorMessage(new DivisionSlotNotDecidedError({ matchId: "m1" })),
+    ).toBe("対戦相手がまだ決まっていません。画面を再読み込みしてください");
   });
 });

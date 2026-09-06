@@ -1,5 +1,9 @@
 import type { DivisionFormat } from "@/generated/prisma/enums";
-import type { DivisionEntries, MatchingConfig } from "@/lib/division/types";
+import type {
+  DivisionEntries,
+  DivisionResults,
+  MatchingConfig,
+} from "@/lib/division/types";
 
 /**
  * ScheduleItem の 1 行を判別可能ユニオンに直した形。
@@ -20,6 +24,8 @@ export type ScheduleDivision = {
   format: DivisionFormat;
   entries: DivisionEntries;
   matchingConfig: MatchingConfig;
+  /** 勝敗記録。進行順のマージ（buildScheduleView）では使わず、結果入力の行だけが使う。 */
+  results: DivisionResults;
 };
 
 /** 表示名の解決に使う参加者。 */

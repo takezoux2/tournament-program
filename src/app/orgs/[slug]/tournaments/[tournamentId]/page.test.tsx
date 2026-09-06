@@ -159,6 +159,16 @@ describe("TournamentPage", () => {
     );
   });
 
+  it("結果入力ページへの導線を出す", async () => {
+    const element = await Page(pageProps("tennis", "t1"));
+    render(element);
+
+    expect(screen.getByRole("link", { name: "結果入力" })).toHaveAttribute(
+      "href",
+      "/orgs/tennis/tournaments/t1/results",
+    );
+  });
+
   it("公開ページへのリンクを出す", async () => {
     const element = await Page(pageProps("tennis", "t1"));
     render(element);

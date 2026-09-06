@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { applyMatchResult, DivisionValidationError } from "./results";
+import { applyMatchResult, clearResults } from "./results";
 import { EMPTY_DIVISION_RESULTS } from "./types";
 
 describe("applyMatchResult", () => {
@@ -63,12 +63,32 @@ describe("applyMatchResult", () => {
   });
 });
 
-describe("DivisionValidationError", () => {
-  it("検証エラーの一覧を保持する", () => {
-    const error = new DivisionValidationError(["エラー A", "エラー B"]);
+describe("clearResults", () => {
+  const results = {
+    version: 1 as const,
+    matches: [
+      { matchId: "m1", winnerEntryId: "e1" },
+      { matchId: "m2", winnerEntryId: "e2" },
+      { matchId: "m3", winnerEntryId: "e3" },
+    ],
+  };
 
-    expect(error).toBeInstanceOf(Error);
-    expect(error.errors).toEqual(["エラー A", "エラー B"]);
-    expect(error.message).toContain("エラー A");
+  it("指定した試合の記録だけを取り除く", () => {
+    expect(clearResults(results, new Set(["m1", "m3"]))).toEqual({
+      version: 1,
+      matches: [{ matchId: "m2", winnerEntryId: "e2" }],
+    });
+  });
+
+  it("元の値は変更しない", () => {
+    clearResults(results, new Set(["m1"]));
+
+    expect(results.matches).toHaveLength(3);
+  });
+
+  it("空集合なら同じ内容を返す", () => {
+    expect(clearResults(EMPTY_DIVISION_RESULTS, new Set<string>())).toEqual(
+      EMPTY_DIVISION_RESULTS,
+    );
   });
 });

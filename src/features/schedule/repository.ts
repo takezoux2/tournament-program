@@ -2,11 +2,13 @@ import "server-only";
 import type { Prisma } from "@/generated/prisma/client";
 import {
   parseDivisionEntries,
+  parseDivisionResults,
   parseMatchingConfig,
 } from "@/lib/division/parse";
 import { prisma } from "@/shared/db/prisma";
 import { buildScheduleView } from "./domain";
 import { parseScheduleItem } from "./parse";
+import { buildResultRows, type ResultRowView } from "./result-rows";
 import type {
   ScheduleDivision,
   ScheduleItemRecord,
@@ -42,6 +44,7 @@ const loadDivisions = async (
       format: true,
       entries: true,
       matchingConfig: true,
+      results: true,
     },
   });
 
@@ -53,6 +56,7 @@ const loadDivisions = async (
     format: row.format,
     entries: parseDivisionEntries(row.entries),
     matchingConfig: parseMatchingConfig(row.matchingConfig),
+    results: parseDivisionResults(row.results),
   }));
 };
 
@@ -93,6 +97,26 @@ const loadItems = async (
   });
 };
 
+type ScheduleMaterials = {
+  divisions: ScheduleDivision[];
+  participants: ScheduleParticipant[];
+  items: ScheduleItemRecord[];
+};
+
+/** 3 本のクエリをまとめて投げる。進行順の一覧と結果入力の両方が使う。 */
+const loadMaterials = async (
+  reader: ScheduleReader,
+  organizationId: string,
+  tournamentId: string,
+): Promise<ScheduleMaterials> => {
+  const [divisions, participants, items] = await Promise.all([
+    loadDivisions(reader, organizationId, tournamentId),
+    loadParticipants(reader, organizationId, tournamentId),
+    loadItems(reader, organizationId, tournamentId),
+  ]);
+  return { divisions, participants, items };
+};
+
 /**
  * 一覧の行をマージ済みの形で読む。ページと schedule-store の両方が使う。
  * 読み出しは副作用を持たない（行のずれを直すのは次の保存）。
@@ -102,11 +126,11 @@ export const readScheduleRows = async (
   organizationId: string,
   tournamentId: string,
 ): Promise<ScheduleRowView[]> => {
-  const [divisions, participants, items] = await Promise.all([
-    loadDivisions(reader, organizationId, tournamentId),
-    loadParticipants(reader, organizationId, tournamentId),
-    loadItems(reader, organizationId, tournamentId),
-  ]);
+  const { divisions, participants, items } = await loadMaterials(
+    reader,
+    organizationId,
+    tournamentId,
+  );
 
   return buildScheduleView(divisions, participants, items);
 };
@@ -117,3 +141,21 @@ export const loadScheduleView = (
   tournamentId: string,
 ): Promise<ScheduleRowView[]> =>
   readScheduleRows(prisma, organizationId, tournamentId);
+
+/** 結果入力ページから呼ぶ読み出し。並びは試合一覧と同じ。 */
+export const loadResultRows = async (
+  organizationId: string,
+  tournamentId: string,
+): Promise<ResultRowView[]> => {
+  const { divisions, participants, items } = await loadMaterials(
+    prisma,
+    organizationId,
+    tournamentId,
+  );
+
+  return buildResultRows(
+    buildScheduleView(divisions, participants, items),
+    divisions,
+    participants,
+  );
+};

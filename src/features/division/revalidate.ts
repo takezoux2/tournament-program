@@ -16,3 +16,18 @@ export const revalidateDivisionSetup = (
   revalidatePath(`${base}/setup`);
   revalidatePath(`${base}/league`);
 };
+
+/**
+ * 勝敗を書き換えたあとに再検証すべきページ。結果入力の一覧、進行順の一覧、
+ * ブラケットを描く部門詳細の 3 本が同じ results を読む。
+ */
+export const revalidateDivisionResults = (
+  slug: string,
+  tournamentId: string,
+  divisionId: string,
+): void => {
+  const base = `/orgs/${slug}/tournaments/${tournamentId}`;
+  revalidatePath(`${base}/results`);
+  revalidatePath(`${base}/matches`);
+  revalidatePath(`${base}/divisions/${divisionId}`);
+};

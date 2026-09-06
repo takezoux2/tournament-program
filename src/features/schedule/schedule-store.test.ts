@@ -70,6 +70,7 @@ beforeEach(() => {
       format: "SINGLE_ELIMINATION",
       entries,
       matchingConfig,
+      results: { version: 1, matches: [] },
     },
   ]);
   participantFindMany.mockResolvedValue([
