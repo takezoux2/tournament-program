@@ -1,7 +1,11 @@
 import type { DivisionFormat } from "@/generated/prisma/enums";
 import type { DivisionEntry, MatchingConfig } from "@/lib/division/types";
 import { buildRoundRobin } from "./round-robin/build";
-import { buildFromSlots, toSlots } from "./single-elimination/build";
+import {
+  buildFromSlots,
+  isSingleEliminationShape,
+  toSlots,
+} from "./single-elimination/build";
 import { generateSlots, placeEntry } from "./single-elimination/edit";
 
 /**
@@ -76,6 +80,18 @@ export const applyEntryAdded = (
 
   switch (format) {
     case "SINGLE_ELIMINATION":
+      // /edit は format を無条件に書き換えられるため、リーグの星取表を
+      // 持ったまま SINGLE_ELIMINATION になった部門が存在しうる。その星取表は
+      // toSlots で 1 回戦だけ取り出して buildFromSlots に通すと 2 節目以降が
+      // 消える（奇数人なら休みの 1 人がそのまま行方不明になる）。この画面が
+      // 読めない形の組み合わせを部分編集で書き換えてはいけないので、
+      // 触らず current をそのまま返す。参照を変えずに返すことで
+      // 「rebuild this」の案内が消えずに残り、それが運営者の逃げ道になる。
+      // 同じ参照を返すのは、呼び出し側が参照比較で「作り直したか」を
+      // 判別するため（regenerated フラグが正しく false になる）。
+      if (!isSingleEliminationShape(current)) {
+        return current;
+      }
       return buildFromSlots(placeEntry(toSlots(current), addedEntryId));
     case "ROUND_ROBIN":
       return buildRoundRobin(entries);

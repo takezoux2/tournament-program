@@ -91,6 +91,42 @@ describe("applyEntryAdded", () => {
       applyEntryAdded("SINGLE_ELIMINATION", EMPTY, entriesOf(4), "e4"),
     ).toBe(EMPTY);
   });
+
+  it("SINGLE_ELIMINATION でもリーグの星取表を持ったままなら触らず、エントリーを消さない", () => {
+    // /edit でリーグからトーナメントへ切り替えた直後の部門は、リーグの
+    // 星取表（複数節ぶんの試合）をそのまま持つ。toSlots は 1 回戦しか見ないため、
+    // ここでガードせずに buildFromSlots へ通すと 2 節目以降が消え、
+    // 3 人なら休みの e1 がどの試合にも現れず行方不明になる。
+    const leagueShaped = buildRoundRobin(entriesOf(3));
+    const next = applyEntryAdded(
+      "SINGLE_ELIMINATION",
+      leagueShaped,
+      entriesOf(4),
+      "e4",
+    );
+
+    // 触らない＝参照も内容も変わらない。「rebuild this」の案内が
+    // 消えないことの前提でもある。
+    expect(next).toBe(leagueShaped);
+    const entryIds = next.matches
+      .flatMap((match) => match.slots)
+      .filter((slot) => slot.kind === "entry")
+      .map((slot) => (slot as { entryId: string }).entryId);
+    expect(entryIds).toContain("e1");
+  });
+
+  it("SINGLE_ELIMINATION で本当にブラケット形なら従来どおり足す", () => {
+    // 形が正しいときの挙動まで変えてはいけない。
+    const bracketShaped = buildFromSlots(generateSlots(entriesOf(2)));
+    const next = applyEntryAdded(
+      "SINGLE_ELIMINATION",
+      bracketShaped,
+      entriesOf(3),
+      "e3",
+    );
+    expect(next).not.toBe(bracketShaped);
+    expect(next.matches.filter((match) => match.round === 1)).toHaveLength(2);
+  });
 });
 
 describe("applyEntryReordered", () => {
