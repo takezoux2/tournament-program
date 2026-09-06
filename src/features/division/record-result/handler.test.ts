@@ -1,0 +1,127 @@
+import { Effect } from "effect";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+const requireOrganization = vi.fn();
+const recordResultInDb = vi.fn();
+const revalidateDivisionResults = vi.fn();
+const notFound = vi.fn(() => {
+  throw new Error("NEXT_NOT_FOUND");
+});
+
+vi.mock("next/navigation", () => ({ notFound: () => notFound() }));
+vi.mock("@/shared/middleware/require-organization", () => ({
+  requireOrganization: (slug: string) => requireOrganization(slug),
+}));
+vi.mock("./repository", () => ({
+  recordResultInDb: (ids: unknown, input: unknown) =>
+    recordResultInDb(ids, input),
+}));
+vi.mock("../revalidate", () => ({
+  revalidateDivisionResults: (
+    slug: string,
+    tournamentId: string,
+    divisionId: string,
+  ) => revalidateDivisionResults(slug, tournamentId, divisionId),
+}));
+
+const { recordResultAction } = await import("./handler");
+
+const formData = (values: Record<string, string>) => {
+  const data = new FormData();
+  for (const [key, value] of Object.entries(values)) {
+    data.set(key, value);
+  }
+  return data;
+};
+
+const validInput = {
+  slug: "tennis",
+  tournamentId: "t1",
+  divisionId: "d1",
+  matchId: "m1-0",
+  winnerEntryId: "e1",
+};
+
+beforeEach(() => {
+  requireOrganization.mockReset();
+  recordResultInDb.mockReset();
+  revalidateDivisionResults.mockReset();
+  notFound.mockClear();
+  requireOrganization.mockResolvedValue({ organization: { id: "o1" } });
+  recordResultInDb.mockReturnValue(
+    Effect.succeed({ found: true, value: null }),
+  );
+});
+
+describe("recordResultAction", () => {
+  it("組織の所有権を確かめてから書き込む", async () => {
+    const state = await recordResultAction(
+      { error: null },
+      formData(validInput),
+    );
+
+    expect(requireOrganization).toHaveBeenCalledWith("tennis");
+    expect(recordResultInDb).toHaveBeenCalledWith(
+      { organizationId: "o1", tournamentId: "t1", divisionId: "d1" },
+      { matchId: "m1-0", winnerEntryId: "e1" },
+    );
+    expect(state).toEqual({ error: null });
+  });
+
+  it("成功したら 3 本のページを再検証する", async () => {
+    await recordResultAction({ error: null }, formData(validInput));
+
+    expect(revalidateDivisionResults).toHaveBeenCalledWith(
+      "tennis",
+      "t1",
+      "d1",
+    );
+  });
+
+  it("取り消し（空文字）もそのまま渡す", async () => {
+    await recordResultAction(
+      { error: null },
+      formData({ ...validInput, winnerEntryId: "" }),
+    );
+
+    expect(recordResultInDb).toHaveBeenCalledWith(expect.anything(), {
+      matchId: "m1-0",
+      winnerEntryId: "",
+    });
+  });
+
+  it("試合の指定が空なら書き込まずに文言を返す", async () => {
+    const state = await recordResultAction(
+      { error: null },
+      formData({ ...validInput, matchId: "" }),
+    );
+
+    expect(state).toEqual({ error: "試合の指定が不正です" });
+    expect(recordResultInDb).not.toHaveBeenCalled();
+  });
+
+  it("対象が無ければ notFound へ倒す", async () => {
+    recordResultInDb.mockReturnValue(Effect.succeed({ found: false }));
+
+    await expect(
+      recordResultAction({ error: null }, formData(validInput)),
+    ).rejects.toThrow("NEXT_NOT_FOUND");
+  });
+
+  it("失敗は日本語の文言にして返す", async () => {
+    const { DivisionRevisionConflictError } = await import("../errors");
+    recordResultInDb.mockReturnValue(
+      Effect.fail(new DivisionRevisionConflictError({ divisionId: "d1" })),
+    );
+
+    const state = await recordResultAction(
+      { error: null },
+      formData(validInput),
+    );
+
+    expect(state).toEqual({
+      error: "他の人が更新しました。画面を再読み込みしてください",
+    });
+    expect(revalidateDivisionResults).not.toHaveBeenCalled();
+  });
+});
