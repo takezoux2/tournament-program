@@ -62,9 +62,7 @@ describe("DivisionSetup", () => {
     );
 
     expect(
-      screen.getByText(
-        "「リーグ（総当たり）」のエントリー編集はまだ対応していません",
-      ),
+      screen.getByText("「リーグ（総当たり）」はこの画面では編集できません"),
     ).toBeInTheDocument();
     expect(
       screen.queryByRole("heading", { name: "エントリー" }),

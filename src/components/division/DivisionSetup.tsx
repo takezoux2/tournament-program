@@ -48,12 +48,15 @@ export function DivisionSetup({
   tournamentId: string;
   actions: DivisionSetupActions;
 }) {
-  // 描画側と同じ理由で、他の形式は編集に対応していない。
+  // ページ側で弾いているため実際には届かないが、防御的にこの画面が
+  // トーナメント専用であることを型より外でも守っておく。リーグの
+  // エントリー編集は /league に既にあるので「対応していない」は事実と
+  // 違う。LeagueSetup.tsx の同種の案内と同じ言い回しにする。
   if (division.format !== "SINGLE_ELIMINATION") {
     return (
       <Notice>
         「{DIVISION_FORMAT_LABELS[division.format]}
-        」のエントリー編集はまだ対応していません
+        」はこの画面では編集できません
       </Notice>
     );
   }
