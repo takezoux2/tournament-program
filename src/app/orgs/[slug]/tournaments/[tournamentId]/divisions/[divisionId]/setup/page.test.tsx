@@ -110,6 +110,17 @@ const pageProps = () => ({
 
 const session = { user: { id: "u1", name: "竹添" } };
 
+const division = {
+  id: "d1",
+  name: "男子シングルス",
+  order: 0,
+  format: "SINGLE_ELIMINATION",
+  entries: { version: 1, entries: [] },
+  matchingConfig: { version: 1, matches: [] },
+  results: { version: 1, matches: [] },
+  createdAt: new Date("2026-01-01T00:00:00Z"),
+};
+
 beforeEach(() => {
   requireOrganization.mockReset();
   findTournamentInOrganization.mockReset();
@@ -126,16 +137,7 @@ beforeEach(() => {
     id: "t1",
     name: "春季大会",
   });
-  findDivisionInTournament.mockResolvedValue({
-    id: "d1",
-    name: "男子シングルス",
-    order: 0,
-    format: "SINGLE_ELIMINATION",
-    entries: { version: 1, entries: [] },
-    matchingConfig: { version: 1, matches: [] },
-    results: { version: 1, matches: [] },
-    createdAt: new Date("2026-01-01T00:00:00Z"),
-  });
+  findDivisionInTournament.mockResolvedValue(division);
   listParticipantsInTournament.mockResolvedValue([]);
   listMembersInOrganization.mockResolvedValue([]);
   divisionSetupProps.mockClear();
@@ -167,6 +169,17 @@ describe("DivisionSetupPage", () => {
   it("大会が無ければ 404 にする", async () => {
     findTournamentInOrganization.mockResolvedValue(null);
 
+    await expect(DivisionSetupPage(pageProps())).rejects.toThrow(
+      "NEXT_NOT_FOUND",
+    );
+  });
+
+  it("シングルエリミネーション以外は 404 に倒す", async () => {
+    // リーグには専用画面（/league）があるので、この画面では扱わない。
+    findDivisionInTournament.mockResolvedValue({
+      ...division,
+      format: "ROUND_ROBIN",
+    });
     await expect(DivisionSetupPage(pageProps())).rejects.toThrow(
       "NEXT_NOT_FOUND",
     );

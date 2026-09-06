@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { DivisionSetup } from "@/components/division/DivisionSetup";
+import { LeagueSetup } from "@/components/division/LeagueSetup";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { addEntryAction } from "@/features/division/add-entry/handler";
 import { generateMatchingAction } from "@/features/division/generate-matching/handler";
@@ -11,19 +11,18 @@ import {
 } from "@/features/division/repository";
 import { setMatchNumberAction } from "@/features/division/set-match-number/handler";
 import { setPlayerNumberAction } from "@/features/division/set-player-number/handler";
-import { swapSlotsAction } from "@/features/division/swap-slots/handler";
 import { listMembersInOrganization } from "@/features/organization/repository";
 import { findTournamentInOrganization } from "@/features/tournament/repository";
 import { requireOrganization } from "@/shared/middleware/require-organization";
 
-export default async function DivisionSetupPage({
+export default async function LeagueSetupPage({
   params,
-}: PageProps<"/orgs/[slug]/tournaments/[tournamentId]/divisions/[divisionId]/setup">) {
+}: PageProps<"/orgs/[slug]/tournaments/[tournamentId]/divisions/[divisionId]/league">) {
   const { slug, tournamentId, divisionId } = await params;
   const { session, organization } = await requireOrganization(slug);
 
   // 詳細ページと違い、参加者とメンバーを常に引く。この画面は
-  // SINGLE_ELIMINATION を編集するために開くもので、どちらも必ず使うため。
+  // ROUND_ROBIN を編集するために開くもので、どちらも必ず使うため。
   const [tournament, division, participants, members] = await Promise.all([
     findTournamentInOrganization(organization.id, tournamentId),
     findDivisionInTournament(organization.id, tournamentId, divisionId),
@@ -33,8 +32,9 @@ export default async function DivisionSetupPage({
   if (!tournament || !division) {
     notFound();
   }
-  // リーグには専用画面（/league）がある。案内を出すより 404 に倒す。
-  if (division.format !== "SINGLE_ELIMINATION") {
+  // トーナメントには専用画面（/setup）がある。URL を直に叩かれたときに
+  // 中途半端な画面を出さず、案内より 404 に倒す。
+  if (division.format !== "ROUND_ROBIN") {
     notFound();
   }
 
@@ -52,17 +52,17 @@ export default async function DivisionSetupPage({
             label: division.name,
             href: `/orgs/${slug}/tournaments/${tournament.id}/divisions/${division.id}`,
           },
-          { label: "エントリー・組み合わせ" },
+          { label: "エントリー・対戦表" },
         ]}
         userName={session.user.name}
       />
 
       <div className="mx-auto max-w-4xl space-y-6 px-6 py-8">
         <h1 className="text-lg font-bold text-slate-800">
-          {division.name} のエントリー・組み合わせ
+          {division.name} のエントリー・対戦表
         </h1>
 
-        <DivisionSetup
+        <LeagueSetup
           division={division}
           participants={participants}
           members={members}
@@ -73,7 +73,6 @@ export default async function DivisionSetupPage({
             removeEntry: removeEntryAction,
             reorderEntry: reorderEntryAction,
             generateMatching: generateMatchingAction,
-            swapSlots: swapSlotsAction,
             setMatchNumber: setMatchNumberAction,
             setPlayerNumber: setPlayerNumberAction,
           }}
