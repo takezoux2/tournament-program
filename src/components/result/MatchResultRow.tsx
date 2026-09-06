@@ -37,7 +37,7 @@ function WinnerButton({
       type="submit"
       name="winnerEntryId"
       value={slot.entryId ?? ""}
-      aria-label={`第${row.matchNumber}試合 ${slot.label}の勝ち`}
+      aria-label={`${row.divisionName} 第${row.matchNumber}試合 ${slot.label}の勝ち`}
       aria-pressed={isWinner}
       disabled={disabled || slot.entryId === null}
       onClick={onClick}
@@ -75,17 +75,26 @@ export function MatchResultRow({
   const editable = row.state === "ready" || row.state === "recorded";
 
   // 消えるものがあるときだけ確認する。普段の入力はタップ 1 回で終わらせたい。
-  const confirmIfNeeded = (event: MouseEvent<HTMLButtonElement>) => {
-    if (row.downstreamRecordedCount === 0) {
-      return;
-    }
-    const accepted = window.confirm(
-      `この試合の結果を変えると、あとの試合の結果 ${row.downstreamRecordedCount} 件も取り消されます。よろしいですか？`,
-    );
-    if (!accepted) {
-      event.preventDefault();
-    }
-  };
+  // entryId には押したボタンの勝者候補（取り消しボタンなら null）を渡す。
+  const confirmIfNeeded =
+    (entryId: string | null) => (event: MouseEvent<HTMLButtonElement>) => {
+      // 既に勝者になっている側をもう一度押しても、サーバー側（record-result の
+      // repository）は「勝者が変わらないなら何も書き込まない＝下流も消さない」
+      // ため、実際には何も取り消されない。にもかかわらず確認を出すと文言と
+      // 挙動が食い違うので、この場合は確認を飛ばしてそのまま送信する。
+      if (entryId !== null && entryId === row.winnerEntryId) {
+        return;
+      }
+      if (row.downstreamRecordedCount === 0) {
+        return;
+      }
+      const accepted = window.confirm(
+        `この試合の結果を変えると、あとの試合の結果 ${row.downstreamRecordedCount} 件も取り消されます。よろしいですか？`,
+      );
+      if (!accepted) {
+        event.preventDefault();
+      }
+    };
 
   return (
     <li className="rounded border border-slate-200 bg-white px-3 py-2">
@@ -111,14 +120,14 @@ export function MatchResultRow({
             row={row}
             slot={row.slots[0]}
             disabled={pending || !editable}
-            onClick={confirmIfNeeded}
+            onClick={confirmIfNeeded(row.slots[0].entryId)}
           />
           <span className="text-xs text-slate-400">vs</span>
           <WinnerButton
             row={row}
             slot={row.slots[1]}
             disabled={pending || !editable}
-            onClick={confirmIfNeeded}
+            onClick={confirmIfNeeded(row.slots[1].entryId)}
           />
 
           {row.state === "recorded" && (
@@ -126,9 +135,9 @@ export function MatchResultRow({
               type="submit"
               name="winnerEntryId"
               value=""
-              aria-label={`第${row.matchNumber}試合の結果を取り消す`}
+              aria-label={`${row.divisionName} 第${row.matchNumber}試合の結果を取り消す`}
               disabled={pending}
-              onClick={confirmIfNeeded}
+              onClick={confirmIfNeeded(null)}
               className="rounded border border-slate-300 px-2 py-1 text-xs text-slate-600 disabled:opacity-40"
             >
               取り消し

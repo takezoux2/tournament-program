@@ -48,7 +48,7 @@ describe("MatchResultList", () => {
     renderList([matchRow()]);
 
     await user.click(
-      screen.getByRole("button", { name: "第1試合 佐藤の勝ち" }),
+      screen.getByRole("button", { name: "男子 第1試合 佐藤の勝ち" }),
     );
 
     expect(action).toHaveBeenCalled();
@@ -64,10 +64,10 @@ describe("MatchResultList", () => {
     renderList([matchRow({ state: "recorded", winnerEntryId: "e1" })]);
 
     expect(
-      screen.getByRole("button", { name: "第1試合 山田の勝ち" }),
+      screen.getByRole("button", { name: "男子 第1試合 山田の勝ち" }),
     ).toHaveAttribute("aria-pressed", "true");
     expect(
-      screen.getByRole("button", { name: "第1試合の結果を取り消す" }),
+      screen.getByRole("button", { name: "男子 第1試合の結果を取り消す" }),
     ).toBeInTheDocument();
   });
 
@@ -83,7 +83,7 @@ describe("MatchResultList", () => {
     ]);
 
     expect(
-      screen.getByRole("button", { name: "第1試合 佐藤の勝ち" }),
+      screen.getByRole("button", { name: "男子 第1試合 佐藤の勝ち" }),
     ).toBeDisabled();
     expect(screen.getByText("第1試合の勝者")).toBeInTheDocument();
   });
@@ -100,7 +100,7 @@ describe("MatchResultList", () => {
     ]);
 
     await user.click(
-      screen.getByRole("button", { name: "第1試合 佐藤の勝ち" }),
+      screen.getByRole("button", { name: "男子 第1試合 佐藤の勝ち" }),
     );
 
     expect(confirm).toHaveBeenCalledWith(
@@ -109,13 +109,32 @@ describe("MatchResultList", () => {
     expect(action).not.toHaveBeenCalled();
   });
 
+  it("既に勝者になっている側を押し直したときは確認しない", async () => {
+    const user = userEvent.setup();
+    const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
+    renderList([
+      matchRow({
+        state: "recorded",
+        winnerEntryId: "e1",
+        downstreamRecordedCount: 2,
+      }),
+    ]);
+
+    await user.click(
+      screen.getByRole("button", { name: "男子 第1試合 山田の勝ち" }),
+    );
+
+    expect(confirm).not.toHaveBeenCalled();
+    expect(action).toHaveBeenCalled();
+  });
+
   it("下流の記録が無ければ確認しない", async () => {
     const user = userEvent.setup();
     const confirm = vi.spyOn(window, "confirm").mockReturnValue(true);
     renderList([matchRow()]);
 
     await user.click(
-      screen.getByRole("button", { name: "第1試合 山田の勝ち" }),
+      screen.getByRole("button", { name: "男子 第1試合 山田の勝ち" }),
     );
 
     expect(confirm).not.toHaveBeenCalled();
@@ -127,7 +146,7 @@ describe("MatchResultList", () => {
     renderList([matchRow({ state: "recorded", winnerEntryId: "e1" })]);
 
     await user.click(
-      screen.getByRole("button", { name: "第1試合の結果を取り消す" }),
+      screen.getByRole("button", { name: "男子 第1試合の結果を取り消す" }),
     );
 
     const formData = action.mock.calls[0][1] as FormData;
