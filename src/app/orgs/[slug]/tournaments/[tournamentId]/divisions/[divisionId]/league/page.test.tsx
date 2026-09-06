@@ -73,6 +73,24 @@ vi.mock("@/components/division/LeagueSetup", () => ({
 }));
 
 const { default: LeagueSetupPage } = await import("./page");
+const { addEntryAction } = await import(
+  "@/features/division/add-entry/handler"
+);
+const { removeEntryAction } = await import(
+  "@/features/division/remove-entry/handler"
+);
+const { reorderEntryAction } = await import(
+  "@/features/division/reorder-entry/handler"
+);
+const { generateMatchingAction } = await import(
+  "@/features/division/generate-matching/handler"
+);
+const { setMatchNumberAction } = await import(
+  "@/features/division/set-match-number/handler"
+);
+const { setPlayerNumberAction } = await import(
+  "@/features/division/set-player-number/handler"
+);
 
 // PageProps<".../league"> は searchParams も必須のため、呼び出しのたびに
 // 書き直さずに済むようここでまとめて組み立てる。
@@ -119,13 +137,31 @@ beforeEach(() => {
 });
 
 describe("LeagueSetupPage", () => {
-  it("リーグの部門なら編集画面を描く", async () => {
+  it("組織の認可を確かめてから描く", async () => {
     render(await LeagueSetupPage(pageProps()));
+
+    expect(requireOrganization).toHaveBeenCalledWith("acme");
     expect(screen.getByText("league")).toBeInTheDocument();
+  });
+
+  it("requireOrganization が解決した organization.id を後続に渡す", async () => {
+    // slug やルートパラメータそのものではなく、認可を経た organization.id が
+    // 届いていることを確かめる。取り違えると別組織のデータを引いてしまう。
+    render(await LeagueSetupPage(pageProps()));
+
+    expect(findDivisionInTournament).toHaveBeenCalledWith("o1", "t1", "d1");
+    expect(listParticipantsInTournament).toHaveBeenCalledWith("o1", "t1");
   });
 
   it("部門が無ければ 404 に倒す", async () => {
     findDivisionInTournament.mockResolvedValue(null);
+    await expect(LeagueSetupPage(pageProps())).rejects.toThrow(
+      "NEXT_NOT_FOUND",
+    );
+  });
+
+  it("大会が無ければ 404 に倒す", async () => {
+    findTournamentInOrganization.mockResolvedValue(null);
     await expect(LeagueSetupPage(pageProps())).rejects.toThrow(
       "NEXT_NOT_FOUND",
     );
@@ -142,18 +178,21 @@ describe("LeagueSetupPage", () => {
     );
   });
 
-  it("6 つの Server Action を配線する", async () => {
+  it("6 つの Server Action をそれぞれ対応する actions のプロパティに渡す", async () => {
+    // 6 つとも別モジュールの vi.fn() なので参照が異なる。Object.keys().sort()
+    // だけの比較では 2 つの action を取り違えて渡しても通ってしまうため、
+    // setup/page.test.tsx と同じく 1 つずつ toBe で参照を確かめる。
     render(await LeagueSetupPage(pageProps()));
-    const props = leagueSetupProps.mock.calls[0][0] as {
+
+    expect(leagueSetupProps).toHaveBeenCalledTimes(1);
+    const { actions } = leagueSetupProps.mock.calls[0][0] as {
       actions: Record<string, unknown>;
     };
-    expect(Object.keys(props.actions).sort()).toEqual([
-      "addEntry",
-      "generateMatching",
-      "removeEntry",
-      "reorderEntry",
-      "setMatchNumber",
-      "setPlayerNumber",
-    ]);
+    expect(actions.addEntry).toBe(addEntryAction);
+    expect(actions.removeEntry).toBe(removeEntryAction);
+    expect(actions.reorderEntry).toBe(reorderEntryAction);
+    expect(actions.generateMatching).toBe(generateMatchingAction);
+    expect(actions.setMatchNumber).toBe(setMatchNumberAction);
+    expect(actions.setPlayerNumber).toBe(setPlayerNumberAction);
   });
 });
