@@ -84,9 +84,9 @@ describe("applyEntryAdded", () => {
     // 生成は運営者が明示的にボタンを押したときだけ起きる。
     // 後続の処理が参照比較で「再生成されたか」を判定するため、
     // 同じオブジェクト参照を返すことが必須。
-    expect(
-      applyEntryAdded("ROUND_ROBIN", EMPTY, entriesOf(4), "e4"),
-    ).toBe(EMPTY);
+    expect(applyEntryAdded("ROUND_ROBIN", EMPTY, entriesOf(4), "e4")).toBe(
+      EMPTY,
+    );
     expect(
       applyEntryAdded("SINGLE_ELIMINATION", EMPTY, entriesOf(4), "e4"),
     ).toBe(EMPTY);
@@ -119,8 +119,6 @@ describe("applyEntryReordered", () => {
   it("組み合わせが未作成ならリーグでも空のまま", () => {
     // 後続の処理が参照比較で「再生成されたか」を判定するため、
     // 同じオブジェクト参照を返すことが必須。
-    expect(applyEntryReordered("ROUND_ROBIN", EMPTY, entriesOf(4))).toBe(
-      EMPTY,
-    );
+    expect(applyEntryReordered("ROUND_ROBIN", EMPTY, entriesOf(4))).toBe(EMPTY);
   });
 });

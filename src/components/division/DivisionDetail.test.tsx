@@ -23,10 +23,7 @@ describe("DivisionDetailView", () => {
 
     expect(
       screen.getByRole("link", { name: "エントリー・組み合わせ" }),
-    ).toHaveAttribute(
-      "href",
-      "/orgs/acme/tournaments/t1/divisions/d1/setup",
-    );
+    ).toHaveAttribute("href", "/orgs/acme/tournaments/t1/divisions/d1/setup");
   });
 
   it("リーグは /league へ送る", () => {
@@ -39,10 +36,7 @@ describe("DivisionDetailView", () => {
 
     expect(
       screen.getByRole("link", { name: "エントリー・対戦表" }),
-    ).toHaveAttribute(
-      "href",
-      "/orgs/acme/tournaments/t1/divisions/d1/league",
-    );
+    ).toHaveAttribute("href", "/orgs/acme/tournaments/t1/divisions/d1/league");
   });
 
   it("編集画面の無い形式ではボタンを出さない", () => {

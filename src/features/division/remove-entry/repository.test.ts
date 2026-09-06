@@ -66,9 +66,9 @@ describe("removeEntryInDb", () => {
       "e3",
       "e4",
     ]);
-    expect(
-      written.entries.map((item: { seed: number }) => item.seed),
-    ).toEqual([0, 1, 2]);
+    expect(written.entries.map((item: { seed: number }) => item.seed)).toEqual([
+      0, 1, 2,
+    ]);
   });
 
   it("組み合わせがあれば残りのシード順から作り直す", async () => {

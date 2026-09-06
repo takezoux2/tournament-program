@@ -1,8 +1,8 @@
 import Link from "next/link";
-import type { DivisionFormat } from "@/generated/prisma/enums";
 import { DIVISION_FORMAT_LABELS } from "@/features/division/format";
 import type { DivisionDetail } from "@/features/division/repository";
 import { formatStartsAt } from "@/features/tournament/format";
+import type { DivisionFormat } from "@/generated/prisma/enums";
 
 /**
  * 形式ごとのエントリー編集画面。null は編集画面を持たない形式。

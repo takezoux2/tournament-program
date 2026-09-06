@@ -109,7 +109,10 @@ beforeEach(() => {
     session: { user: { name: "運営者" } },
     organization: { id: "o1", name: "アクメ" },
   });
-  findTournamentInOrganization.mockResolvedValue({ id: "t1", name: "春季大会" });
+  findTournamentInOrganization.mockResolvedValue({
+    id: "t1",
+    name: "春季大会",
+  });
   findDivisionInTournament.mockResolvedValue(league);
   listParticipantsInTournament.mockResolvedValue([]);
   listMembersInOrganization.mockResolvedValue([]);

@@ -32,16 +32,14 @@ describe("GenerateMatchingForm", () => {
       ["tournamentId", "t1"],
       ["divisionId", "d1"],
     ]) {
-      expect(
-        container.querySelector(`input[name="${name}"]`),
-      ).toHaveValue(value);
+      expect(container.querySelector(`input[name="${name}"]`)).toHaveValue(
+        value,
+      );
     }
   });
 
   it("disabled のときはボタンを押せない", () => {
-    render(
-      <GenerateMatchingForm {...props} disabled label="対戦表を生成" />,
-    );
+    render(<GenerateMatchingForm {...props} disabled label="対戦表を生成" />);
     expect(screen.getByRole("button", { name: "対戦表を生成" })).toBeDisabled();
   });
 });
