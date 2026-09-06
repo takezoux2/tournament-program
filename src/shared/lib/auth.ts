@@ -5,6 +5,7 @@ import { betterAuth } from "better-auth";
 import { nextCookies } from "better-auth/next-js";
 import { prisma } from "@/shared/db/prisma";
 import { authUserConfig } from "@/shared/lib/auth-user-config";
+import { usernamePlugin } from "@/shared/lib/auth-username-plugin";
 import { buildVerificationEmail } from "@/shared/lib/auth-verification-email";
 import { VERIFICATION_LINK_EXPIRES_IN_SECONDS } from "@/shared/lib/email-verification-policy";
 import { getMailer, resolveMailFrom } from "@/shared/lib/mail";
@@ -80,7 +81,9 @@ export const auth = betterAuth({
     // メール確認を挟まずに連携してよい。
     accountLinking: { enabled: true, trustedProviders: ["google"] },
   },
+  // usernamePlugin は /sign-in/username を生やす。中身（規則の上書きと
+  // username フィールドの包み直し）は auth-username-plugin.ts にある。
   // nextCookies は Server Action から Cookie を書けるようにする。plugins 配列の
   // 最後に置く必要がある。
-  plugins: [nextCookies()],
+  plugins: [usernamePlugin, nextCookies()],
 });
