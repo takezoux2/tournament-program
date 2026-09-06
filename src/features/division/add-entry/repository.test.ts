@@ -1,71 +1,78 @@
 import { Effect } from "effect";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { DivisionSetup } from "../setup-store";
+import { failureTag } from "@/shared/testing/exit";
 import { buildFromSlots } from "../single-elimination/build";
 
-const runDivisionSetup = vi.fn();
+const divisionFindFirst = vi.fn();
+const divisionUpdateMany = vi.fn();
 const memberFindFirst = vi.fn();
 const memberCreate = vi.fn();
 const participantFindFirst = vi.fn();
 const participantCreate = vi.fn();
 const participantFindMany = vi.fn();
 
-vi.mock("../setup-store", () => ({
-  runDivisionSetup: (
-    ids: unknown,
-    mutate: (tx: unknown, current: DivisionSetup) => Promise<unknown>,
-  ) => runDivisionSetup(ids, mutate),
+// setup-store 経由で実際に組み立てまで走らせるため、mock するのは
+// Prisma の境界だけにする（setup-store 自体はモックしない）。
+vi.mock("@/shared/db/prisma", () => ({
+  prisma: {
+    $transaction: (run: (tx: unknown) => Promise<unknown>) =>
+      run({
+        division: {
+          findFirst: (args: unknown) => divisionFindFirst(args),
+          updateMany: (args: unknown) => divisionUpdateMany(args),
+        },
+        member: {
+          findFirst: (args: unknown) => memberFindFirst(args),
+          create: (args: unknown) => memberCreate(args),
+        },
+        participant: {
+          findFirst: (args: unknown) => participantFindFirst(args),
+          create: (args: unknown) => participantCreate(args),
+          findMany: (args: unknown) => participantFindMany(args),
+        },
+      }),
+  },
 }));
 
 const { addEntryInDb } = await import("./repository");
 
 const ids = { organizationId: "o1", tournamentId: "t1", divisionId: "d1" };
 
-const tx = {
-  member: {
-    findFirst: (args: unknown) => memberFindFirst(args),
-    create: (args: unknown) => memberCreate(args),
-  },
-  participant: {
-    findFirst: (args: unknown) => participantFindFirst(args),
-    create: (args: unknown) => participantCreate(args),
-    findMany: (args: unknown) => participantFindMany(args),
-  },
-};
+const entry = (id: string) => ({ kind: "entry" as const, entryId: id });
+const bye = { kind: "bye" as const };
 
-const empty: DivisionSetup = {
+const empty = {
+  format: "SINGLE_ELIMINATION" as const,
   entries: { version: 1, entries: [] },
   matchingConfig: { version: 1, matches: [] },
-};
-
-const callMutate = async (current: DivisionSetup) => {
-  const mutate = runDivisionSetup.mock.calls[0][1];
-  return mutate(tx, current);
+  results: { version: 1, matches: [] },
 };
 
 beforeEach(() => {
-  runDivisionSetup.mockReset();
+  divisionFindFirst.mockReset();
+  divisionUpdateMany.mockReset();
   memberFindFirst.mockReset();
   memberCreate.mockReset();
   participantFindFirst.mockReset();
   participantCreate.mockReset();
   participantFindMany.mockReset();
-  runDivisionSetup.mockReturnValue(
-    Effect.succeed({ found: true, value: null }),
-  );
+
+  divisionFindFirst.mockResolvedValue(empty);
+  divisionUpdateMany.mockResolvedValue({ count: 1 });
+  memberFindFirst.mockResolvedValue({ id: "m1" });
   participantFindFirst.mockResolvedValue(null);
   participantCreate.mockResolvedValue({ id: "p1" });
-  participantFindMany.mockResolvedValue([]);
+  // playerNumber 集計と save() の participantId 検証を同じ mock が兼ねる。
+  // playerNumber が無い行は採番の集計から無視されるので、この 1 件だけでも
+  // 「既存の参加者なし」と「作成した p1 を検証で認める」の両方を満たせる。
+  participantFindMany.mockResolvedValue([{ id: "p1" }]);
 });
 
 describe("addEntryInDb", () => {
   it("既存メンバーは組織を条件に入れて引く", async () => {
-    memberFindFirst.mockResolvedValue({ id: "m1" });
-
     await Effect.runPromise(
       addEntryInDb(ids, { mode: "existing", memberId: "m1" }),
     );
-    await callMutate(empty);
 
     expect(memberFindFirst).toHaveBeenCalledWith({
       where: { id: "m1", organizationId: "o1" },
@@ -76,13 +83,12 @@ describe("addEntryInDb", () => {
   it("組織に無いメンバーを指定したら拒否する", async () => {
     memberFindFirst.mockResolvedValue(null);
 
-    await Effect.runPromise(
+    const exit = await Effect.runPromiseExit(
       addEntryInDb(ids, { mode: "existing", memberId: "m1" }),
     );
 
-    await expect(callMutate(empty)).rejects.toMatchObject({
-      _tag: "DivisionMemberNotFoundError",
-    });
+    expect(failureTag(exit)).toBe("DivisionMemberNotFoundError");
+    expect(divisionUpdateMany).not.toHaveBeenCalled();
   });
 
   it("新規登録なら Member を作る", async () => {
@@ -95,7 +101,6 @@ describe("addEntryInDb", () => {
         nameKana: "やまだたろう",
       }),
     );
-    await callMutate(empty);
 
     expect(memberCreate).toHaveBeenCalledWith({
       data: {
@@ -108,12 +113,9 @@ describe("addEntryInDb", () => {
   });
 
   it("Participant が無ければ seed を付けずに作る", async () => {
-    memberFindFirst.mockResolvedValue({ id: "m1" });
-
     await Effect.runPromise(
       addEntryInDb(ids, { mode: "existing", memberId: "m1" }),
     );
-    await callMutate(empty);
 
     // Participant.seed は @@unique([tournamentId, seed]) を持つ。自動採番すると
     // 衝突するので null のままにし、部門内の順序は DivisionEntry.seed が持つ。
@@ -124,27 +126,21 @@ describe("addEntryInDb", () => {
   });
 
   it("Participant が既にあれば作らず使い回す", async () => {
-    memberFindFirst.mockResolvedValue({ id: "m1" });
     participantFindFirst.mockResolvedValue({ id: "p7" });
+    participantFindMany.mockResolvedValue([{ id: "p7" }]);
 
     await Effect.runPromise(
       addEntryInDb(ids, { mode: "existing", memberId: "m1" }),
     );
-    const { next } = await callMutate(empty);
 
     expect(participantCreate).not.toHaveBeenCalled();
-    expect(next.entries.entries[0].participantId).toBe("p7");
+    const written = divisionUpdateMany.mock.calls[0][0].data.entries;
+    expect(written.entries[0].participantId).toBe("p7");
   });
 
   it("エントリーを末尾の seed で足す", async () => {
-    memberFindFirst.mockResolvedValue({ id: "m1" });
-    participantCreate.mockResolvedValue({ id: "p3" });
-
-    await Effect.runPromise(
-      addEntryInDb(ids, { mode: "existing", memberId: "m1" }),
-    );
-    const { next } = await callMutate({
-      ...empty,
+    divisionFindFirst.mockResolvedValue({
+      format: "SINGLE_ELIMINATION",
       entries: {
         version: 1,
         entries: [
@@ -152,21 +148,29 @@ describe("addEntryInDb", () => {
           { id: "e2", participantId: "p2", seed: 1 },
         ],
       },
+      matchingConfig: { version: 1, matches: [] },
+      results: { version: 1, matches: [] },
     });
+    participantCreate.mockResolvedValue({ id: "p3" });
+    participantFindMany.mockResolvedValue([
+      { id: "p1" },
+      { id: "p2" },
+      { id: "p3" },
+    ]);
 
-    expect(next.entries.entries).toHaveLength(3);
-    expect(next.entries.entries[2].seed).toBe(2);
-    expect(next.entries.entries[2].participantId).toBe("p3");
+    await Effect.runPromise(
+      addEntryInDb(ids, { mode: "existing", memberId: "m1" }),
+    );
+
+    const written = divisionUpdateMany.mock.calls[0][0].data.entries;
+    expect(written.entries).toHaveLength(3);
+    expect(written.entries[2].seed).toBe(2);
+    expect(written.entries[2].participantId).toBe("p3");
   });
 
   it("組み合わせがあれば一番下の bye を埋める", async () => {
-    memberFindFirst.mockResolvedValue({ id: "m1" });
-    participantCreate.mockResolvedValue({ id: "p3" });
-
-    await Effect.runPromise(
-      addEntryInDb(ids, { mode: "existing", memberId: "m1" }),
-    );
-    const { next } = await callMutate({
+    divisionFindFirst.mockResolvedValue({
+      format: "SINGLE_ELIMINATION",
       entries: {
         version: 1,
         entries: [
@@ -174,83 +178,184 @@ describe("addEntryInDb", () => {
           { id: "e2", participantId: "p2", seed: 1 },
         ],
       },
-      matchingConfig: buildFromSlots([
-        { kind: "entry", entryId: "e1" },
-        { kind: "bye" },
-        { kind: "entry", entryId: "e2" },
-        { kind: "bye" },
-      ]),
+      matchingConfig: buildFromSlots([entry("e1"), bye, entry("e2"), bye]),
+      results: { version: 1, matches: [] },
     });
+    participantCreate.mockResolvedValue({ id: "p3" });
+    participantFindMany.mockResolvedValue([
+      { id: "p1" },
+      { id: "p2" },
+      { id: "p3" },
+    ]);
 
-    const added = next.entries.entries[2].id;
-    expect(next.matchingConfig.matches[1].slots[1]).toEqual({
+    await Effect.runPromise(
+      addEntryInDb(ids, { mode: "existing", memberId: "m1" }),
+    );
+
+    const data = divisionUpdateMany.mock.calls[0][0].data;
+    const added = data.entries.entries[2].id;
+    expect(data.matchingConfig.matches[1].slots[1]).toEqual({
       kind: "entry",
       entryId: added,
     });
   });
 
   it("組み合わせが未作成なら組み合わせは空のまま", async () => {
-    memberFindFirst.mockResolvedValue({ id: "m1" });
-
     await Effect.runPromise(
       addEntryInDb(ids, { mode: "existing", memberId: "m1" }),
     );
-    const { next } = await callMutate(empty);
 
-    expect(next.matchingConfig.matches).toEqual([]);
+    const written = divisionUpdateMany.mock.calls[0][0].data.matchingConfig;
+    expect(written.matches).toEqual([]);
   });
 
   it("同じ参加者の二重エントリーを拒否する", async () => {
-    memberFindFirst.mockResolvedValue({ id: "m1" });
     participantFindFirst.mockResolvedValue({ id: "p1" });
+    divisionFindFirst.mockResolvedValue({
+      format: "SINGLE_ELIMINATION",
+      entries: {
+        version: 1,
+        entries: [{ id: "e1", participantId: "p1", seed: 0 }],
+      },
+      matchingConfig: { version: 1, matches: [] },
+      results: { version: 1, matches: [] },
+    });
 
-    await Effect.runPromise(
+    const exit = await Effect.runPromiseExit(
       addEntryInDb(ids, { mode: "existing", memberId: "m1" }),
     );
 
-    await expect(
-      callMutate({
-        ...empty,
-        entries: {
-          version: 1,
-          entries: [{ id: "e1", participantId: "p1", seed: 0 }],
-        },
-      }),
-    ).rejects.toMatchObject({ _tag: "DivisionDuplicateEntryError" });
+    expect(failureTag(exit)).toBe("DivisionDuplicateEntryError");
+    expect(divisionUpdateMany).not.toHaveBeenCalled();
   });
 
-  it("上限に達していたら拒否する", async () => {
+  it("トーナメントは 128 人に達していたら拒否する", async () => {
+    divisionFindFirst.mockResolvedValue({
+      format: "SINGLE_ELIMINATION",
+      entries: {
+        version: 1,
+        entries: Array.from({ length: 128 }, (_, index) => ({
+          id: `e${index}`,
+          participantId: `p${index}`,
+          seed: index,
+        })),
+      },
+      matchingConfig: { version: 1, matches: [] },
+      results: { version: 1, matches: [] },
+    });
+
+    const exit = await Effect.runPromiseExit(
+      addEntryInDb(ids, { mode: "existing", memberId: "m1" }),
+    );
+
+    expect(failureTag(exit)).toBe("DivisionEntryLimitError");
+    expect(divisionUpdateMany).not.toHaveBeenCalled();
+  });
+
+  it("リーグは 16 人を超える追加を拒否する", async () => {
+    divisionFindFirst.mockResolvedValue({
+      format: "ROUND_ROBIN",
+      entries: {
+        version: 1,
+        entries: Array.from({ length: 16 }, (_, index) => ({
+          id: `e${index}`,
+          participantId: `p${index}`,
+          seed: index,
+        })),
+      },
+      matchingConfig: { version: 1, matches: [] },
+      results: { version: 1, matches: [] },
+    });
+
+    const exit = await Effect.runPromiseExit(
+      addEntryInDb(ids, { mode: "existing", memberId: "m1" }),
+    );
+
+    expect(failureTag(exit)).toBe("DivisionEntryLimitError");
+    expect(divisionUpdateMany).not.toHaveBeenCalled();
+  });
+
+  it("トーナメントは 16 人でも追加できる", async () => {
+    divisionFindFirst.mockResolvedValue({
+      format: "SINGLE_ELIMINATION",
+      entries: {
+        version: 1,
+        entries: Array.from({ length: 16 }, (_, index) => ({
+          id: `e${index}`,
+          participantId: `p${index}`,
+          seed: index,
+        })),
+      },
+      matchingConfig: { version: 1, matches: [] },
+      results: { version: 1, matches: [] },
+    });
     memberFindFirst.mockResolvedValue({ id: "m1" });
+    participantFindFirst.mockResolvedValue({ id: "pNew" });
+    participantFindMany.mockResolvedValue(
+      Array.from({ length: 16 }, (_, index) => ({ id: `p${index}` })).concat([
+        { id: "pNew" },
+      ]),
+    );
+
+    const result = await Effect.runPromise(
+      addEntryInDb(ids, { mode: "existing", memberId: "m1" }),
+    );
+
+    expect(result).toEqual({ found: true, value: null });
+  });
+
+  it("リーグは組み合わせがあると丸ごと作り直す", async () => {
+    // 1 人増えれば全員の試合が増えるので、席を 1 つ埋める操作が無い。
+    divisionFindFirst.mockResolvedValue({
+      format: "ROUND_ROBIN",
+      entries: {
+        version: 1,
+        entries: [
+          { id: "e1", participantId: "p1", seed: 0 },
+          { id: "e2", participantId: "p2", seed: 1 },
+        ],
+      },
+      matchingConfig: {
+        version: 1,
+        matches: [
+          {
+            id: "r1-0",
+            bracket: "winners",
+            round: 1,
+            order: 0,
+            matchNumber: "1",
+            slots: [
+              { kind: "entry", entryId: "e1" },
+              { kind: "entry", entryId: "e2" },
+            ],
+          },
+        ],
+      },
+      results: { version: 1, matches: [] },
+    });
+    memberFindFirst.mockResolvedValue({ id: "m1" });
+    participantFindFirst.mockResolvedValue({ id: "p3" });
+    participantFindMany.mockResolvedValue([
+      { id: "p1" },
+      { id: "p2" },
+      { id: "p3" },
+    ]);
 
     await Effect.runPromise(
       addEntryInDb(ids, { mode: "existing", memberId: "m1" }),
     );
 
-    await expect(
-      callMutate({
-        ...empty,
-        entries: {
-          version: 1,
-          entries: Array.from({ length: 128 }, (_, index) => ({
-            id: `e${index}`,
-            participantId: `p${index}`,
-            seed: index,
-          })),
-        },
-      }),
-    ).rejects.toMatchObject({ _tag: "DivisionEntryLimitError" });
+    const written = divisionUpdateMany.mock.calls[0][0].data.matchingConfig;
+    // 3 人の総当たりは 3 節 3 試合。
+    expect(written.matches).toHaveLength(3);
   });
 });
 
 describe("playerNumber の採番", () => {
   it("最初の参加者は 1", async () => {
-    memberFindFirst.mockResolvedValue({ id: "m1" });
-    participantFindMany.mockResolvedValue([]);
-
     await Effect.runPromise(
       addEntryInDb(ids, { mode: "existing", memberId: "m1" }),
     );
-    await callMutate(empty);
 
     expect(participantCreate).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -260,16 +365,17 @@ describe("playerNumber の採番", () => {
   });
 
   it("数値として読める最大の番号 + 1 を振る", async () => {
-    memberFindFirst.mockResolvedValue({ id: "m1" });
+    // playerNumber の集計用の行と、save() の participantId 検証用の行
+    // （作成される p1）を同じ配列に同居させる。
     participantFindMany.mockResolvedValue([
-      { playerNumber: "2" },
-      { playerNumber: "10" },
+      { id: "p2", playerNumber: "2" },
+      { id: "p10", playerNumber: "10" },
+      { id: "p1" },
     ]);
 
     await Effect.runPromise(
       addEntryInDb(ids, { mode: "existing", memberId: "m1" }),
     );
-    await callMutate(empty);
 
     expect(participantCreate).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -279,16 +385,15 @@ describe("playerNumber の採番", () => {
   });
 
   it("数値でない番号は最大値の計算から除外する", async () => {
-    memberFindFirst.mockResolvedValue({ id: "m1" });
     participantFindMany.mockResolvedValue([
-      { playerNumber: "A-99" },
-      { playerNumber: "3" },
+      { id: "pA", playerNumber: "A-99" },
+      { id: "pB", playerNumber: "3" },
+      { id: "p1" },
     ]);
 
     await Effect.runPromise(
       addEntryInDb(ids, { mode: "existing", memberId: "m1" }),
     );
-    await callMutate(empty);
 
     expect(participantCreate).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -298,13 +403,11 @@ describe("playerNumber の採番", () => {
   });
 
   it("既存の Participant を使い回すときは採番しない", async () => {
-    memberFindFirst.mockResolvedValue({ id: "m1" });
     participantFindFirst.mockResolvedValue({ id: "p1" });
 
     await Effect.runPromise(
       addEntryInDb(ids, { mode: "existing", memberId: "m1" }),
     );
-    await callMutate(empty);
 
     expect(participantCreate).not.toHaveBeenCalled();
   });

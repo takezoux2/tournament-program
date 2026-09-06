@@ -8,15 +8,14 @@ import {
   type DivisionError,
   DivisionMemberNotFoundError,
 } from "../errors";
+import { applyEntryAdded, maxEntries } from "../matching-strategy";
 import {
   type DivisionIds,
   type DivisionSetupOutcome,
   type DivisionSetupTx,
   runDivisionSetup,
 } from "../setup-store";
-import { buildFromSlots, toSlots } from "../single-elimination/build";
-import { placeEntry } from "../single-elimination/edit";
-import { type AddEntryInput, MAX_DIVISION_ENTRIES } from "./schema";
+import type { AddEntryInput } from "./schema";
 
 export type AddEntryPort = (
   ids: DivisionIds,
@@ -107,8 +106,9 @@ const resolveParticipantId = async (
 
 export const addEntryInDb: AddEntryPort = (ids, input) =>
   runDivisionSetup(ids, async (tx, current) => {
-    if (current.entries.entries.length >= MAX_DIVISION_ENTRIES) {
-      throw new DivisionEntryLimitError({ divisionId: ids.divisionId });
+    const limit = maxEntries(current.format);
+    if (current.entries.entries.length >= limit) {
+      throw new DivisionEntryLimitError({ divisionId: ids.divisionId, limit });
     }
 
     const memberId = await resolveMemberId(tx, ids.organizationId, input);
@@ -137,10 +137,16 @@ export const addEntryInDb: AddEntryPort = (ids, input) =>
       entries: [...current.entries.entries, added],
     };
 
-    // 組み合わせが未作成なら toSlots が空を返し、placeEntry も空のままになる。
-    const matchingConfig = buildFromSlots(
-      placeEntry(toSlots(current.matchingConfig), added.id),
+    // 組み合わせが未作成なら空のまま。生成は運営者が押したときだけ起きる。
+    const matchingConfig = applyEntryAdded(
+      current.format,
+      current.matchingConfig,
+      entries.entries,
+      added.id,
     );
 
-    return { next: { entries, matchingConfig }, value: null };
+    return {
+      next: { format: current.format, entries, matchingConfig },
+      value: null,
+    };
   });

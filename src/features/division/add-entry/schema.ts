@@ -1,8 +1,5 @@
 import { z } from "zod";
 
-/** 部門あたりのエントリー上限。ブラケットが際限なく育つのを防ぐ。 */
-export const MAX_DIVISION_ENTRIES = 128;
-
 const trimmedName = (label: string) =>
   z
     .string()

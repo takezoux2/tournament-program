@@ -93,7 +93,7 @@ describe("toDivisionError（タグ判定の網羅性）", () => {
     ["DivisionDataError", new DivisionDataError({ reason: "broken" })],
     [
       "DivisionEntryLimitError",
-      new DivisionEntryLimitError({ divisionId: "d1" }),
+      new DivisionEntryLimitError({ divisionId: "d1", limit: 128 }),
     ],
     [
       "DivisionDuplicateEntryError",
