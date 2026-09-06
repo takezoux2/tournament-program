@@ -70,10 +70,26 @@ describe("runDivisionSetup", () => {
     expect(mutate).not.toHaveBeenCalled();
   });
 
-  it("シングルエリミネーション以外は found: false を返し mutate を呼ばない", async () => {
+  it("リーグは編集できる形式なので mutate を呼び、形式を渡す", async () => {
+    divisionFindFirst.mockResolvedValue({ ...emptyRow, format: "ROUND_ROBIN" });
+    const mutate = vi.fn(async () => ({ next: null, value: null }));
+
+    const result = await Effect.runPromise(runDivisionSetup(ids, mutate));
+
+    expect(result).toEqual({ found: true, value: null });
+    expect(mutate).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ format: "ROUND_ROBIN" }),
+    );
+  });
+
+  it("編集画面の無い形式は found: false を返し mutate を呼ばない", async () => {
     // Server Action は画面を経由せず直接叩けるので、対象外の形式の部門へ
     // 組み合わせを書き込まれないことをこの層で保証する。
-    divisionFindFirst.mockResolvedValue({ ...emptyRow, format: "ROUND_ROBIN" });
+    divisionFindFirst.mockResolvedValue({
+      ...emptyRow,
+      format: "DOUBLE_ELIMINATION_GRAND_FINAL",
+    });
     // 素通りしたときに mutate 側で落ちるのではなく assertion で落ちるよう、
     // 呼ばれれば成立する戻り値を持たせておく。
     const mutate = vi.fn(async () => ({ next: null, value: null }));
@@ -82,7 +98,27 @@ describe("runDivisionSetup", () => {
 
     expect(result).toEqual({ found: false });
     expect(mutate).not.toHaveBeenCalled();
-    expect(divisionUpdateMany).not.toHaveBeenCalled();
+  });
+
+  it("書き戻しでは format を更新しない", async () => {
+    // 形式は /edit の責務。この経路では読み出すだけで書かない。
+    divisionFindFirst.mockResolvedValue(emptyRow);
+
+    await Effect.runPromise(
+      runDivisionSetup(ids, async (_tx, current) => ({
+        next: current,
+        value: null,
+      })),
+    );
+
+    expect(divisionUpdateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: {
+          entries: EMPTY_DIVISION_ENTRIES,
+          matchingConfig: EMPTY_MATCHING_CONFIG,
+        },
+      }),
+    );
   });
 
   it("形式も select して読む", async () => {
@@ -148,6 +184,7 @@ describe("runDivisionSetup", () => {
     participantFindMany.mockResolvedValue([{ id: "p1" }]);
 
     const next = {
+      format: "SINGLE_ELIMINATION" as const,
       entries: {
         version: 1 as const,
         entries: [{ id: "e1", participantId: "p1", seed: 0 }],
@@ -173,6 +210,7 @@ describe("runDivisionSetup", () => {
     const exit = await Effect.runPromiseExit(
       runDivisionSetup(ids, async () => ({
         next: {
+          format: "SINGLE_ELIMINATION" as const,
           entries: {
             version: 1 as const,
             entries: [{ id: "e1", participantId: "missing", seed: 0 }],
