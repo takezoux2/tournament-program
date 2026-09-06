@@ -9,6 +9,9 @@ import { z } from "zod";
 export const normalizeUsername = (raw: string): string =>
   raw.trim().toLowerCase();
 
+/** username の長さの下限。プラグイン側の既定（3）ではなくこちらを使う。 */
+export const MIN_USERNAME_LENGTH = 1;
+
 /** username の長さの上限。生成した名前もこの範囲に収める。 */
 export const MAX_USERNAME_LENGTH = 50;
 
@@ -32,7 +35,7 @@ export const usernameSchema = z
   .pipe(
     z
       .string()
-      .min(1, "ユーザー名を入力してください")
+      .min(MIN_USERNAME_LENGTH, "ユーザー名を入力してください")
       .max(
         MAX_USERNAME_LENGTH,
         `ユーザー名は${MAX_USERNAME_LENGTH}文字以内で入力してください`,
