@@ -17,10 +17,16 @@ import {
 } from "../setup-store";
 import type { AddEntryInput } from "./schema";
 
+/**
+ * 追加の結果。組み合わせを作り直したかどうかを分けて返すのは、
+ * 画面の通知が事実とずれないようにするため。reorder-entry と同じ理由。
+ */
+export type AddEntryResult = { regenerated: boolean };
+
 export type AddEntryPort = (
   ids: DivisionIds,
   input: AddEntryInput,
-) => Effect.Effect<DivisionSetupOutcome<null>, DivisionError>;
+) => Effect.Effect<DivisionSetupOutcome<AddEntryResult>, DivisionError>;
 
 /**
  * Member を決める。既存を選んだ場合は組織を where に入れて確かめる。
@@ -105,7 +111,7 @@ const resolveParticipantId = async (
 };
 
 export const addEntryInDb: AddEntryPort = (ids, input) =>
-  runDivisionSetup(ids, async (tx, current) => {
+  runDivisionSetup<AddEntryResult>(ids, async (tx, current) => {
     const limit = maxEntries(current.format);
     if (current.entries.entries.length >= limit) {
       throw new DivisionEntryLimitError({ divisionId: ids.divisionId, limit });
@@ -147,6 +153,11 @@ export const addEntryInDb: AddEntryPort = (ids, input) =>
 
     return {
       next: { format: current.format, entries, matchingConfig },
-      value: null,
+      value: {
+        // applyEntryAdded は作り直さなかったとき current.matchingConfig を
+        // そのまま返す（参照が同じ）。reorder-entry/repository.ts と同じ
+        // 判別方法。
+        regenerated: matchingConfig !== current.matchingConfig,
+      },
     };
   });

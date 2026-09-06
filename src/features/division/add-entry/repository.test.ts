@@ -188,7 +188,7 @@ describe("addEntryInDb", () => {
       { id: "p3" },
     ]);
 
-    await Effect.runPromise(
+    const result = await Effect.runPromise(
       addEntryInDb(ids, { mode: "existing", memberId: "m1" }),
     );
 
@@ -198,15 +198,19 @@ describe("addEntryInDb", () => {
       kind: "entry",
       entryId: added,
     });
+    // bye を埋めるだけでも buildFromSlots が木を丸ごと組み立て直すため、
+    // 手で振った試合番号は失われる。regenerated はその事実を伝える。
+    expect(result).toEqual({ found: true, value: { regenerated: true } });
   });
 
   it("組み合わせが未作成なら組み合わせは空のまま", async () => {
-    await Effect.runPromise(
+    const result = await Effect.runPromise(
       addEntryInDb(ids, { mode: "existing", memberId: "m1" }),
     );
 
     const written = divisionUpdateMany.mock.calls[0][0].data.matchingConfig;
     expect(written.matches).toEqual([]);
+    expect(result).toEqual({ found: true, value: { regenerated: false } });
   });
 
   it("同じ参加者の二重エントリーを拒否する", async () => {
@@ -301,7 +305,7 @@ describe("addEntryInDb", () => {
       addEntryInDb(ids, { mode: "existing", memberId: "m1" }),
     );
 
-    expect(result).toEqual({ found: true, value: null });
+    expect(result).toEqual({ found: true, value: { regenerated: false } });
   });
 
   it("リーグは組み合わせがあると丸ごと作り直す", async () => {
@@ -341,13 +345,15 @@ describe("addEntryInDb", () => {
       { id: "p3" },
     ]);
 
-    await Effect.runPromise(
+    const result = await Effect.runPromise(
       addEntryInDb(ids, { mode: "existing", memberId: "m1" }),
     );
 
     const written = divisionUpdateMany.mock.calls[0][0].data.matchingConfig;
     // 3 人の総当たりは 3 節 3 試合。
     expect(written.matches).toHaveLength(3);
+    // 手で振った試合番号が消えたことを画面へ伝えるためのフラグ。
+    expect(result).toEqual({ found: true, value: { regenerated: true } });
   });
 });
 

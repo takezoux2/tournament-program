@@ -49,5 +49,11 @@ export const addEntryAction = async (
   }
 
   revalidateDivisionSetup(slug, tournamentId, divisionId);
-  return { error: null, notice: "エントリーを追加しました" };
+
+  // リーグは 1 人増えるだけで全員の試合と matchNumber が丸ごと作り直る。
+  // 手で振った試合番号が消えるのは驚きになりうるので、起きたことを明示する。
+  // remove-entry/handler.ts と同じ言い回しにする。
+  return exit.value.value.regenerated
+    ? { error: null, notice: "エントリーを追加し、組み合わせを再生成しました" }
+    : { error: null, notice: "エントリーを追加しました" };
 };
