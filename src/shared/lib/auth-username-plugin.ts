@@ -5,6 +5,7 @@ import {
   MAX_USERNAME_LENGTH,
   MIN_USERNAME_LENGTH,
   USERNAME_PATTERN,
+  USERNAME_PLUGIN_DISPLAY_USERNAME,
 } from "@/shared/lib/username";
 
 /**
@@ -17,7 +18,7 @@ import {
  * displayUsername を切っているのは、User テーブルにその列が無いため。
  */
 const base = username({
-  displayUsername: false,
+  displayUsername: USERNAME_PLUGIN_DISPLAY_USERNAME,
   minUsernameLength: MIN_USERNAME_LENGTH,
   maxUsernameLength: MAX_USERNAME_LENGTH,
   usernameValidator: (value) => USERNAME_PATTERN.test(value),
@@ -37,8 +38,15 @@ const base = username({
  * unique / sortable / returned はプラグイン側の値を残す（サインイン時の
  * username 検索と重複チェックがそれに乗っている）。
  */
+
+// このアプリは使わない。/is-username-available は未認証でユーザー名の
+// 存在を答えるため、置いたままにするとアカウント列挙の口になる。
+const { isUsernameAvailable: _isUsernameAvailable, ...endpoints } =
+  base.endpoints;
+
 export const usernamePlugin = {
   ...base,
+  endpoints,
   schema: {
     ...base.schema,
     user: {

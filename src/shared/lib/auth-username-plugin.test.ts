@@ -1,11 +1,24 @@
 import { describe, expect, it } from "vitest";
 import { usernameAdditionalField } from "./auth-user-fields";
 import { usernamePlugin } from "./auth-username-plugin";
-import { MAX_USERNAME_LENGTH, MIN_USERNAME_LENGTH } from "./username";
+import {
+  MAX_USERNAME_LENGTH,
+  MIN_USERNAME_LENGTH,
+  usernameBaseFromEmail,
+  usernameCandidates,
+} from "./username";
 
 describe("usernamePlugin", () => {
   it("ユーザー名でのサインインの口を持つ", () => {
     expect(usernamePlugin.endpoints.signInUsername).toBeDefined();
+  });
+
+  it("ユーザー名の空き確認の口は生やさない", () => {
+    // /is-username-available は未認証でユーザー名の存在有無を返す。
+    // アカウント列挙の口になるため、このアプリでは落とす。
+    expect(usernamePlugin.endpoints).not.toHaveProperty(
+      "isUsernameAvailable",
+    );
   });
 
   it("displayUsername の列は生やさない", () => {
@@ -44,5 +57,43 @@ describe("usernamePlugin", () => {
     expect(await validate("take-zoux_2")).toBe(true);
     expect(await validate("take.zoux")).toBe(false);
     expect(await validate("たけぞう")).toBe(false);
+  });
+
+  it("Google サインインで生成した username 候補はプラグインの規則を必ず通る", async () => {
+    // databaseHooks.user.create.before は /sign-up/email と /update-user 以外の
+    // 全経路（Google の OAuth コールバックを含む）で username を検証する。
+    // ここで弾かれる候補が 1 つでもあると、新規 Google ユーザーは
+    // サインインの入口にすら立てずロックアウトされる。
+    const validate = usernamePlugin.options?.usernameValidator;
+    expect(validate).toBeDefined();
+    if (!validate) return;
+
+    const emails = [
+      // ローカル部が使える文字を 1 つも含まない → FALLBACK_USERNAME_BASE
+      "!!!@example.com",
+      // ローカル部が空 → 同じく FALLBACK_USERNAME_BASE
+      "@example.com",
+      // MAX_USERNAME_LENGTH（50）を超える → base の時点で切り詰め
+      `${"a".repeat(80)}@example.com`,
+      // 素直な短いローカル部
+      "take.zoux-2@example.com",
+    ];
+
+    const bases = emails.map((email) => usernameBaseFromEmail(email));
+    const fixedSuffix = () => "abc123";
+    const candidateLists = bases.flatMap((base) => [
+      usernameCandidates(base), // 実運用のランダム接尾辞
+      usernameCandidates(base, fixedSuffix), // 決定的な接尾辞での再確認
+    ]);
+
+    for (const candidates of candidateLists) {
+      // 素そのもの・連番接尾辞（2〜20）・ランダム接尾辞のすべてを含む。
+      expect(candidates.length).toBe(1 + 19 + 10);
+      for (const candidate of candidates) {
+        expect(await validate(candidate)).toBe(true);
+        expect(candidate.length).toBeGreaterThanOrEqual(MIN_USERNAME_LENGTH);
+        expect(candidate.length).toBeLessThanOrEqual(MAX_USERNAME_LENGTH);
+      }
+    }
   });
 });

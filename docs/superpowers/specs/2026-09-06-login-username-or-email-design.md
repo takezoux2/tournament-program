@@ -86,6 +86,19 @@ API の検証を素通りし、NOT NULL 制約まで落ちてから `FAILED_TO_C
 `auth-client.ts` は `createAuthClient({ plugins: [usernameClient()] })` にする。
 `signIn.username` の型を得るために必要。
 
+**レビューで見つかった追記**: `username()` は `...base` の spread 経由で
+`base.endpoints` も渡ってくる。better-auth はプラグインが返す `endpoints` の
+キーをそのまま `/api/auth/*` にマウントするため（`better-auth/dist/api/index.mjs`）、
+使うつもりの `signInUsername` だけでなく `isUsernameAvailable`
+（`POST /api/auth/is-username-available`）も生えてしまう。このエンドポイントは
+未認証で「そのユーザー名は存在するか」を答える、まさにこのアプリが避けている
+アカウント列挙の口そのもの（サインアップの「成功したふり」や、採らなかった案 2 を
+却下した理由と同じ問題）。しかもこのアプリでは呼んでもいないし、`/sign-in` 接頭辞
+向けの better-auth のレート制限にも乗らない。そのため `auth-username-plugin.ts` で
+`base.endpoints` から `isUsernameAvailable` を除いてから `usernamePlugin` に渡す。
+次に別のプラグインを足すときも、`endpoints` だけでなく `schema` や
+`databaseHooks` など、そのプラグインが何を一緒に持ち込むかを確認すること。
+
 ## 入力の判別
 
 新規 `src/features/auth/login/identifier.ts`。
