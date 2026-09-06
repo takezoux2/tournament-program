@@ -69,15 +69,18 @@ describe("regenerateMatching", () => {
 
 describe("applyEntryAdded", () => {
   it("トーナメントは末尾の bye を埋め、既存のカードを壊さない", () => {
-    // 2 人ぶんの木に 3 人目を足すと 1 段拡張されて 4 席になる。
-    const current = buildFromSlots(generateSlots(entriesOf(2)));
+    // 8 人（フルブラケット、bye 無し）に 9 人目を足すと 1 段拡張されて
+    // 16 席になる。2 人だと 2 回戦以降が存在せず、この先で確かめたい
+    // isSingleEliminationShape の判定を素通りさせてしまうため、
+    // 実際に複数ラウンドを持つ大きさで確かめる。
+    const current = buildFromSlots(generateSlots(entriesOf(8)));
     const next = applyEntryAdded(
       "SINGLE_ELIMINATION",
       current,
-      entriesOf(3),
-      "e3",
+      entriesOf(9),
+      "e9",
     );
-    expect(next.matches.filter((match) => match.round === 1)).toHaveLength(2);
+    expect(next.matches.filter((match) => match.round === 1)).toHaveLength(8);
   });
 
   it("リーグは丸ごと作り直す。1 人増えれば全員の試合が増えるため", () => {
@@ -123,16 +126,20 @@ describe("applyEntryAdded", () => {
   });
 
   it("SINGLE_ELIMINATION で本当にブラケット形なら従来どおり足す", () => {
-    // 形が正しいときの挙動まで変えてはいけない。
-    const bracketShaped = buildFromSlots(generateSlots(entriesOf(2)));
+    // 形が正しいときの挙動まで変えてはいけない。2 人ぶんの木だと
+    // 2 回戦以降が存在せず isSingleEliminationShape の every が空配列に
+    // なって何を判定しても true になってしまい、判定が壊れていても
+    // このテストは気づけない。2 回戦・3 回戦を実際に持つ 8 人の
+    // フルブラケットで確かめる。
+    const bracketShaped = buildFromSlots(generateSlots(entriesOf(8)));
     const next = applyEntryAdded(
       "SINGLE_ELIMINATION",
       bracketShaped,
-      entriesOf(3),
-      "e3",
+      entriesOf(9),
+      "e9",
     );
     expect(next).not.toBe(bracketShaped);
-    expect(next.matches.filter((match) => match.round === 1)).toHaveLength(2);
+    expect(next.matches.filter((match) => match.round === 1)).toHaveLength(8);
   });
 });
 
