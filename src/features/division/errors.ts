@@ -83,6 +83,20 @@ export class DivisionParticipantNotFoundError extends Data.TaggedError(
   readonly participantId: string;
 }> {}
 
+/** results の楽観ロック（revision）が競合したことを表す。 */
+export class DivisionRevisionConflictError extends Data.TaggedError(
+  "DivisionRevisionConflictError",
+)<{
+  readonly divisionId: string;
+}> {}
+
+/** 対戦相手がまだ決まっていない試合に勝敗を入れようとしたことを表す。 */
+export class DivisionSlotNotDecidedError extends Data.TaggedError(
+  "DivisionSlotNotDecidedError",
+)<{
+  readonly matchId: string;
+}> {}
+
 export type DivisionError =
   | DivisionOrderConflictError
   | UnexpectedDivisionError
@@ -94,7 +108,9 @@ export type DivisionError =
   | DivisionMemberNotFoundError
   | DivisionMatchNotFoundError
   | DivisionMatchNumberConflictError
-  | DivisionParticipantNotFoundError;
+  | DivisionParticipantNotFoundError
+  | DivisionRevisionConflictError
+  | DivisionSlotNotDecidedError;
 
 /**
  * DivisionError の全タグをコンパイラに列挙させるための対照表。
@@ -117,6 +133,8 @@ const divisionErrorTags: Record<DivisionError["_tag"], true> = {
   DivisionMatchNotFoundError: true,
   DivisionMatchNumberConflictError: true,
   DivisionParticipantNotFoundError: true,
+  DivisionRevisionConflictError: true,
+  DivisionSlotNotDecidedError: true,
 };
 
 /**

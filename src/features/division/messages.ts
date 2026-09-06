@@ -48,5 +48,13 @@ export const divisionErrorMessage: (error: DivisionError) => string =
       "DivisionParticipantNotFoundError",
       () => "対象の参加者が見つかりません。画面を再読み込みしてください",
     ),
+    Match.tag(
+      "DivisionRevisionConflictError",
+      () => "他の人が更新しました。画面を再読み込みしてください",
+    ),
+    Match.tag(
+      "DivisionSlotNotDecidedError",
+      () => "対戦相手がまだ決まっていません。画面を再読み込みしてください",
+    ),
     Match.exhaustive,
   );
