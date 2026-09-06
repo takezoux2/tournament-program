@@ -14,6 +14,7 @@ import {
   DivisionMatchNumberConflictError,
   toDivisionError,
 } from "../errors";
+import { isEditableFormat } from "../matching-strategy";
 import type { DivisionIds, DivisionSetupOutcome } from "../setup-store";
 import type { SetMatchNumberInput } from "./schema";
 
@@ -41,8 +42,8 @@ export const setMatchNumberInDb: SetMatchNumberPort = (ids, input) =>
           },
           select: { format: true, entries: true, matchingConfig: true },
         });
-        // 対象外の形式は setup-store と同じく「無い」に倒す。
-        if (!row || row.format !== "SINGLE_ELIMINATION") {
+        // 編集画面を持たない形式は setup-store と同じく「無い」に倒す。
+        if (!row || !isEditableFormat(row.format)) {
           return { found: false };
         }
 

@@ -17,6 +17,13 @@ export type SwapSlotsPort = (
 
 export const swapSlotsInDb: SwapSlotsPort = (ids, input) =>
   runDivisionSetup<{ swapped: boolean }>(ids, async (_tx, current) => {
+    // 1 回戦スロットの入れ替えは勝ち上がり木にしか意味が無い。
+    // setup-store は編集画面を持つ 2 形式を通すので、ここで絞る。
+    // 存在を漏らさないため、対象外の形式は「その部門は無い」と同じに倒す。
+    if (current.format !== "SINGLE_ELIMINATION") {
+      return { next: null, value: { swapped: false } };
+    }
+
     const slots = swapSlots(
       toSlots(current.matchingConfig),
       input.indexA,
@@ -31,6 +38,7 @@ export const swapSlotsInDb: SwapSlotsPort = (ids, input) =>
 
     return {
       next: {
+        format: current.format,
         entries: current.entries,
         matchingConfig: buildFromSlots(slots),
       },

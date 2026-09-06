@@ -1,15 +1,26 @@
 import { Effect } from "effect";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { DivisionSetup } from "../setup-store";
 import { buildFromSlots } from "../single-elimination/build";
 
-const runDivisionSetup = vi.fn();
+const divisionFindFirst = vi.fn();
+const divisionUpdateMany = vi.fn();
+const participantFindMany = vi.fn();
 
-vi.mock("../setup-store", () => ({
-  runDivisionSetup: (
-    ids: unknown,
-    mutate: (tx: unknown, current: DivisionSetup) => Promise<unknown>,
-  ) => runDivisionSetup(ids, mutate),
+// setup-store 経由で実際に組み立てまで走らせるため、mock するのは
+// Prisma の境界だけにする（setup-store 自体はモックしない）。
+vi.mock("@/shared/db/prisma", () => ({
+  prisma: {
+    $transaction: (run: (tx: unknown) => Promise<unknown>) =>
+      run({
+        division: {
+          findFirst: (args: unknown) => divisionFindFirst(args),
+          updateMany: (args: unknown) => divisionUpdateMany(args),
+        },
+        participant: {
+          findMany: (args: unknown) => participantFindMany(args),
+        },
+      }),
+  },
 }));
 
 const { swapSlotsInDb } = await import("./repository");
@@ -18,66 +29,87 @@ const ids = { organizationId: "o1", tournamentId: "t1", divisionId: "d1" };
 
 const entry = (id: string) => ({ kind: "entry" as const, entryId: id });
 
-const current: DivisionSetup = {
-  entries: {
-    version: 1,
-    entries: ["e1", "e2", "e3", "e4"].map((id, index) => ({
-      id,
-      participantId: `p${index + 1}`,
-      seed: index,
-    })),
-  },
-  matchingConfig: buildFromSlots(["e1", "e2", "e3", "e4"].map(entry)),
+const entries = {
+  version: 1,
+  entries: ["e1", "e2", "e3", "e4"].map((id, index) => ({
+    id,
+    participantId: `p${index + 1}`,
+    seed: index,
+  })),
 };
 
-const callMutate = async (setup: DivisionSetup) => {
-  const mutate = runDivisionSetup.mock.calls[0][1];
-  return mutate({}, setup);
-};
+const matchingConfig = buildFromSlots(["e1", "e2", "e3", "e4"].map(entry));
 
 beforeEach(() => {
-  runDivisionSetup.mockReset();
-  runDivisionSetup.mockReturnValue(
-    Effect.succeed({ found: true, value: { swapped: true } }),
+  divisionFindFirst.mockReset();
+  divisionUpdateMany.mockReset();
+  participantFindMany.mockReset();
+  divisionFindFirst.mockResolvedValue({
+    format: "SINGLE_ELIMINATION",
+    entries,
+    matchingConfig,
+    results: { version: 1, matches: [] },
+  });
+  participantFindMany.mockResolvedValue(
+    entries.entries.map((entry) => ({ id: entry.participantId })),
   );
+  divisionUpdateMany.mockResolvedValue({ count: 1 });
 });
 
 describe("swapSlotsInDb", () => {
   it("指定した 2 スロットを入れ替えて木を組み立て直す", async () => {
-    await Effect.runPromise(swapSlotsInDb(ids, { indexA: 0, indexB: 3 }));
-    const { next, value } = await callMutate(current);
+    const result = await Effect.runPromise(
+      swapSlotsInDb(ids, { indexA: 0, indexB: 3 }),
+    );
 
-    expect(value).toEqual({ swapped: true });
-    expect(next.matchingConfig.matches[0].slots).toEqual([
-      entry("e4"),
-      entry("e2"),
-    ]);
-    expect(next.matchingConfig.matches[1].slots).toEqual([
-      entry("e3"),
-      entry("e1"),
-    ]);
+    expect(result).toEqual({ found: true, value: { swapped: true } });
+    const written = divisionUpdateMany.mock.calls[0][0].data.matchingConfig;
+    expect(written.matches[0].slots).toEqual([entry("e4"), entry("e2")]);
+    expect(written.matches[1].slots).toEqual([entry("e3"), entry("e1")]);
   });
 
   it("エントリーには手を触れない", async () => {
     await Effect.runPromise(swapSlotsInDb(ids, { indexA: 0, indexB: 1 }));
-    const { next } = await callMutate(current);
 
-    expect(next.entries).toBe(current.entries);
+    expect(divisionUpdateMany.mock.calls[0][0].data.entries).toEqual(entries);
   });
 
   it("範囲外の添字なら書き込まない", async () => {
-    await Effect.runPromise(swapSlotsInDb(ids, { indexA: 0, indexB: 99 }));
-    const { next, value } = await callMutate(current);
+    const result = await Effect.runPromise(
+      swapSlotsInDb(ids, { indexA: 0, indexB: 99 }),
+    );
 
-    expect(next).toBeNull();
-    expect(value).toEqual({ swapped: false });
+    expect(result).toEqual({ found: true, value: { swapped: false } });
+    expect(divisionUpdateMany).not.toHaveBeenCalled();
   });
 
   it("同じ添字なら書き込まない", async () => {
-    await Effect.runPromise(swapSlotsInDb(ids, { indexA: 2, indexB: 2 }));
-    const { next, value } = await callMutate(current);
+    const result = await Effect.runPromise(
+      swapSlotsInDb(ids, { indexA: 2, indexB: 2 }),
+    );
 
-    expect(next).toBeNull();
-    expect(value).toEqual({ swapped: false });
+    expect(result).toEqual({ found: true, value: { swapped: false } });
+    expect(divisionUpdateMany).not.toHaveBeenCalled();
+  });
+
+  it("リーグの部門では入れ替えを受け付けない", async () => {
+    // 1 回戦スロットの入れ替えは総当たりに意味が無い。setup-store の
+    // 形式チェックが広がったぶん、このスライスで弾く。
+    divisionFindFirst.mockResolvedValue({
+      format: "ROUND_ROBIN",
+      entries: { version: 1, entries: [] },
+      matchingConfig: { version: 1, matches: [] },
+      results: { version: 1, matches: [] },
+    });
+
+    const result = await Effect.runPromise(
+      swapSlotsInDb(ids, { indexA: 0, indexB: 1 }),
+    );
+
+    // setup-store は 2 形式を通すので、スライスからは found: false を返せない。
+    // 「何も起きなかった」という既存の応答に倒す。端まで来ているケースと
+    // 区別が付かないため、リーグの部門であることも漏れない。
+    expect(result).toEqual({ found: true, value: { swapped: false } });
+    expect(divisionUpdateMany).not.toHaveBeenCalled();
   });
 });
