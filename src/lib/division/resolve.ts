@@ -111,14 +111,16 @@ export const resolveMatchSlots = (
 };
 
 /**
- * その試合を winnerOf / loserOf で推移的に参照する試合の id を集める。
- * 勝者を変えたときに取り消すべき記録の範囲がこれで、画面に出す
- * 「あとの試合の結果 N 件」もこの集合から数える。
+ * 「どの試合が、どの試合を winnerOf / loserOf で参照しているか」の対応表。
+ *
+ * downstreamMatchIds を行ごとに呼ぶと、呼ぶたびに全試合を舐めてこの対応表を
+ * 作り直すことになり、試合数に対して二乗に近い計算量になる。一覧表示のように
+ * 同じ部門で何度も辿る場合は、ここで対応表を部門ごとに 1 度だけ作り、
+ * downstreamMatchIdsFromDependents に渡すこと。
  */
-export const downstreamMatchIds = (
-  matchId: string,
+export const buildMatchDependents = (
   config: MatchingConfig,
-): Set<string> => {
+): Map<string, string[]> => {
   const dependents = new Map<string, string[]>();
   for (const match of config.matches) {
     for (const slot of match.slots) {
@@ -129,7 +131,18 @@ export const downstreamMatchIds = (
       }
     }
   }
+  return dependents;
+};
 
+/**
+ * 対応表（buildMatchDependents の戻り値）から、その試合を winnerOf / loserOf で
+ * 推移的に参照する試合の id を集める。勝者を変えたときに取り消すべき記録の
+ * 範囲がこれで、画面に出す「あとの試合の結果 N 件」もこの集合から数える。
+ */
+export const downstreamMatchIdsFromDependents = (
+  matchId: string,
+  dependents: Map<string, string[]>,
+): Set<string> => {
   const found = new Set<string>();
   const stack = [matchId];
   while (stack.length > 0) {
@@ -149,3 +162,14 @@ export const downstreamMatchIds = (
 
   return found;
 };
+
+/**
+ * downstreamMatchIdsFromDependents の薄いラッパ。呼ぶたびに対応表を作り直すため、
+ * 同じ部門で何度も呼ぶ場所（行ごとのループなど）では使わないこと。
+ * 1 回きりの呼び出し向け。
+ */
+export const downstreamMatchIds = (
+  matchId: string,
+  config: MatchingConfig,
+): Set<string> =>
+  downstreamMatchIdsFromDependents(matchId, buildMatchDependents(config));

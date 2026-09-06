@@ -1,6 +1,7 @@
 import { createSlotLabeler } from "@/lib/division/label";
 import {
-  downstreamMatchIds,
+  buildMatchDependents,
+  downstreamMatchIdsFromDependents,
   type ResolvedMatch,
   resolveMatchSlots,
 } from "@/lib/division/resolve";
@@ -90,6 +91,13 @@ export const buildResultRows = (
         recorded: new Set(
           division.results.matches.map((record) => record.matchId),
         ),
+        // id から試合を引く表。行ごとに matches を線形探索しないための Map。
+        matchById: new Map(
+          division.matchingConfig.matches.map((match) => [match.id, match]),
+        ),
+        // winnerOf / loserOf の対応表。downstreamMatchIds は呼ぶたびにこれを
+        // 作り直すため、行ごとのループでは部門ごとに 1 度だけ作って使い回す。
+        dependents: buildMatchDependents(division.matchingConfig),
       },
     ]),
   );
@@ -103,9 +111,7 @@ export const buildResultRows = (
     if (current === undefined) {
       return [];
     }
-    const match = current.division.matchingConfig.matches.find(
-      (candidate) => candidate.id === row.matchId,
-    );
+    const match = current.matchById.get(row.matchId);
     const resolved = current.resolved.get(row.matchId);
     if (match === undefined || resolved === undefined) {
       return [];
@@ -123,9 +129,9 @@ export const buildResultRows = (
         : { label: current.labelSlot(match.slots[index]), entryId: null };
     };
 
-    const downstream = downstreamMatchIds(
+    const downstream = downstreamMatchIdsFromDependents(
       row.matchId,
-      current.division.matchingConfig,
+      current.dependents,
     );
 
     return [
