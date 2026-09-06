@@ -127,6 +127,34 @@ Json のパース、勝敗が記録済みかの確認、保存前の検証、`up
 表示側は必ずサーバで文字列にしてから画面へ運ぶ。クライアントで組み立てると
 ブラウザの時刻帯で書き、サーバの時刻帯で `new Date` することになり、時差ぶんずれる。
 
+## features/division/record-result
+
+`features/division/record-result` は、5 つの編集スライスと違って `setup-store.ts` を
+**意図的に使わない**。`setup-store.ts` の読み出しは「`results` が 1 件でもあれば
+部門の編集を拒否する」作りだが、このスライスが書き換えたいのはまさに `results` 列
+そのものだから、この読み出しには乗れない。先例は `set-match-number` と同じ形の
+専用トランザクション（所有権つきの読み出し・パース・検証・`updateMany` での
+書き戻しをスライス自身の `repository.ts` に持つ）である。
+
+このスライスはさらに、`Division.revision` による楽観ロックを持つ唯一の書き込み経路
+でもある。読み出し時の `revision` をそのまま `updateMany` の `where` に入れ、
+0 件を「他の操作が先に書いた」競合として扱う（`DivisionRevisionConflictError`）。
+結果入力は会場で同時に複数人が同じ試合を操作しうるため、他のスライスの
+「送ったキー集合が一致するか」（`features/division/reorder` 系）や「検出しない」
+（`features/schedule` の区切り編集）とは異なる強さの排他制御を選んでいる。
+
+## features/schedule/result-rows.ts
+
+`features/schedule/result-rows.ts` は `domain.ts` と同じく、スライスではなく
+カテゴリ直下に置く共有モジュールである。`buildScheduleView` の出力（進行順の行）に、
+「いま誰がスロットに立っているか」と記録状態（`ready` / `recorded` / `waiting` / `bye`）
+を足す読み出しの純粋関数を持つ。
+
+勝者の伝播（`winnerOf` / `loserOf` の解決）と、そこから辿る下流試合の集合は
+下位共通層の `src/lib/division/resolve.ts` に置く。`features/schedule` と
+`features/division`（`record-result`）の両方がここを参照する。同列のカテゴリ同士では
+依存できないため、`lib/division/label.ts` と同じ向きの下ろし方である。
+
 ## テナント分離の 2 原則
 
 `features/organization` と `features/organization-user` と `features/tournament` と
