@@ -63,7 +63,14 @@ beforeEach(() => {
   scheduleItemCreateMany.mockReset();
   tournamentFindFirst.mockResolvedValue({ id: "t1" });
   divisionFindMany.mockResolvedValue([
-    { id: "dA", name: "男子", order: 0, entries, matchingConfig },
+    {
+      id: "dA",
+      name: "男子",
+      order: 0,
+      entries,
+      matchingConfig,
+      results: { version: 1, matches: [] },
+    },
   ]);
   participantFindMany.mockResolvedValue([
     { id: "p1", member: { name: "山田" } },

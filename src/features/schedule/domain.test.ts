@@ -43,6 +43,7 @@ const divisionA: ScheduleDivision = {
     ],
   },
   matchingConfig: config(["e1", "e2"], ["1", "2"]),
+  results: { version: 1, matches: [] },
 };
 
 const divisionB: ScheduleDivision = {
@@ -57,6 +58,7 @@ const divisionB: ScheduleDivision = {
     ],
   },
   matchingConfig: config(["f1", "f2"], ["1", "2"]),
+  results: { version: 1, matches: [] },
 };
 
 const participants = [
