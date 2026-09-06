@@ -1,3 +1,4 @@
+import type { DivisionFormat } from "@/generated/prisma/enums";
 import type {
   BracketMatch,
   DivisionEntries,
@@ -57,6 +58,16 @@ export const matchCardLabel = (
   labelSlot: SlotLabeler,
 ): string => `${labelSlot(match.slots[0])} vs ${labelSlot(match.slots[1])}`;
 
-/** 「1回戦 第1試合」のような構造上の位置。 */
-export const matchPositionLabel = (match: BracketMatch): string =>
-  `${match.round}回戦 第${match.order + 1}試合`;
+/**
+ * 「1回戦 第1試合」のような構造上の位置。
+ * リーグの round は節番号なので、形式によって数え方の言葉を変える。
+ * 形式を引数に取るのは、この関数が大会の進行順（複数の部門が混ざる）でも
+ * 使われるため。呼び出し側がその試合の部門の形式を知っている。
+ */
+export const matchPositionLabel = (
+  match: BracketMatch,
+  format: DivisionFormat,
+): string =>
+  format === "ROUND_ROBIN"
+    ? `第${match.round}節 第${match.order + 1}試合`
+    : `${match.round}回戦 第${match.order + 1}試合`;

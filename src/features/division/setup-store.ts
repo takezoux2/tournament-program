@@ -18,6 +18,7 @@ import {
   DivisionResultsRecordedError,
   toDivisionError,
 } from "./errors";
+import { type EditableFormat, isEditableFormat } from "./matching-strategy";
 
 /** 3 段の所有権を表す組。全スライスがこの形で受け渡す。 */
 export type DivisionIds = {
@@ -26,8 +27,12 @@ export type DivisionIds = {
   divisionId: string;
 };
 
-/** 編集対象の Json 2 列。results は変更しないので運ばない。 */
+/**
+ * 編集対象の Json 2 列と、その組み直し規則を選ぶための形式。
+ * results は変更しないので運ばない。
+ */
 export type DivisionSetup = {
+  format: EditableFormat;
   entries: DivisionEntries;
   matchingConfig: MatchingConfig;
 };
@@ -46,11 +51,12 @@ export type DivisionSetupOutcome<T> =
  * 所有権を where に入れて読み、Json を検証済みの形にして返す。
  * 勝敗が 1 件でも記録されていれば、この画面からは編集させない。
  *
- * 形式の判定をここに置くのは、Server Action がページを経由せず直接叩ける
- * 別の入口だから。画面（DivisionSetup）の分岐だけでは、例えば ROUND_ROBIN の
- * 部門へ generateMatching を投げられると、どの画面にも出ない勝ち上がり木が
- * matchingConfig に書き込まれてしまう。5 スライスが必ず通るこの読み出しで
- * 弾いておけば、スライスごとに同じ判定を書き写す必要がなくなる。
+ * 形式の判定をここに置くのは、Server Action がページを経由せず叩ける
+ * 別の入口だから。画面の分岐だけでは、例えば編集画面を持たない
+ * ダブルエリミネーションの部門へ generateMatching を投げられると、
+ * どの画面にも出ない組み合わせが matchingConfig に書き込まれてしまう。
+ * 全スライスが必ず通るこの読み出しで弾いておけば、スライスごとに
+ * 同じ判定を書き写す必要がなくなる。
  * 対象外の形式は「その部門は無い」と同じ扱いにして 404 に倒す。
  */
 const load = async (
@@ -73,7 +79,7 @@ const load = async (
     return null;
   }
 
-  if (row.format !== "SINGLE_ELIMINATION") {
+  if (!isEditableFormat(row.format)) {
     return null;
   }
 
@@ -82,6 +88,7 @@ const load = async (
   }
 
   return {
+    format: row.format,
     entries: parseDivisionEntries(row.entries),
     matchingConfig: parseMatchingConfig(row.matchingConfig),
   };
@@ -118,6 +125,7 @@ const save = async (
       id: ids.divisionId,
       tournament: { id: ids.tournamentId, organizationId: ids.organizationId },
     },
+    // format は書かない。形式の変更は /edit が持つ責務で、この経路では変えない。
     data: { entries: next.entries, matchingConfig: next.matchingConfig },
   });
 };

@@ -27,7 +27,10 @@ export const divisionErrorMessage: (error: DivisionError) => string =
       "DivisionDataError",
       () => "部門のデータが壊れています。管理者に連絡してください",
     ),
-    Match.tag("DivisionEntryLimitError", () => "エントリーは128人までです"),
+    Match.tag(
+      "DivisionEntryLimitError",
+      (error) => `エントリーは${error.limit}人までです`,
+    ),
     Match.tag(
       "DivisionDuplicateEntryError",
       () => "その参加者はすでにエントリーしています",

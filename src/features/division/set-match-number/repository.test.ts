@@ -128,4 +128,55 @@ describe("setMatchNumberInDb", () => {
     );
     expect(outcome).toEqual({ found: true, value: null });
   });
+
+  it("リーグの部門でも試合番号を変えられる", async () => {
+    divisionFindFirst.mockResolvedValue({
+      format: "ROUND_ROBIN",
+      entries: {
+        version: 1,
+        entries: [
+          { id: "e1", participantId: "p1", seed: 0 },
+          { id: "e2", participantId: "p2", seed: 1 },
+        ],
+      },
+      matchingConfig: {
+        version: 1,
+        matches: [
+          {
+            id: "r1-0",
+            bracket: "winners",
+            round: 1,
+            order: 0,
+            matchNumber: "1",
+            slots: [
+              { kind: "entry", entryId: "e1" },
+              { kind: "entry", entryId: "e2" },
+            ],
+          },
+        ],
+      },
+    });
+
+    const result = await Effect.runPromise(
+      setMatchNumberInDb(ids, { matchId: "r1-0", matchNumber: "A-1" }),
+    );
+
+    expect(result).toEqual({ found: true, value: null });
+    expect(divisionUpdateMany).toHaveBeenCalled();
+  });
+
+  it("編集画面の無い形式は found: false を返す", async () => {
+    divisionFindFirst.mockResolvedValue({
+      format: "DOUBLE_ELIMINATION_GRAND_FINAL",
+      entries: { version: 1, entries: [] },
+      matchingConfig: { version: 1, matches: [] },
+    });
+
+    const result = await Effect.runPromise(
+      setMatchNumberInDb(ids, { matchId: "m1-0", matchNumber: "2" }),
+    );
+
+    expect(result).toEqual({ found: false });
+    expect(divisionUpdateMany).not.toHaveBeenCalled();
+  });
 });

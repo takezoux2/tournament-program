@@ -53,7 +53,10 @@ beforeEach(() => {
   notFound.mockClear();
   requireOrganization.mockResolvedValue({ organization: { id: "o1" } });
   reorderEntryInDb.mockReturnValue(
-    Effect.succeed({ found: true, value: { moved: true } }),
+    Effect.succeed({
+      found: true,
+      value: { moved: true, matching: "unchanged" },
+    }),
   );
 });
 
@@ -82,7 +85,10 @@ describe("reorderEntryAction", () => {
 
   it("端まで来ていてもエラーにしない", async () => {
     reorderEntryInDb.mockReturnValue(
-      Effect.succeed({ found: true, value: { moved: false } }),
+      Effect.succeed({
+        found: true,
+        value: { moved: false },
+      }),
     );
 
     const state = await reorderEntryAction(
@@ -91,6 +97,47 @@ describe("reorderEntryAction", () => {
     );
 
     expect(state.error).toBeNull();
+  });
+
+  it("作り直したときだけ通知を出す", async () => {
+    reorderEntryInDb.mockReturnValue(
+      Effect.succeed({
+        found: true,
+        value: { moved: true, matching: "regenerated" },
+      }),
+    );
+
+    const state = await reorderEntryAction(
+      INITIAL_DIVISION_FORM_STATE,
+      formData("e2", "up"),
+    );
+
+    expect(state).toEqual({
+      error: null,
+      notice: "並べ替えに合わせて対戦表を作り直しました",
+    });
+  });
+
+  it("リーグの上限超過で取り消されたときはその旨を伝える", async () => {
+    // EntryRowActions.tsx が reorderState.notice を表示するようになった
+    // ので、handler が返す文言が事実と違うと画面がそのまま嘘をつく。
+    reorderEntryInDb.mockReturnValue(
+      Effect.succeed({
+        found: true,
+        value: { moved: true, matching: "clearedOverCap" },
+      }),
+    );
+
+    const state = await reorderEntryAction(
+      INITIAL_DIVISION_FORM_STATE,
+      formData("e2", "up"),
+    );
+
+    expect(state).toEqual({
+      error: null,
+      notice:
+        "並べ替えは反映しましたが、リーグの上限を超えたままのため組み合わせは取り消したままです",
+    });
   });
 
   it("向きが不正ならポートを呼ばない", async () => {

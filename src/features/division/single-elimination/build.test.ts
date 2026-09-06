@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 import type { MatchingConfig, SlotSource } from "@/lib/division/types";
-import { buildFromSlots, seedOrder, toSlots } from "./build";
+import {
+  buildFromSlots,
+  isSingleEliminationShape,
+  seedOrder,
+  toSlots,
+} from "./build";
 
 const entry = (id: string): SlotSource => ({ kind: "entry", entryId: id });
 const bye: SlotSource = { kind: "bye" };
@@ -181,5 +186,46 @@ describe("toSlots", () => {
 
   it("1 回戦が無ければ空配列を返す", () => {
     expect(toSlots({ version: 1, matches: [] })).toEqual([]);
+  });
+});
+
+describe("isSingleEliminationShape", () => {
+  it("組み立てたばかりの木は true", () => {
+    const slots = ["a", "b", "c", "d"].map(entry);
+    expect(isSingleEliminationShape(buildFromSlots(slots))).toBe(true);
+  });
+
+  it("空の組み合わせは true（まだ作っていないだけ）", () => {
+    expect(isSingleEliminationShape({ version: 1, matches: [] })).toBe(true);
+  });
+
+  it("1 試合だけの組み合わせは両形式で区別が付かないので true", () => {
+    const config = buildFromSlots([entry("a"), entry("b")]);
+    expect(isSingleEliminationShape(config)).toBe(true);
+  });
+
+  it("全スロットが entry のリーグの星取表は false", () => {
+    const config: MatchingConfig = {
+      version: 1,
+      matches: [
+        {
+          id: "r2-0",
+          bracket: "winners",
+          round: 2,
+          order: 0,
+          matchNumber: "2",
+          slots: [entry("a"), entry("c")],
+        },
+      ],
+    };
+    expect(isSingleEliminationShape(config)).toBe(false);
+  });
+
+  it("2 回戦以降が winnerOf なら true", () => {
+    const slots = ["a", "b", "c", "d"].map(entry);
+    const config = buildFromSlots(slots);
+    // 2 回戦（round 2）を持つ木であることを前提にしたテスト。
+    expect(config.matches.some((match) => match.round === 2)).toBe(true);
+    expect(isSingleEliminationShape(config)).toBe(true);
   });
 });

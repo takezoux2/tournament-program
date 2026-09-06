@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createSlotLabeler, matchCardLabel, matchPositionLabel } from "./label";
-import type { DivisionEntries, MatchingConfig } from "./types";
+import type { BracketMatch, DivisionEntries, MatchingConfig } from "./types";
 
 const config: MatchingConfig = {
   version: 1,
@@ -74,6 +74,35 @@ describe("matchCardLabel", () => {
 
 describe("matchPositionLabel", () => {
   it("round と order から構造上の位置を作る", () => {
-    expect(matchPositionLabel(config.matches[1])).toBe("2回戦 第1試合");
+    expect(matchPositionLabel(config.matches[1], "SINGLE_ELIMINATION")).toBe(
+      "2回戦 第1試合",
+    );
+  });
+
+  describe("matchPositionLabel（形式ごとの文言）", () => {
+    // BracketMatch.slots はタプル型（読み取り専用ではない）なので、
+    // ここでは `as const` を使わず型注釈でリテラル型を効かせる。
+    const match: BracketMatch = {
+      id: "x1-0",
+      bracket: "winners",
+      round: 2,
+      order: 1,
+      matchNumber: "5",
+      slots: [
+        { kind: "entry", entryId: "e1" },
+        { kind: "entry", entryId: "e2" },
+      ],
+    };
+
+    it("トーナメントは回戦で表す", () => {
+      expect(matchPositionLabel(match, "SINGLE_ELIMINATION")).toBe(
+        "2回戦 第2試合",
+      );
+    });
+
+    it("リーグは節で表す", () => {
+      // リーグの round は節番号。「2回戦」と出すと進行順画面が嘘をつく。
+      expect(matchPositionLabel(match, "ROUND_ROBIN")).toBe("第2節 第2試合");
+    });
   });
 });

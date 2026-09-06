@@ -33,6 +33,10 @@ export default async function DivisionSetupPage({
   if (!tournament || !division) {
     notFound();
   }
+  // リーグには専用画面（/league）がある。案内を出すより 404 に倒す。
+  if (division.format !== "SINGLE_ELIMINATION") {
+    notFound();
+  }
 
   return (
     <main className="min-h-screen bg-slate-50">

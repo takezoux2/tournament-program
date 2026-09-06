@@ -54,7 +54,7 @@ describe("divisionErrorMessage（追加分）", () => {
     ],
     [
       "DivisionEntryLimitError",
-      new DivisionEntryLimitError({ divisionId: "d1" }),
+      new DivisionEntryLimitError({ divisionId: "d1", limit: 128 }),
       "エントリーは128人までです",
     ],
     [
@@ -69,5 +69,15 @@ describe("divisionErrorMessage（追加分）", () => {
     ],
   ])("%s には固有の文言を返す", (_tag, error, expected) => {
     expect(divisionErrorMessage(error)).toBe(expected);
+  });
+
+  it("エントリー上限の文言は形式ごとの上限を出す", () => {
+    // 形式で上限が変わるのに文言が固定だと、リーグで 17 人目を弾いたときに
+    // 「128人まで」と嘘を表示してしまう。
+    expect(
+      divisionErrorMessage(
+        new DivisionEntryLimitError({ divisionId: "d1", limit: 16 }),
+      ),
+    ).toBe("エントリーは16人までです");
   });
 });

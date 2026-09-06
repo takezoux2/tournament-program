@@ -3,6 +3,7 @@ import type {
   DivisionDetail,
   DivisionParticipant,
 } from "@/features/division/repository";
+import { isSingleEliminationShape } from "@/features/division/single-elimination/build";
 import {
   toMatchNumberView,
   toSetupView,
@@ -17,8 +18,10 @@ import {
 import { AddEntryForm } from "./AddEntryForm";
 import { DivisionBracket } from "./DivisionBracket";
 import { EntryList } from "./EntryList";
+import { GenerateMatchingForm } from "./GenerateMatchingForm";
 import { MatchingSection } from "./MatchingSection";
 import { MatchNumberList } from "./MatchNumberList";
+import { Notice } from "./Notice";
 
 export type DivisionSetupActions = {
   addEntry: DivisionFormAction;
@@ -29,12 +32,6 @@ export type DivisionSetupActions = {
   setMatchNumber: DivisionFormAction;
   setPlayerNumber: DivisionFormAction;
 };
-
-const Notice = ({ children }: { children: React.ReactNode }) => (
-  <p className="rounded border border-slate-200 bg-white px-4 py-6 text-center text-sm text-slate-600">
-    {children}
-  </p>
-);
 
 export function DivisionSetup({
   division,
@@ -51,12 +48,15 @@ export function DivisionSetup({
   tournamentId: string;
   actions: DivisionSetupActions;
 }) {
-  // 描画側と同じ理由で、他の形式は編集に対応していない。
+  // ページ側で弾いているため実際には届かないが、防御的にこの画面が
+  // トーナメント専用であることを型より外でも守っておく。リーグの
+  // エントリー編集は /league に既にあるので「対応していない」は事実と
+  // 違う。LeagueSetup.tsx の同種の案内と同じ言い回しにする。
   if (division.format !== "SINGLE_ELIMINATION") {
     return (
       <Notice>
         「{DIVISION_FORMAT_LABELS[division.format]}
-        」のエントリー編集はまだ対応していません
+        」はこの画面では編集できません
       </Notice>
     );
   }
@@ -85,6 +85,11 @@ export function DivisionSetup({
   const entries = [...parsed.entries.entries].sort(
     (left, right) => left.seed - right.seed,
   );
+
+  // /edit は format を無条件に書き換えられるので、リーグの星取表を
+  // 持ったままトーナメントになった部門が存在しうる。その星取表を
+  // D&D エディタに通すと 1 回戦以外が消えるため、作り直しを促すだけにする。
+  const mismatched = !isSingleEliminationShape(parsed.matchingConfig);
 
   return (
     <div className="space-y-6">
@@ -119,35 +124,56 @@ export function DivisionSetup({
 
       <section className="space-y-3">
         <h2 className="text-sm font-bold text-slate-700">組み合わせ</h2>
-        <MatchingSection
-          matches={toSetupView(
-            parsed.matchingConfig,
-            parsed.entries,
-            participants,
-          )}
-          slug={slug}
-          tournamentId={tournamentId}
-          divisionId={division.id}
-          generateAction={actions.generateMatching}
-          swapAction={actions.swapSlots}
-          disabled={locked}
-        />
+        {mismatched ? (
+          <>
+            {/* 生成ボタンは残す。押せば直る。 */}
+            <GenerateMatchingForm
+              slug={slug}
+              tournamentId={tournamentId}
+              divisionId={division.id}
+              action={actions.generateMatching}
+              disabled={locked}
+              label="組み合わせを生成"
+            />
+            <Notice>
+              この組み合わせはトーナメントの形ではありません。作り直してください
+            </Notice>
+          </>
+        ) : (
+          <MatchingSection
+            matches={toSetupView(
+              parsed.matchingConfig,
+              parsed.entries,
+              participants,
+            )}
+            slug={slug}
+            tournamentId={tournamentId}
+            divisionId={division.id}
+            generateAction={actions.generateMatching}
+            swapAction={actions.swapSlots}
+            disabled={locked}
+          />
+        )}
       </section>
 
       <section className="space-y-3">
         <h2 className="text-sm font-bold text-slate-700">試合番号</h2>
         {/* 番号の変更は構造を変えないため、locked でも編集できる */}
-        <MatchNumberList
-          rows={toMatchNumberView(
-            parsed.matchingConfig,
-            parsed.entries,
-            participants,
-          )}
-          slug={slug}
-          tournamentId={tournamentId}
-          divisionId={division.id}
-          action={actions.setMatchNumber}
-        />
+        {mismatched ? (
+          <Notice>組み合わせを作り直すと、ここに試合番号が出ます</Notice>
+        ) : (
+          <MatchNumberList
+            rows={toMatchNumberView(
+              parsed.matchingConfig,
+              parsed.entries,
+              participants,
+            )}
+            slug={slug}
+            tournamentId={tournamentId}
+            divisionId={division.id}
+            action={actions.setMatchNumber}
+          />
+        )}
       </section>
 
       <section className="space-y-3">

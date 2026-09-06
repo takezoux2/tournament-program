@@ -62,9 +62,7 @@ describe("DivisionSetup", () => {
     );
 
     expect(
-      screen.getByText(
-        "「リーグ（総当たり）」のエントリー編集はまだ対応していません",
-      ),
+      screen.getByText("「リーグ（総当たり）」はこの画面では編集できません"),
     ).toBeInTheDocument();
     expect(
       screen.queryByRole("heading", { name: "エントリー" }),
@@ -95,6 +93,46 @@ describe("DivisionSetup", () => {
     expect(
       screen.getByRole("button", { name: "組み合わせを生成" }),
     ).toBeDisabled();
+  });
+
+  it("リーグの星取表が残っていると作り直しを促す", () => {
+    // /edit は format を無条件に書き換えられるので、この状態は実在しうる。
+    render(
+      <DivisionSetup
+        {...props}
+        division={division({
+          matchingConfig: {
+            version: 1,
+            matches: [
+              {
+                id: "r2-0",
+                bracket: "winners",
+                round: 2,
+                order: 0,
+                matchNumber: "2",
+                slots: [
+                  { kind: "entry", entryId: "e1" },
+                  { kind: "entry", entryId: "e3" },
+                ],
+              },
+            ],
+          },
+        })}
+      />,
+    );
+
+    expect(
+      screen.getByText(
+        "この組み合わせはトーナメントの形ではありません。作り直してください",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("組み合わせを作り直すと、ここに試合番号が出ます"),
+    ).toBeInTheDocument();
+    // 生成ボタンは残す。押せば直る。
+    expect(
+      screen.getByRole("button", { name: "組み合わせを生成" }),
+    ).toBeInTheDocument();
   });
 
   it("Json が壊れていてもページを落とさない", () => {

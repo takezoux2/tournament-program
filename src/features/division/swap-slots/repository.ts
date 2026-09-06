@@ -6,7 +6,11 @@ import {
   type DivisionSetupOutcome,
   runDivisionSetup,
 } from "../setup-store";
-import { buildFromSlots, toSlots } from "../single-elimination/build";
+import {
+  buildFromSlots,
+  isSingleEliminationShape,
+  toSlots,
+} from "../single-elimination/build";
 import { swapSlots } from "../single-elimination/edit";
 import type { SwapSlotsInput } from "./schema";
 
@@ -17,6 +21,22 @@ export type SwapSlotsPort = (
 
 export const swapSlotsInDb: SwapSlotsPort = (ids, input) =>
   runDivisionSetup<{ swapped: boolean }>(ids, async (_tx, current) => {
+    // 1 回戦スロットの入れ替えは勝ち上がり木にしか意味が無い。
+    // setup-store は編集画面を持つ 2 形式を通すので、ここで絞る。
+    // 存在を漏らさないため、対象外の形式は「その部門は無い」と同じに倒す。
+    if (current.format !== "SINGLE_ELIMINATION") {
+      return { next: null, value: { swapped: false } };
+    }
+
+    // /edit は format を無条件に書き換えられるため、リーグの星取表を
+    // 持ったまま SINGLE_ELIMINATION になった部門が存在しうる。その星取表は
+    // toSlots で 1 回戦だけ取り出して buildFromSlots に通すと 2 節目以降が
+    // 消える（奇数人なら休みの 1 人がそのまま行方不明になる）。存在を
+    // 漏らさないため、ここも「入れ替えられない」と同じ応答に倒す。
+    if (!isSingleEliminationShape(current.matchingConfig)) {
+      return { next: null, value: { swapped: false } };
+    }
+
     const slots = swapSlots(
       toSlots(current.matchingConfig),
       input.indexA,
@@ -31,6 +51,7 @@ export const swapSlotsInDb: SwapSlotsPort = (ids, input) =>
 
     return {
       next: {
+        format: current.format,
         entries: current.entries,
         matchingConfig: buildFromSlots(slots),
       },

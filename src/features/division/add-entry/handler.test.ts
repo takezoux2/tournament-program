@@ -54,7 +54,9 @@ beforeEach(() => {
   revalidateDivisionSetup.mockReset();
   notFound.mockClear();
   requireOrganization.mockResolvedValue({ organization: { id: "o1" } });
-  addEntryInDb.mockReturnValue(Effect.succeed({ found: true, value: null }));
+  addEntryInDb.mockReturnValue(
+    Effect.succeed({ found: true, value: { regenerated: false } }),
+  );
 });
 
 describe("addEntryAction", () => {
@@ -118,6 +120,20 @@ describe("addEntryAction", () => {
     );
 
     expect(state.error).toBe("その参加者はすでにエントリーしています");
+  });
+
+  it("リーグの組み合わせを作り直したときは専用の通知を返す", async () => {
+    addEntryInDb.mockReturnValue(
+      Effect.succeed({ found: true, value: { regenerated: true } }),
+    );
+
+    const state = await addEntryAction(
+      INITIAL_DIVISION_FORM_STATE,
+      formData({ mode: "existing", memberId: "m1" }),
+    );
+
+    expect(state.error).toBeNull();
+    expect(state.notice).toBe("エントリーを追加し、組み合わせを再生成しました");
   });
 
   it("部門が無ければ 404 にする", async () => {

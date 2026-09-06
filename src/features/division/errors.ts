@@ -41,11 +41,12 @@ export class DivisionDataError extends Data.TaggedError("DivisionDataError")<{
   readonly reason: unknown;
 }> {}
 
-/** エントリー数の上限に達していることを表す。 */
+/** エントリー数の上限に達していることを表す。上限は形式によって変わる。 */
 export class DivisionEntryLimitError extends Data.TaggedError(
   "DivisionEntryLimitError",
 )<{
   readonly divisionId: string;
+  readonly limit: number;
 }> {}
 
 /** 同じ参加者を二重にエントリーしようとしたことを表す。 */

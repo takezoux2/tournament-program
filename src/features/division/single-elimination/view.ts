@@ -4,6 +4,7 @@ import {
   matchPositionLabel,
 } from "@/lib/division/label";
 import type { DivisionEntries, MatchingConfig } from "@/lib/division/types";
+import type { MatchNumberRowView } from "../match-number-view";
 import { toSlots } from "./build";
 
 /**
@@ -84,16 +85,6 @@ export const toSetupView = (
   return matches;
 };
 
-/** 試合番号一覧の 1 行。 */
-export type MatchNumberRowView = {
-  matchId: string;
-  matchNumber: string;
-  /** 「1回戦 第1試合」のような構造上の位置 */
-  label: string;
-  /** 「山田 vs 佐藤」のような対戦の表示 */
-  card: string;
-};
-
 /**
  * 全試合を round/order 順に並べた試合番号の編集用一覧。
  * toSetupView と違い 1 回戦以外も含む。勝者参照は相手の試合番号で表す。
@@ -111,7 +102,7 @@ export const toMatchNumberView = (
     .map((match) => ({
       matchId: match.id,
       matchNumber: match.matchNumber,
-      label: matchPositionLabel(match),
+      label: matchPositionLabel(match, "SINGLE_ELIMINATION"),
       card: matchCardLabel(match, labelSlot),
     }));
 };

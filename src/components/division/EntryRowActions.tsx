@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import {
   type DivisionFormAction,
   INITIAL_DIVISION_FORM_STATE,
@@ -40,6 +40,29 @@ export function EntryRowActions({
     removeAction,
     INITIAL_DIVISION_FORM_STATE,
   );
+
+  // 並べ替えと削除は別々の useActionState を持つため、片方だけを操作しても
+  // もう片方の notice は古いまま残り続ける。両方を並べて出すと「並べ替えた
+  // → 削除した」で 2 行の notice が同じ行に積み上がってしまうため、
+  // どちらが最後に更新されたかを覚えておき、新しい方だけを表示する。
+  // useEffect で拾うと「state は更新済みだが effect はまだ発火していない」
+  // 1 コミット分の間、古い notice が画面に残ってしまう（削除直後に一瞬だけ
+  // 並べ替えの文言が見える）。React 公式が推す「レンダー中に state を
+  // 比較して更新する」形にすると、このコミットで latestNotice も
+  // 一緒に確定するため、そのズレが起きない。
+  const [latestNotice, setLatestNotice] = useState<"reorder" | "remove" | null>(
+    null,
+  );
+  const [prevReorderState, setPrevReorderState] = useState(reorderState);
+  const [prevRemoveState, setPrevRemoveState] = useState(removeState);
+  if (reorderState !== prevReorderState) {
+    setPrevReorderState(reorderState);
+    setLatestNotice("reorder");
+  }
+  if (removeState !== prevRemoveState) {
+    setPrevRemoveState(removeState);
+    setLatestNotice("remove");
+  }
 
   const hidden = (
     <>
@@ -99,9 +122,16 @@ export function EntryRowActions({
           {removeState.error}
         </p>
       )}
-      {removeState.notice !== undefined && (
+      {latestNotice === "reorder" && reorderState.notice !== undefined && (
         // biome の useSemanticElements 指摘に従い、role="status" ではなく
         // 暗黙のロールが status な <output> を使う（MatchingSection と同じ）。
+        // 並べ替えの notice は今まで受け取るだけで表示先が無く、
+        // handler が返した通知が画面に届いていなかった。
+        <output className="text-xs text-slate-600">
+          {reorderState.notice}
+        </output>
+      )}
+      {latestNotice === "remove" && removeState.notice !== undefined && (
         <output className="text-xs text-slate-600">{removeState.notice}</output>
       )}
     </div>

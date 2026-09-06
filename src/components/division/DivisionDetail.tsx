@@ -2,6 +2,22 @@ import Link from "next/link";
 import { DIVISION_FORMAT_LABELS } from "@/features/division/format";
 import type { DivisionDetail } from "@/features/division/repository";
 import { formatStartsAt } from "@/features/tournament/format";
+import type { DivisionFormat } from "@/generated/prisma/enums";
+
+/**
+ * 形式ごとのエントリー編集画面。null は編集画面を持たない形式。
+ * Record のキーを DivisionFormat に固定しているので、enum に値を足して
+ * 行き先を書き忘れるとコンパイルエラーになる。
+ */
+const SETUP_LINKS: Record<
+  DivisionFormat,
+  { segment: string; label: string } | null
+> = {
+  SINGLE_ELIMINATION: { segment: "setup", label: "エントリー・組み合わせ" },
+  ROUND_ROBIN: { segment: "league", label: "エントリー・対戦表" },
+  DOUBLE_ELIMINATION_GRAND_FINAL: null,
+  DOUBLE_ELIMINATION_THIRD_PLACE: null,
+};
 
 export function DivisionDetailView({
   slug,
@@ -12,19 +28,25 @@ export function DivisionDetailView({
   tournamentId: string;
   division: DivisionDetail;
 }) {
+  const base = `/orgs/${slug}/tournaments/${tournamentId}/divisions/${division.id}`;
+  const setup = SETUP_LINKS[division.format];
+
   return (
     <div className="space-y-4">
       <div className="flex items-start justify-between">
         <h1 className="text-lg font-bold text-slate-800">{division.name}</h1>
         <div className="flex gap-2">
+          {/* 編集画面を持たない形式ではボタンを出さない。押しても 404 になる */}
+          {setup !== null && (
+            <Link
+              href={`${base}/${setup.segment}`}
+              className="rounded border border-slate-300 px-3 py-2 text-sm text-slate-700"
+            >
+              {setup.label}
+            </Link>
+          )}
           <Link
-            href={`/orgs/${slug}/tournaments/${tournamentId}/divisions/${division.id}/setup`}
-            className="rounded border border-slate-300 px-3 py-2 text-sm text-slate-700"
-          >
-            エントリー・組み合わせ
-          </Link>
-          <Link
-            href={`/orgs/${slug}/tournaments/${tournamentId}/divisions/${division.id}/edit`}
+            href={`${base}/edit`}
             className="rounded border border-slate-300 px-3 py-2 text-sm text-slate-700"
           >
             部門を編集
