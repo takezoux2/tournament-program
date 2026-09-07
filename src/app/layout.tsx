@@ -1,4 +1,6 @@
+import { GoogleAnalytics } from "@next/third-parties/google";
 import type { Metadata } from "next";
+import { gaMeasurementId } from "@/shared/lib/analytics/ga-id";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -7,9 +9,14 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
+  // 測定 ID が無い環境では GoogleAnalytics ごと描画しない。
+  // gtag.js の読み込みも dataLayer の初期化も起きない。
+  const gaId = gaMeasurementId();
+
   return (
     <html lang="ja">
       <body>{children}</body>
+      {gaId !== null && <GoogleAnalytics gaId={gaId} />}
     </html>
   );
 }
