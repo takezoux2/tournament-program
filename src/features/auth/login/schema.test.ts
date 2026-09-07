@@ -2,33 +2,43 @@ import { describe, expect, it } from "vitest";
 import { loginSchema } from "./schema";
 
 describe("loginSchema", () => {
-  it("正しい入力を通す", () => {
-    expect(
-      loginSchema.safeParse({ email: "user@example.com", password: "x" })
-        .success,
-    ).toBe(true);
-  });
-
-  it("メールアドレスを正規化する", () => {
+  it("メールアドレスの入力を通す", () => {
     const result = loginSchema.safeParse({
-      email: " User@Example.COM ",
+      identifier: "user@example.com",
       password: "x",
     });
     expect(result.success).toBe(true);
     if (result.success) {
-      expect(result.data.email).toBe("user@example.com");
+      expect(result.data.identifier).toEqual({
+        kind: "email",
+        email: "user@example.com",
+      });
     }
   });
 
-  it("メール形式が不正だと弾く", () => {
+  it("ユーザー名の入力を通す", () => {
+    const result = loginSchema.safeParse({
+      identifier: "takezoux2",
+      password: "x",
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.identifier).toEqual({
+        kind: "username",
+        username: "takezoux2",
+      });
+    }
+  });
+
+  it("識別子が空だと弾く", () => {
     expect(
-      loginSchema.safeParse({ email: "nope", password: "x" }).success,
+      loginSchema.safeParse({ identifier: "", password: "x" }).success,
     ).toBe(false);
   });
 
   it("パスワードが空だと弾く", () => {
     expect(
-      loginSchema.safeParse({ email: "user@example.com", password: "" })
+      loginSchema.safeParse({ identifier: "user@example.com", password: "" })
         .success,
     ).toBe(false);
   });

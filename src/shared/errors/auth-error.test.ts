@@ -28,11 +28,37 @@ describe("toAuthError", () => {
     expect(toAuthError("PASSWORD_TOO_LONG", null)._tag).toBe("WeakPassword");
   });
 
-  it("FAILED_TO_CREATE_USER を UsernameAlreadyExists に写像する", () => {
-    // username 重複は Better Auth に事前チェックが無く、Prisma の P2002 が
-    // FAILED_TO_CREATE_USER として返ってくる唯一の現実的な経路。
-    expect(toAuthError("FAILED_TO_CREATE_USER", null)._tag).toBe(
+  it("INVALID_USERNAME_OR_PASSWORD を InvalidCredentials に写像する", () => {
+    // /sign-in/username が返すコード。/sign-in/email の
+    // INVALID_EMAIL_OR_PASSWORD と同じ扱いにする。
+    expect(toAuthError("INVALID_USERNAME_OR_PASSWORD", null)._tag).toBe(
+      "InvalidCredentials",
+    );
+  });
+
+  it("USERNAME_IS_ALREADY_TAKEN を UsernameAlreadyExists に写像する", () => {
+    // username プラグインが /sign-up/email の前段で重複を弾いたときのコード。
+    expect(toAuthError("USERNAME_IS_ALREADY_TAKEN", null)._tag).toBe(
       "UsernameAlreadyExists",
+    );
+  });
+
+  it("ユーザー名の形式エラーを InvalidUsername に写像する", () => {
+    for (const code of [
+      "USERNAME_TOO_SHORT",
+      "USERNAME_TOO_LONG",
+      "INVALID_USERNAME",
+    ]) {
+      expect(toAuthError(code, null)._tag).toBe("InvalidUsername");
+    }
+  });
+
+  it("FAILED_TO_CREATE_USER は UnexpectedAuthError になる", () => {
+    // プラグイン導入前は username 重複の唯一の経路だったが、今は
+    // USERNAME_IS_ALREADY_TAKEN が先に返る。原因を断定できないので
+    // 一般形に戻す。
+    expect(toAuthError("FAILED_TO_CREATE_USER", null)._tag).toBe(
+      "UnexpectedAuthError",
     );
   });
 

@@ -32,7 +32,7 @@ export function LoginForm({
     setError(null);
 
     const parsed = loginSchema.safeParse({
-      email: formData.get("email"),
+      identifier: formData.get("identifier"),
       password: formData.get("password"),
     });
     if (!parsed.success) {
@@ -43,7 +43,10 @@ export function LoginForm({
     setPending(true);
     const exit = await Effect.runPromiseExit(
       login(
-        (input) => authClient.signIn.email(input),
+        {
+          signInEmail: (input) => authClient.signIn.email(input),
+          signInUsername: (input) => authClient.signIn.username(input),
+        },
         parsed.data,
         verificationCallbackURL(redirectTo),
       ),
@@ -109,16 +112,17 @@ export function LoginForm({
       <form action={onSubmit} className="space-y-4">
         <div className="space-y-1">
           <label
-            htmlFor="email"
+            htmlFor="identifier"
             className="block text-sm font-medium text-slate-700"
           >
-            メールアドレス
+            ユーザー名またはメールアドレス
           </label>
+          {/* type="email" にするとブラウザの検証がユーザー名を送信前に弾く。 */}
           <input
-            id="email"
-            name="email"
-            type="email"
-            autoComplete="email"
+            id="identifier"
+            name="identifier"
+            type="text"
+            autoComplete="username"
             required
             className="w-full rounded border border-slate-300 px-3 py-2 text-sm"
           />
