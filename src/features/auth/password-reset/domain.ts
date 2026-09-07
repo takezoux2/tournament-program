@@ -36,8 +36,7 @@ export const resetTokenState = (
   if (errorCode !== null || token === null || token === "") {
     return {
       kind: "invalid",
-      message:
-        "リンクが無効か期限切れです。お手数ですが再度お申し込みください",
+      message: "リンクが無効か期限切れです。お手数ですが再度お申し込みください",
     };
   }
   return { kind: "form", token };
