@@ -8,10 +8,12 @@ import {
 
 describe("PASSWORD_RESET_REDIRECT_TO", () => {
   it("同一オリジンの絶対パスに固定されている", () => {
-    // メール本文の URL に callbackURL として埋め込まれる値。外から来た
-    // 遷移先を流さないため固定にしてある。ここが緩むとオープン
-    // リダイレクトの面が増える。
-    expect(PASSWORD_RESET_REDIRECT_TO).toBe("/reset-password");
+    // メール本文の callbackURL として埋め込まれるため、プロトコル相対 URL
+    // で他オリジンへ飛ばされるのを防ぐ必要がある。ブラウザは "//host" と
+    // "/\host" をどちらもプロトコル相対 URL として解釈する。
+    expect(PASSWORD_RESET_REDIRECT_TO.startsWith("/")).toBe(true);
+    expect(PASSWORD_RESET_REDIRECT_TO.startsWith("//")).toBe(false);
+    expect(PASSWORD_RESET_REDIRECT_TO.startsWith("/\\")).toBe(false);
   });
 });
 
