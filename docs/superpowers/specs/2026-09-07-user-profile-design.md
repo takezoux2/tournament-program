@@ -19,6 +19,9 @@
 
 加えて、所属する組織の一覧を「自分がその組織で持つ権限」つきで見られるようにする。
 
+これらへの入口として、ヘッダーのユーザー名を押すとメニューが開くようにし、
+ログアウトもそのメニューへ移す。
+
 ## 画面とルート
 
 ### `/profile` — 自分の情報の編集
@@ -45,11 +48,58 @@
 トップページ `/` は既に所属組織の一覧になっているが、あちらは移動用の
 素早い一覧として残す。`/profile/orgs` は自分の所属状況の確認用で、役割を分ける。
 
-### ヘッダー
+### ヘッダーのユーザーメニュー
 
-`src/components/layout/AppHeader.tsx` のユーザー名を `/profile` へのリンクにする
-（現在は素のテキスト）。`src/proxy.ts` の matcher は `/profile` を除外していないため、
-未ログインなら `/login` へ送られる。実際の境界はこれまで通り `requireSession()`。
+`src/components/layout/AppHeader.tsx` の右側は、現在ユーザー名（素のテキスト）と
+ログアウトボタンが横に並んでいる。ここをユーザー名のボタン 1 つにして、
+押すとメニューが開く形にする。
+
+```
+[ユーザー名 ▾]
+  ┌────────────────────┐
+  │ 竹添太郎            │  見出し（名前とメールアドレス）
+  │ taro@example.com    │
+  ├────────────────────┤
+  │ プロフィール         │ → /profile
+  │ 所属組織            │ → /profile/orgs
+  ├────────────────────┤
+  │ ログアウト           │
+  └────────────────────┘
+```
+
+ログアウトは区切り線の下に単独で置く。他の項目と続けて並べると、
+移動のつもりで押し間違えたときの損失が大きいため。
+
+`src/proxy.ts` の matcher は `/profile` を除外していないため、未ログインなら
+`/login` へ送られる。実際の境界はこれまで通り `requireSession()`。
+
+#### 部品の分け方
+
+新しく `src/components/layout/UserMenu.tsx`（クライアントコンポーネント）を作り、
+**開閉の状態だけ**を持たせる。`useRouter` も `authClient` も触らない。
+ログアウトの処理はこれまで通り `src/components/auth/LogoutButton.tsx` が所有し、
+`UserMenu` はそれをメニュー項目として描画する。`LogoutButton` は見た目
+（メニュー幅いっぱいの項目）だけを直し、処理には手を入れない。
+
+こう分けるのは、**16 個のページテストが `@/components/auth/LogoutButton` を
+`vi.mock` している**ため。`LogoutButton` を消して処理を `UserMenu` へ移すと、
+それら全部の書き換えになる。`useRouter` と `authClient` への依存を
+`LogoutButton` に残しておけば、既存のモックがそのまま効き、`UserMenu` は
+`useState` しか使わないのでモックすら要らない。
+
+`AppHeader` 自身はサーバーコンポーネントのまま。クライアント境界は
+`UserMenu` が引き受ける。メールアドレスを見出しに出すため、`AppHeader` の
+props に `userEmail` を足す（`userName` と同じく呼び出し側の
+`session.user` から渡す）。
+
+#### 挙動
+
+* トリガーは `aria-haspopup="menu"` と `aria-expanded` を持つ `<button>`
+* パネルは `role="menu"`、項目は `role="menuitem"`。移動の 2 項目は
+  `next/link` のリンク、ログアウトは `<button>`
+* Escape で閉じ、フォーカスをトリガーへ戻す
+* パネルの外をクリックしたら閉じる
+* 閉じているときは項目を描画しない（`hidden` で隠すのではなく出さない）
 
 ## ディレクトリ構成
 
@@ -68,6 +118,7 @@ src/features/user/
 └── delete-account/          domain.ts / usecase.ts / repository.ts / handler.ts
 
 src/components/profile/      各セクションのフォーム
+src/components/layout/UserMenu.tsx
 src/app/profile/page.tsx
 src/app/profile/orgs/page.tsx
 ```
@@ -182,9 +233,14 @@ Prisma で直接読む。`auth.api.listUserAccounts` を使わない理由は 2 
 4. 新アドレスに届いたリンクを踏んだ時点で初めて `User.email` が書き換わる。
 
 タイポしたアドレスに変更しても、リンクが届かないだけでメールアドレスは
-変わらない。ログイン ID を失う事故が構造的に起きない。ログインは
-`features/auth/login/schema.ts` の通りメールアドレスのみで行うため、
-ここを失うと締め出しになる。
+変わらない。届かないアドレスへ確定してしまう事故が構造的に起きない。
+
+ログインは username プラグイン導入後、ユーザー名でも通る
+（`features/auth/login/identifier.ts`）ため、メールアドレスを失っても
+即座に締め出されるわけではない。それでもメールアドレスは確認メール・
+パスワードリセットの唯一の宛先であり、届かないアドレスに固定されると
+自力で直せる手段が残らない。踏めなければ変わらない、という性質は
+username 対応の後も等しく要る。
 
 ### アカウント列挙への対応
 
@@ -329,15 +385,39 @@ callbackURL: "/profile", errorCallbackURL: "/profile" }, headers })` を呼ぶ�
 * `src/shared/lib/auth-effect.ts` の `runAuthApiCall` — `APIError` 相当の
   throw と、コードの無い例外の 2 経路を確認する
 * 確認メール・通知メールのビルダー — 文面と HTML エスケープを確認する
+* `UserMenu` — Testing Library。閉じている間は項目が描画されないこと、
+  トリガーで開くこと、Escape と外側クリックで閉じること、
+  `aria-expanded` が開閉に追随することを確認する。ログアウトの分岐は
+  引き続き `LogoutButton.test.tsx` が持つ
+* `AppHeader.test.tsx` — 既存の `LogoutButton` のモックはそのまま効く。
+  ユーザー名が「テキスト」から「メニューを開くボタン」に変わるため、
+  `getByText` で見ていた既存の 1 件を `getByRole("button")` に直す
 * コンポーネント — Testing Library。セクションの出し分け（パスワード未設定 /
   設定済み、Google 連携済み / 未連携）を中心に確認する
+
+## パスワードリセット設計との関係
+
+`docs/superpowers/specs/2026-09-08-password-reset-design.md`（未実装）と
+触る場所が重なる。あちらは `changePassword`（ログイン済みユーザーの変更）を
+明示的にスコープ外にしているため、機能としては競合しない。ただし
+
+* どちらも `src/shared/lib/auth.ts` の設定に追記する
+* どちらも `src/shared/lib/` にメール文面のビルダーを足す
+* どちらも `AuthError` にタグを足す（あちらは `INVALID_TOKEN`）
+
+先に入った方に合わせて、後から入る側が追記する。片方が
+`Match.exhaustive` の網羅性エラーで落ちたら、それは想定どおりの検出であって
+壊れたわけではない。
 
 ## 対象外
 
 今回は扱わない。
 
-* `username` の変更（組織への招待で検索キーになるため、重複時の扱いを
-  別途詰める必要がある）
+* `username` の変更。username プラグイン導入後は `updateUser({ username })` で
+  済み、重複も `USERNAME_IS_ALREADY_TAKEN` → `UsernameAlreadyExists` として
+  写像済みなので、実装そのものは安い。それでも外すのは、username が
+  組織への招待でユーザーを指す検索キーであり、変更すると招待側の手順が
+  黙って壊れるため。招待側をどうするかと合わせて別途詰める。
 * Google 以外の OAuth プロバイダ
 * プロフィール画像（`User.image`）の設定
 * 組織からの脱退（`/profile/orgs` は表示のみ）
