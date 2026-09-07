@@ -11,7 +11,7 @@ import { recordResultSchema } from "./schema";
 import { recordResultForDivision } from "./usecase";
 
 export const recordResultAction = async (
-  _prevState: DivisionFormState,
+  prevState: DivisionFormState,
   formData: FormData,
 ): Promise<DivisionFormState> => {
   const slug = String(formData.get("slug") ?? "");
@@ -44,5 +44,5 @@ export const recordResultAction = async (
   }
 
   revalidateDivisionResults(slug, tournamentId, divisionId);
-  return { error: null };
+  return { error: null, succeeded: (prevState.succeeded ?? 0) + 1 };
 };

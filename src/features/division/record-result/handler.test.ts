@@ -65,7 +65,7 @@ describe("recordResultAction", () => {
       { organizationId: "o1", tournamentId: "t1", divisionId: "d1" },
       { matchId: "m1-0", winnerEntryId: "e1" },
     );
-    expect(state).toEqual({ error: null });
+    expect(state).toEqual({ error: null, succeeded: 1 });
   });
 
   it("成功したら 3 本のページを再検証する", async () => {
@@ -123,5 +123,13 @@ describe("recordResultAction", () => {
       error: "他の人が更新しました。画面を再読み込みしてください",
     });
     expect(revalidateDivisionResults).not.toHaveBeenCalled();
+  });
+
+  it("成功のたびに succeeded が増える（初期状態と、連続した成功を区別するため）", async () => {
+    const first = await recordResultAction({ error: null }, formData(validInput));
+    const second = await recordResultAction(first, formData(validInput));
+
+    expect(first.succeeded).toBe(1);
+    expect(second.succeeded).toBe(2);
   });
 });
