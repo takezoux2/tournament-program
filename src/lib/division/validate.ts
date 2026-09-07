@@ -80,6 +80,18 @@ export const validateMatchingConfig = (
     }
   }
 
+  // 実施順は 0 から抜けなく並んでいなければならない。読み出し（parse.ts）が
+  // 常にこの形へ正規化するため、ここで捕まえるのは書き込み側（生成・並べ替え）の
+  // 不具合。保存の直前にだけ効く網として置く。
+  const sequences = matches
+    .map((match) => match.sequence)
+    .sort((left, right) => left - right);
+  if (sequences.some((sequence, index) => sequence !== index)) {
+    errors.push(
+      `matchingConfig.matches[].sequence が 0 からの連番ではありません: ${sequences.join(", ")}`,
+    );
+  }
+
   const entryIds = new Set(entries.entries.map((entry) => entry.id));
   const roundById = new Map(matches.map((match) => [match.id, match.round]));
 

@@ -14,6 +14,7 @@ const config = (
       bracket: "winners",
       round: 1,
       order: 0,
+      sequence: 0,
       matchNumber: numbers[0],
       slots: [
         { kind: "entry", entryId: entryIds[0] },
@@ -25,6 +26,7 @@ const config = (
       bracket: "winners",
       round: 1,
       order: 1,
+      sequence: 1,
       matchNumber: numbers[1],
       slots: [{ kind: "entry", entryId: entryIds[0] }, { kind: "bye" }],
     },
@@ -180,6 +182,7 @@ describe("buildScheduleView", () => {
             bracket: "winners",
             round: 1,
             order: 0,
+            sequence: 0,
             matchNumber: "1",
             slots: [
               { kind: "entry", entryId: "g1" },

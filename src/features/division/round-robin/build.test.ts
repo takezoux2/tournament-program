@@ -182,6 +182,7 @@ describe("isRoundRobinShape", () => {
             bracket: "winners",
             round: 2,
             order: 0,
+            sequence: 0,
             matchNumber: "3",
             slots: [
               { kind: "winnerOf", matchId: "m1-0" },
@@ -203,6 +204,7 @@ describe("isRoundRobinShape", () => {
             bracket: "winners",
             round: 1,
             order: 0,
+            sequence: 0,
             matchNumber: "1",
             slots: [{ kind: "entry", entryId: "e1" }, { kind: "bye" }],
           },

@@ -10,6 +10,7 @@ const config: MatchingConfig = {
       bracket: "winners",
       round: 1,
       order: 0,
+      sequence: 0,
       matchNumber: "3",
       slots: [{ kind: "entry", entryId: "e1" }, { kind: "bye" }],
     },
@@ -18,6 +19,7 @@ const config: MatchingConfig = {
       bracket: "winners",
       round: 2,
       order: 0,
+      sequence: 1,
       matchNumber: "9",
       slots: [
         { kind: "winnerOf", matchId: "m1-0" },
@@ -87,6 +89,7 @@ describe("matchPositionLabel", () => {
       bracket: "winners",
       round: 2,
       order: 1,
+      sequence: 0,
       matchNumber: "5",
       slots: [
         { kind: "entry", entryId: "e1" },
