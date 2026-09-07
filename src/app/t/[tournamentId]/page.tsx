@@ -7,13 +7,19 @@ import { PublicTournamentSummary } from "@/components/public/PublicTournamentSum
 import { listDivisionsInTournament } from "@/features/division/repository";
 import { formatPublicTitle } from "@/features/tournament/format";
 import { findPublicTournament } from "@/features/tournament/repository";
+import { getOptionalSession } from "@/shared/middleware/require-session";
 
 export async function generateMetadata({
   params,
 }: PageProps<"/t/[tournamentId]">): Promise<Metadata> {
   const { tournamentId } = await params;
-  const tournament = await findPublicTournament(tournamentId);
+  const session = await getOptionalSession();
+  const tournament = await findPublicTournament(
+    tournamentId,
+    session?.user.id ?? null,
+  );
   // 公開対象でない大会の名前をタイトルに出さない。本体は notFound になる。
+  // 準備中の大会名が出るのは、そもそもメンバーしか到達できない場合だけ。
   if (tournament === null) {
     return {};
   }
@@ -28,7 +34,12 @@ export default async function PublicTournamentPage({
   const { tournamentId } = await params;
 
   // 公開ゲート。公開してよい状態だけを where で許可するのはこの関数が持つ。
-  const tournament = await findPublicTournament(tournamentId);
+  // 閲覧者を渡すのは、その組織のメンバーに準備中の大会も見せるため。
+  const session = await getOptionalSession();
+  const tournament = await findPublicTournament(
+    tournamentId,
+    session?.user.id ?? null,
+  );
   if (tournament === null) {
     notFound();
   }
