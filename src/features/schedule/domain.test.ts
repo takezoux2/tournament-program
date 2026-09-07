@@ -72,6 +72,65 @@ const participants = [
   { id: "p4", name: "田中" },
 ];
 
+/**
+ * round/order（描画座標）と配列順（実施順）がわざと食い違う部門。
+ * 2 回戦の試合を配列の先頭に置いてある。buildMatchRows が round/order で
+ * 並べ直す実装に戻ると m1-0, m1-1, m2-0 の順になってしまうため、
+ * このずれがあって初めて「並べ替えない」ことを検出できる。
+ */
+const outOfOrderDivision: ScheduleDivision = {
+  id: "dC",
+  name: "混合",
+  order: 0,
+  format: "SINGLE_ELIMINATION",
+  entries: {
+    version: 1,
+    entries: [
+      { id: "e1", participantId: "p1", seed: 0 },
+      { id: "e2", participantId: "p2", seed: 1 },
+    ],
+  },
+  matchingConfig: {
+    version: 1,
+    matches: [
+      {
+        id: "m2-0",
+        bracket: "winners",
+        round: 2,
+        order: 0,
+        sequence: 0,
+        matchNumber: "1",
+        slots: [
+          { kind: "winnerOf", matchId: "m1-0" },
+          { kind: "winnerOf", matchId: "m1-1" },
+        ],
+      },
+      {
+        id: "m1-0",
+        bracket: "winners",
+        round: 1,
+        order: 0,
+        sequence: 1,
+        matchNumber: "2",
+        slots: [
+          { kind: "entry", entryId: "e1" },
+          { kind: "entry", entryId: "e2" },
+        ],
+      },
+      {
+        id: "m1-1",
+        bracket: "winners",
+        round: 1,
+        order: 1,
+        sequence: 2,
+        matchNumber: "3",
+        slots: [{ kind: "entry", entryId: "e1" }, { kind: "bye" }],
+      },
+    ],
+  },
+  results: { version: 1, matches: [] },
+};
+
 describe("buildScheduleView", () => {
   it("行が 1 件も無ければ部門順 → 部門内の実施順で全試合を並べる", () => {
     const rows = buildScheduleView([divisionB, divisionA], participants, []);
@@ -81,6 +140,16 @@ describe("buildScheduleView", () => {
       matchKey("dA", "m1-1"),
       matchKey("dB", "m1-0"),
       matchKey("dB", "m1-1"),
+    ]);
+  });
+
+  it("部門内は round/order で並べ直さず、配列順（＝実施順）をそのまま使う", () => {
+    const rows = buildScheduleView([outOfOrderDivision], participants, []);
+
+    expect(rows.map((row) => row.key)).toEqual([
+      matchKey("dC", "m2-0"),
+      matchKey("dC", "m1-0"),
+      matchKey("dC", "m1-1"),
     ]);
   });
 
