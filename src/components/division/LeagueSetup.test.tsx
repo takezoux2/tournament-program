@@ -64,11 +64,11 @@ describe("LeagueSetup", () => {
 
     // 見出しの有無だけでは mismatched 分岐の両側で真になってしまい、
     // 本物の toCrossTableView / toMatchOrderView が描かれたことの証明にならない。
-    // 実データでしか出ない星取表のマスと実施順の行を見て、本物が描かれた
-    // ことを確かめる。
-    // 星取表は対称なので同じ試合が 2 マスに出る。ここでは「本物の
-    // toCrossTableView が描かれたか」だけを見たいので存在確認にとどめる。
-    expect(screen.getAllByText("第1試合").length).toBeGreaterThan(0);
+    // 星取表は「第1試合」を左右対称な 2 マスに出すため、その文字列だけでは
+    // 星取表のみが描かれた場合と実施順の一覧まで描かれた場合を区別できない。
+    // 実施順の一覧にしか無い試合番号の入力欄（MatchNumberRow の aria-label）を
+    // 見て、本物の toMatchOrderView / MatchNumberList が描かれたことを確かめる。
+    expect(screen.getByLabelText("第1試合の試合番号")).toHaveValue("1");
   });
 
   it("リーグ以外の形式は案内だけを出す", () => {

@@ -100,8 +100,12 @@ describe("buildRoundRobin", () => {
   it("節を保存しない（全試合が round 1 の 1 本の並び）", () => {
     const config = buildRoundRobin(entriesOf(4));
 
-    expect(config.matches.map((match) => match.round)).toEqual([1, 1, 1, 1, 1, 1]);
-    expect(config.matches.map((match) => match.order)).toEqual([0, 1, 2, 3, 4, 5]);
+    expect(config.matches.map((match) => match.round)).toEqual([
+      1, 1, 1, 1, 1, 1,
+    ]);
+    expect(config.matches.map((match) => match.order)).toEqual([
+      0, 1, 2, 3, 4, 5,
+    ]);
     expect(config.matches.map((match) => match.sequence)).toEqual([
       0, 1, 2, 3, 4, 5,
     ]);
@@ -137,7 +141,7 @@ describe("buildRoundRobin", () => {
     ).toEqual(["e1-e4", "e2-e3", "e1-e3", "e4-e2", "e1-e2", "e3-e4"]);
   });
 
-  it("matchNumber は全節を通した連番", () => {
+  it("matchNumber は実施順の通し番号", () => {
     expect(
       buildRoundRobin(entriesOf(4)).matches.map((match) => match.matchNumber),
     ).toEqual(["1", "2", "3", "4", "5", "6"]);
