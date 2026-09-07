@@ -14,6 +14,9 @@ import { authErrorMessage } from "@/features/auth/messages";
 import { authClient } from "@/shared/lib/auth-client";
 import { runAuthCall } from "@/shared/lib/auth-effect";
 
+// ログイン成功後の遷移先。redirect クエリの行き先は使わず、常にトップへ戻す。
+const LOGIN_DESTINATION = "/";
+
 export function LoginForm({
   redirectTo,
   verified = false,
@@ -26,6 +29,10 @@ export function LoginForm({
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  // form action は完了後にフォームをリセットするため、識別子は state で
+  // 保持する。そうしないとログイン失敗のたびに入力し直しになる。
+  const [identifier, setIdentifier] = useState("");
+  const [passwordVisible, setPasswordVisible] = useState(false);
   const notice = verificationNotice(verified, verifyError);
 
   const onSubmit = async (formData: FormData) => {
@@ -63,7 +70,7 @@ export function LoginForm({
       return;
     }
 
-    router.push(redirectTo);
+    router.push(LOGIN_DESTINATION);
     // Server Component 側のセッションを読み直させる。
     router.refresh();
   };
@@ -76,7 +83,7 @@ export function LoginForm({
     const exit = await Effect.runPromiseExit(
       runAuthCall((input) => authClient.signIn.social(input), {
         provider: "google" as const,
-        callbackURL: redirectTo,
+        callbackURL: LOGIN_DESTINATION,
       }),
     );
     setPending(false);
@@ -124,6 +131,8 @@ export function LoginForm({
             type="text"
             autoComplete="username"
             required
+            value={identifier}
+            onChange={(event) => setIdentifier(event.target.value)}
             className="w-full rounded border border-slate-300 px-3 py-2 text-sm"
           />
         </div>
@@ -135,14 +144,27 @@ export function LoginForm({
           >
             パスワード
           </label>
-          <input
-            id="password"
-            name="password"
-            type="password"
-            autoComplete="current-password"
-            required
-            className="w-full rounded border border-slate-300 px-3 py-2 text-sm"
-          />
+          <div className="relative">
+            <input
+              id="password"
+              name="password"
+              type={passwordVisible ? "text" : "password"}
+              autoComplete="current-password"
+              required
+              className="w-full rounded border border-slate-300 py-2 pr-10 pl-3 text-sm"
+            />
+            <button
+              type="button"
+              onClick={() => setPasswordVisible((visible) => !visible)}
+              aria-label={
+                passwordVisible ? "パスワードを非表示" : "パスワードを表示"
+              }
+              aria-pressed={passwordVisible}
+              className="absolute inset-y-0 right-0 flex items-center px-3 text-slate-500 hover:text-slate-700"
+            >
+              <EyeIcon off={passwordVisible} />
+            </button>
+          </div>
         </div>
 
         {error !== null && (
@@ -176,5 +198,27 @@ export function LoginForm({
         </Link>
       </p>
     </div>
+  );
+}
+
+// 目のアイコン。off=true のときは表示中（クリックで隠す）を表す斜線付き。
+function EyeIcon({ off }: { off: boolean }) {
+  return (
+    <svg
+      aria-hidden="true"
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="h-5 w-5"
+    >
+      <title>パスワードの表示切り替え</title>
+      <path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7Z" />
+      <circle cx="12" cy="12" r="3" />
+      {off && <path d="m3 3 18 18" />}
+    </svg>
   );
 }
