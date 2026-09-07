@@ -26,6 +26,39 @@ export class EmailNotVerified extends Data.TaggedError("EmailNotVerified")<{
   readonly code: string;
 }> {}
 
+/** 現在のパスワードが違う。changePassword / deleteUser で返る。 */
+export class InvalidPassword extends Data.TaggedError("InvalidPassword")<{
+  readonly code: string;
+}> {}
+
+/** 既にパスワードが設定済み。setPassword は上書きを拒む。 */
+export class PasswordAlreadySet extends Data.TaggedError("PasswordAlreadySet")<{
+  readonly code: string;
+}> {}
+
+/**
+ * セッションが古い。unlinkAccount が freshSessionMiddleware を使っており、
+ * セッション作成から session.freshAge（既定 24 時間）を過ぎると返る。
+ */
+export class SessionNotFresh extends Data.TaggedError("SessionNotFresh")<{
+  readonly code: string;
+}> {}
+
+/**
+ * 最後の 1 つの認証方法は解除できない。これがあるおかげで、パスワード未設定の
+ * まま Google 連携を外して締め出される経路が存在しない。
+ */
+export class LastAccountUnlinkForbidden extends Data.TaggedError(
+  "LastAccountUnlinkForbidden",
+)<{
+  readonly code: string;
+}> {}
+
+/** 解除しようとした連携が見つからない。 */
+export class AccountNotFound extends Data.TaggedError("AccountNotFound")<{
+  readonly code: string;
+}> {}
+
 export class UnexpectedAuthError extends Data.TaggedError(
   "UnexpectedAuthError",
 )<{
@@ -41,6 +74,11 @@ export type AuthError =
   | InvalidUsername
   | WeakPassword
   | EmailNotVerified
+  | InvalidPassword
+  | PasswordAlreadySet
+  | SessionNotFresh
+  | LastAccountUnlinkForbidden
+  | AccountNotFound
   | UnexpectedAuthError;
 
 /**
@@ -80,6 +118,18 @@ export const toAuthError = (
     // Better Auth はこの応答と同時に確認メールを送り直す（sendOnSignIn）。
     case "EMAIL_NOT_VERIFIED":
       return new EmailNotVerified({ code });
+    // ここから下はプロフィール画面（features/user）の経路で返るコード。
+    // ログイン・登録では起きないが、写像は 1 か所にまとめておく。
+    case "INVALID_PASSWORD":
+      return new InvalidPassword({ code });
+    case "PASSWORD_ALREADY_SET":
+      return new PasswordAlreadySet({ code });
+    case "SESSION_NOT_FRESH":
+      return new SessionNotFresh({ code });
+    case "FAILED_TO_UNLINK_LAST_ACCOUNT":
+      return new LastAccountUnlinkForbidden({ code });
+    case "ACCOUNT_NOT_FOUND":
+      return new AccountNotFound({ code });
     default:
       return new UnexpectedAuthError({
         code: code ?? "UNKNOWN",

@@ -88,4 +88,20 @@ describe("toAuthError", () => {
       "PASSWORD_TOO_SHORT",
     );
   });
+
+  it.each([
+    ["INVALID_PASSWORD", "InvalidPassword"],
+    ["PASSWORD_ALREADY_SET", "PasswordAlreadySet"],
+    ["SESSION_NOT_FRESH", "SessionNotFresh"],
+    ["FAILED_TO_UNLINK_LAST_ACCOUNT", "LastAccountUnlinkForbidden"],
+    ["ACCOUNT_NOT_FOUND", "AccountNotFound"],
+  ])("%s を %s に写像する", (code, tag) => {
+    expect(toAuthError(code, undefined)._tag).toBe(tag);
+  });
+
+  it("写像したコードを保持する（元のコードを追えるようにするため）", () => {
+    expect(toAuthError("SESSION_NOT_FRESH", undefined)).toMatchObject({
+      code: "SESSION_NOT_FRESH",
+    });
+  });
 });

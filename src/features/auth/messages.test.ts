@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { toAuthError } from "@/shared/errors/auth-error";
+import { SessionNotFresh, toAuthError } from "@/shared/errors/auth-error";
 import { authErrorMessage } from "./messages";
 
 describe("authErrorMessage", () => {
@@ -50,5 +50,11 @@ describe("authErrorMessage", () => {
     expect(authErrorMessage(toAuthError(undefined, new Error("boom")))).toBe(
       "処理に失敗しました。時間をおいて再度お試しください",
     );
+  });
+
+  it("プロフィール経路のタグにも文言がある（網羅の抜けを検出するため）", () => {
+    expect(
+      authErrorMessage(new SessionNotFresh({ code: "SESSION_NOT_FRESH" })),
+    ).toBe("セキュリティのため、再度ログインしてからお試しください");
   });
 });

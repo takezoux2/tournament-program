@@ -1,3 +1,4 @@
+import { isAPIError } from "better-auth/api";
 import { Effect } from "effect";
 import { type AuthError, toAuthError } from "@/shared/errors/auth-error";
 
@@ -29,3 +30,38 @@ export const runAuthCall = <I>(
         : Effect.void,
     ),
   );
+
+/**
+ * サーバ側の `auth.api.*` が満たす形。クライアントの authClient と違って
+ * 解決値をそのまま返し、失敗は APIError の throw で伝える。
+ */
+export type AuthApiPort<I, A> = (input: I) => Promise<A>;
+
+/**
+ * `auth.api.*` の呼び出しを Effect に包み、失敗を AuthError に揃える。
+ *
+ * runAuthCall（クライアント用）と分けているのは、失敗の伝え方が違うため。
+ * クライアントは `{ error }` を返し、サーバは APIError を throw する。
+ * 1 つの関数で両方を受けようとすると、どちらの経路も曖昧になる。
+ *
+ * 解決値を捨てずに返すのは、link-social が遷移先の url を返すため。
+ * 値が要らない呼び出し側は無視すればよい。
+ */
+export const runAuthApiCall = <I, A>(
+  port: AuthApiPort<I, A>,
+  input: I,
+): Effect.Effect<A, AuthError> =>
+  Effect.tryPromise({
+    try: () => port(input),
+    catch: (cause) => {
+      if (!isAPIError(cause)) {
+        // ネットワーク断やアダプタの不具合。コードは無い。
+        return toAuthError(undefined, cause);
+      }
+      // better-call の APIError は body に { message, code } を持つ。
+      // BASE_ERROR_CODES の値が { code, message } の形なので、
+      // APIError.from を通ったものは必ず code を持つ。
+      const code = (cause as { body?: { code?: unknown } }).body?.code;
+      return toAuthError(typeof code === "string" ? code : undefined, cause);
+    },
+  });
