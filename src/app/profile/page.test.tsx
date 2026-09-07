@@ -1,0 +1,59 @@
+import { render, screen } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+// LogoutButton は authClient / useRouter に依存するクライアントコンポーネントで、
+// テスト環境ではルーターが無く描画できないためモジュールごと差し替える。
+vi.mock("@/components/auth/LogoutButton", () => ({
+  LogoutButton: () => <button type="button">ログアウト</button>,
+}));
+
+const requireSession = vi.fn();
+const findLinkedAccounts = vi.fn();
+
+vi.mock("@/shared/middleware/require-session", () => ({
+  requireSession: () => requireSession(),
+}));
+
+vi.mock("@/features/user/repository", () => ({
+  findLinkedAccounts: (userId: string) => findLinkedAccounts(userId),
+}));
+
+// handler.ts は auth モジュール経由で prisma を読み込み、DATABASE_URL 未設定の
+// テスト環境では import するだけで例外になる（orgs の edit ページと同じ事情）。
+// ページのテストでは渡し方だけを見たいので実体には触れずダミーへ差し替える。
+vi.mock("@/features/user/update-name/handler", () => ({
+  updateNameAction: vi.fn(),
+}));
+
+const { default: ProfilePage } = await import("./page");
+
+describe("ProfilePage", () => {
+  beforeEach(() => {
+    requireSession.mockReset();
+    findLinkedAccounts.mockReset();
+    requireSession.mockResolvedValue({
+      user: { id: "u1", name: "竹添太郎", email: "taro@example.test" },
+    });
+    findLinkedAccounts.mockResolvedValue({ hasPassword: true, google: null });
+  });
+
+  it("セッションのユーザーの連携状態だけを読む", async () => {
+    render(await ProfilePage());
+
+    expect(findLinkedAccounts).toHaveBeenCalledWith("u1");
+  });
+
+  it("現在の表示名がフォームの初期値に入る", async () => {
+    render(await ProfilePage());
+
+    expect(screen.getByLabelText("表示名")).toHaveValue("竹添太郎");
+  });
+
+  it("見出しが出る", async () => {
+    render(await ProfilePage());
+
+    expect(
+      screen.getByRole("heading", { name: "プロフィール", level: 1 }),
+    ).toBeInTheDocument();
+  });
+});
