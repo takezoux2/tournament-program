@@ -31,6 +31,13 @@ export const authErrorMessage: (error: AuthError) => string =
       () => "メールアドレスが未確認です。確認メールを再送しました",
     ),
     Match.tag(
+      "InvalidResetToken",
+      // 無効・期限切れ・使用済みのどれかは区別できず、また区別しても
+      // 復帰手段は同じ（もう一度申請する）ためまとめた文言にする。
+      () =>
+        "リンクが無効か期限切れです。お手数ですが再度お申し込みください",
+    ),
+    Match.tag(
       "UnexpectedAuthError",
       () => "処理に失敗しました。時間をおいて再度お試しください",
     ),

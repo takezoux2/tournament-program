@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { toAuthError } from "@/shared/errors/auth-error";
+import { InvalidResetToken, toAuthError } from "@/shared/errors/auth-error";
 import { authErrorMessage } from "./messages";
 
 describe("authErrorMessage", () => {
@@ -50,5 +50,12 @@ describe("authErrorMessage", () => {
     expect(authErrorMessage(toAuthError(undefined, new Error("boom")))).toBe(
       "処理に失敗しました。時間をおいて再度お試しください",
     );
+  });
+
+  it("InvalidResetToken には再申請を促す文言を返す", () => {
+    const message = authErrorMessage(
+      new InvalidResetToken({ code: "INVALID_TOKEN" }),
+    );
+    expect(message).toContain("お申し込み");
   });
 });
