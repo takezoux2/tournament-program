@@ -17,7 +17,7 @@ import { AddEntryForm } from "./AddEntryForm";
 import { EntryList } from "./EntryList";
 import { GenerateMatchingForm } from "./GenerateMatchingForm";
 import { LeagueCrossTable } from "./LeagueCrossTable";
-import { MatchNumberList } from "./MatchNumberList";
+import { MatchOrderList } from "./MatchOrderList";
 import { Notice } from "./Notice";
 
 /**
@@ -29,6 +29,7 @@ export type LeagueSetupActions = {
   removeEntry: DivisionFormAction;
   reorderEntry: DivisionFormAction;
   generateMatching: DivisionFormAction;
+  reorderMatches: DivisionFormAction;
   setMatchNumber: DivisionFormAction;
   setPlayerNumber: DivisionFormAction;
 };
@@ -157,7 +158,7 @@ export function LeagueSetup({
         {mismatched ? (
           <Notice>対戦表を作り直すと、ここに試合が出ます</Notice>
         ) : (
-          <MatchNumberList
+          <MatchOrderList
             rows={toMatchOrderView(
               parsed.matchingConfig,
               parsed.entries,
@@ -167,7 +168,9 @@ export function LeagueSetup({
             slug={slug}
             tournamentId={tournamentId}
             divisionId={division.id}
-            action={actions.setMatchNumber}
+            reorderAction={actions.reorderMatches}
+            setMatchNumberAction={actions.setMatchNumber}
+            emptyMessage="まだ対戦表がありません"
           />
         )}
       </section>

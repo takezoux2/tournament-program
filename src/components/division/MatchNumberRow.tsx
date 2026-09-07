@@ -8,12 +8,13 @@ import {
 } from "@/features/division/state";
 
 /**
- * 1 行 1 フォーム。useActionState を行ごとに持たせ、エラーをその行の隣に出す。
- * 試合番号は組み合わせの構造を変えないため、勝敗記録後も編集できる
- * （disabled を受け取らないのは意図）。
+ * 1 行の中身。1 行 1 フォームで、useActionState を行ごとに持たせ、
+ * エラーをその行の隣に出す。試合番号は組み合わせの構造を変えないため、
+ * 勝敗記録後も編集できる（disabled を受け取らないのは意図）。
  *
- * トーナメントの試合番号一覧とリーグの節ごとの一覧が同じ行を描くので、
- * どちらからも使えるよう独立したファイルに置く。
+ * <li> を返さないのは、一覧側（MatchOrderList）が行の枠とドラッグハンドルを
+ * 持つため。行の見た目と掴む場所を一覧に集めておくと、この部品は
+ * 「試合番号を直す口」だけに集中できる。
  */
 export function MatchNumberRow({
   row,
@@ -34,7 +35,7 @@ export function MatchNumberRow({
   );
 
   return (
-    <li className="flex items-center justify-between gap-4 rounded border border-slate-200 bg-white px-4 py-3">
+    <div className="flex flex-1 items-center justify-between gap-4">
       <div className="min-w-0">
         <p className="text-sm font-medium text-slate-800">{row.label}</p>
         <p className="truncate text-xs text-slate-500">{row.card}</p>
@@ -65,6 +66,6 @@ export function MatchNumberRow({
           </p>
         )}
       </form>
-    </li>
+    </div>
   );
 }
