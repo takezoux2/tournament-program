@@ -15,8 +15,14 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
 
   return (
     <html lang="ja">
-      <body>{children}</body>
-      {gaId !== null && <GoogleAnalytics gaId={gaId} />}
+      <body>
+        {children}
+        {/* <html> の直下に置くと React が「script を入れ子にできない」と
+            警告し、404 のようにシェルが差し替わるページでは
+            beforeInteractive のブートストラップごと落ちてしまう。
+            body の中に置くこと。 */}
+        {gaId !== null && <GoogleAnalytics gaId={gaId} />}
+      </body>
     </html>
   );
 }

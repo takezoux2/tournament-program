@@ -1,6 +1,6 @@
 "use client";
 
-import { gaMeasurementId } from "./ga-id";
+import { sendGtagEvent } from "./gtag";
 
 /**
  * 送信してよいイベント名。GA4 は未知の名前も黙って受け付けてしまい、
@@ -16,12 +16,11 @@ export type AnalyticsEvent =
 
 /**
  * GA4 へカスタムイベントを送る。
- * 測定 ID が無い環境では window.dataLayer に一切触らない。
+ * 測定 ID が無い環境では window.dataLayer に一切触らない（sendGtagEvent 側で判定）。
  */
 export const trackEvent = (
   name: AnalyticsEvent,
   params?: Record<string, string>,
 ): void => {
-  if (gaMeasurementId() === null) return;
-  window.gtag("event", name, params ?? {});
+  sendGtagEvent(name, params ?? {});
 };

@@ -1,6 +1,7 @@
 import { render } from "@testing-library/react";
 import { StrictMode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { resetGtagForTest } from "@/shared/lib/analytics/gtag";
 import { GoogleAnalytics } from "./GoogleAnalytics";
 
 let pathname = "/orgs/tennis";
@@ -11,58 +12,65 @@ vi.mock("next/navigation", () => ({
 
 // next/script はテストでは走らせず、素の <script> として描画するだけにする。
 vi.mock("next/script", () => ({
-  default: ({
-    dangerouslySetInnerHTML,
-    ...rest
-  }: {
-    dangerouslySetInnerHTML?: { __html: string };
-    [key: string]: unknown;
-  }) => (
-    // biome-ignore lint/security/noDangerouslySetInnerHtml: next/script のテスト用ダミー
-    <script {...rest} dangerouslySetInnerHTML={dangerouslySetInnerHTML} />
-  ),
+  default: (rest: Record<string, unknown>) => <script {...rest} />,
 }));
+
+const original = process.env.NEXT_PUBLIC_GA_ID;
+
+/** dataLayer に積まれた arguments を、比べやすい配列に均す。 */
+const queued = (): unknown[][] =>
+  (window.dataLayer ?? []).map((entry) =>
+    Array.from(entry as ArrayLike<unknown>),
+  );
+
+const pageViews = (): Record<string, unknown>[] =>
+  queued()
+    .filter((e) => e[0] === "event" && e[1] === "page_view")
+    .map((e) => e[2] as Record<string, unknown>);
 
 describe("GoogleAnalytics", () => {
   beforeEach(() => {
     pathname = "/orgs/tennis";
-    // 本物のブートストラップは jsdom では走らないため、テスト側で用意する。
-    window.gtag = vi.fn();
+    process.env.NEXT_PUBLIC_GA_ID = "G-ABC123XYZ";
+    window.dataLayer = [];
+    resetGtagForTest();
   });
 
   afterEach(() => {
-    // @ts-expect-error テスト後始末のため型を無視して消す
-    delete window.gtag;
+    if (original === undefined) {
+      delete process.env.NEXT_PUBLIC_GA_ID;
+    } else {
+      process.env.NEXT_PUBLIC_GA_ID = original;
+    }
+    window.dataLayer = undefined;
   });
 
-  const bootstrapHtml = (container: HTMLElement) =>
-    container.querySelector("#ga-bootstrap")?.innerHTML ?? "";
-
-  it("インラインスクリプトに send_page_view: false を含む", () => {
+  it("gtag.js を測定 ID 付きで読み込む", () => {
     const { container } = render(<GoogleAnalytics gaId="G-ABC123XYZ" />);
 
-    expect(bootstrapHtml(container)).toContain("send_page_view: false");
+    expect(container.querySelector("#ga-src")?.getAttribute("src")).toBe(
+      "https://www.googletagmanager.com/gtag/js?id=G-ABC123XYZ",
+    );
   });
 
-  it("インラインスクリプトに測定 ID を含む", () => {
-    const { container } = render(<GoogleAnalytics gaId="G-ABC123XYZ" />);
+  it("config は send_page_view: false で積まれる", () => {
+    // 既定の config は page_location（クエリ込みの生 URL）で page_view を
+    // 即送ってしまう。自前で送るために必ず切っておく。
+    render(<GoogleAnalytics gaId="G-ABC123XYZ" />);
 
-    expect(bootstrapHtml(container)).toContain("G-ABC123XYZ");
-  });
-
-  it("インラインスクリプトにクエリ文字列を含む URL が現れない", () => {
-    const { container } = render(<GoogleAnalytics gaId="G-ABC123XYZ" />);
-
-    expect(bootstrapHtml(container)).not.toContain("?");
+    expect(queued()).toContainEqual([
+      "config",
+      "G-ABC123XYZ",
+      { send_page_view: false },
+    ]);
   });
 
   it("初回描画で page_view を 1 回だけ、サニタイズ済みの page_location で送る", () => {
     render(<GoogleAnalytics gaId="G-ABC123XYZ" />);
 
-    expect(window.gtag).toHaveBeenCalledTimes(1);
-    expect(window.gtag).toHaveBeenCalledWith("event", "page_view", {
-      page_location: `${window.location.origin}/orgs/tennis`,
-    });
+    expect(pageViews()).toEqual([
+      { page_location: `${window.location.origin}/orgs/tennis` },
+    ]);
   });
 
   it("パスが変わって再描画されると、新しいパスでもう 1 回送る", () => {
@@ -71,10 +79,22 @@ describe("GoogleAnalytics", () => {
     pathname = "/orgs/other";
     rerender(<GoogleAnalytics gaId="G-ABC123XYZ" />);
 
-    expect(window.gtag).toHaveBeenCalledTimes(2);
-    expect(window.gtag).toHaveBeenLastCalledWith("event", "page_view", {
-      page_location: `${window.location.origin}/orgs/other`,
-    });
+    expect(pageViews()).toEqual([
+      { page_location: `${window.location.origin}/orgs/tennis` },
+      { page_location: `${window.location.origin}/orgs/other` },
+    ]);
+  });
+
+  it("クエリ文字列は page_location に載らない", () => {
+    // /reset-password?token=... のようなページで、有効なトークンが
+    // Google に保存されるのを防ぐ。ここが本機能の主目的。
+    pathname = "/reset-password";
+
+    render(<GoogleAnalytics gaId="G-ABC123XYZ" />);
+
+    expect(pageViews()[0].page_location).toBe(
+      `${window.location.origin}/reset-password`,
+    );
   });
 
   it("ID を含むパスでは生の ID が page_location に現れない", () => {
@@ -82,13 +102,10 @@ describe("GoogleAnalytics", () => {
 
     render(<GoogleAnalytics gaId="G-ABC123XYZ" />);
 
-    const call = (window.gtag as ReturnType<typeof vi.fn>).mock.calls[0];
-    const sentLocation = (call[2] as { page_location: string }).page_location;
+    const sent = pageViews()[0].page_location as string;
 
-    expect(sentLocation).not.toContain("clx1a2b3c4d5e6f7g8h9i0jk");
-    expect(sentLocation).toBe(
-      `${window.location.origin}/orgs/tennis/tournaments/:id`,
-    );
+    expect(sent).not.toContain("clx1a2b3c4d5e6f7g8h9i0jk");
+    expect(sent).toBe(`${window.location.origin}/orgs/tennis/tournaments/:id`);
   });
 
   it("StrictMode で effect が 2 回走っても page_view は 1 回だけ", () => {
@@ -101,6 +118,14 @@ describe("GoogleAnalytics", () => {
       </StrictMode>,
     );
 
-    expect(window.gtag).toHaveBeenCalledTimes(1);
+    expect(pageViews()).toHaveLength(1);
+  });
+
+  it("測定 ID が無ければ dataLayer に一切触らない", () => {
+    delete process.env.NEXT_PUBLIC_GA_ID;
+
+    render(<GoogleAnalytics gaId="G-ABC123XYZ" />);
+
+    expect(queued()).toEqual([]);
   });
 });

@@ -3,6 +3,7 @@
 import { usePathname } from "next/navigation";
 import Script from "next/script";
 import { useEffect, useRef } from "react";
+import { sendGtagEvent } from "@/shared/lib/analytics/gtag";
 import { sanitizePagePath } from "@/shared/lib/analytics/sanitize-url";
 
 /**
@@ -15,9 +16,13 @@ import { sanitizePagePath } from "@/shared/lib/analytics/sanitize-url";
  * パスワード再設定は /reset-password?token=... というページなので、
  * そのままでは有効なトークンが Google に保存される。
  *
- * send_page_view: false にして、クエリを落とし ID を伏せたパスだけを送る。
- * GA4 側の拡張計測「ブラウザの履歴イベントに基づくページの変更」は必ず
- * 切ること。切らないと GA が素の URL でも page_view を送ってしまう。
+ * クエリを落とし ID を伏せたパスだけを送る。GA4 側の拡張計測
+ * 「ブラウザの履歴イベントに基づくページの変更」は必ず切ること。
+ * 切らないと GA が素の URL でも page_view を送ってしまう。
+ *
+ * js / config の送出は sendGtagEvent が面倒を見る。ここでインライン
+ * スクリプトを描かないのは、beforeInteractive が 404 などシェルの
+ * 差し替わるページで出力されず、window.gtag 未定義で落ちるため。
  */
 export function GoogleAnalytics({ gaId }: { gaId: string }) {
   const pathname = usePathname();
@@ -30,38 +35,18 @@ export function GoogleAnalytics({ gaId }: { gaId: string }) {
   // 再実行をまたいで保持されるので、これで 1 回に落ちる。
   const lastSent = useRef<string | null>(null);
 
-  // 初回もクライアント遷移も、同じ経路で 1 回ずつ送る。初回だけ config に
-  // 兼ねさせると、送信経路が 2 つになり片方だけサニタイズし忘れる。
   useEffect(() => {
     if (lastSent.current === pathname) return;
     lastSent.current = pathname;
-    window.gtag("event", "page_view", {
+    sendGtagEvent("page_view", {
       page_location: window.location.origin + sanitizePagePath(pathname),
     });
   }, [pathname]);
 
   return (
-    <>
-      <Script
-        id="ga-bootstrap"
-        strategy="beforeInteractive"
-        // gtag のブートストラップは Google が指定するインラインスクリプトの
-        // 形でしか書けない。埋め込む値は測定 ID だけで、JSON.stringify を通す。
-        // biome-ignore lint/security/noDangerouslySetInnerHtml: 上記のとおり
-        dangerouslySetInnerHTML={{
-          __html: [
-            "window.dataLayer = window.dataLayer || [];",
-            "function gtag(){dataLayer.push(arguments);}",
-            "window.gtag = gtag;",
-            "gtag('js', new Date());",
-            `gtag('config', ${JSON.stringify(gaId)}, { send_page_view: false });`,
-          ].join("\n"),
-        }}
-      />
-      <Script
-        id="ga-src"
-        src={`https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(gaId)}`}
-      />
-    </>
+    <Script
+      id="ga-src"
+      src={`https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(gaId)}`}
+    />
   );
 }
