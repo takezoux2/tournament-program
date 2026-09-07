@@ -128,11 +128,18 @@ describe("reorderMatchesInDb", () => {
   it("勝敗が記録されていても並べ替えられる", async () => {
     // runDivisionSetup を使わない理由がここ。results は matchId で試合を
     // 指しており、並べ替えは id を変えないので参照は壊れない。
-    // このテストは repository が results を読まないことで満たされる。
+    // 実際に「勝敗が記録されている部門」を再現するため、mock の返り値に
+    // 記録済みの results を入れる。runDivisionSetup 経由なら results が
+    // 1 件でもあると DivisionResultsRecordedError で拒否されるが、ここでは
+    // 専用トランザクションが results を見ずに読むため、成功するはず。
     divisionFindFirst.mockResolvedValue({
       format: "SINGLE_ELIMINATION",
       entries,
       matchingConfig: config,
+      results: {
+        version: 1,
+        matches: [{ matchId: "m1-0", winnerEntryId: "e1" }],
+      },
     });
 
     const outcome = await Effect.runPromise(
@@ -140,6 +147,9 @@ describe("reorderMatchesInDb", () => {
     );
 
     expect(outcome).toEqual({ found: true, value: null });
+    expect(divisionUpdateMany).toHaveBeenCalledTimes(1);
+    // select に results が無いこと自体も、上の成功が「たまたま results を
+    // 読んで許可した」のではなく「そもそも見ていない」ことの裏付けとして残す。
     expect(divisionFindFirst.mock.calls[0][0].select.results).toBeUndefined();
   });
 });
