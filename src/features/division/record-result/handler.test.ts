@@ -148,4 +148,29 @@ describe("recordResultAction", () => {
 
     expect(state).toEqual({ error: null, succeeded: 3 });
   });
+
+  it("何も書かなかった後でも、次に記録したら succeeded が 1 だけ進む", async () => {
+    // 書かなかったときに succeeded を落として undefined にすると、
+    // クライアント側のカウンタだけが 0 に戻る。MatchResultRow は
+    // 「前回発火した値」を ref で覚えていて、それを超えたときだけ
+    // 発火するため、次の 1 は過去の 3 を超えられず、本当に記録した
+    // 操作のイベントが黙って消える。持ち越しているかをここで固定する。
+    recordResultInDb.mockReturnValue(
+      Effect.succeed({ found: true, value: { recorded: false } }),
+    );
+    const afterNoWrite = await recordResultAction(
+      { error: null, succeeded: 3 },
+      formData(validInput),
+    );
+
+    recordResultInDb.mockReturnValue(
+      Effect.succeed({ found: true, value: { recorded: true } }),
+    );
+    const afterWrite = await recordResultAction(
+      afterNoWrite,
+      formData(validInput),
+    );
+
+    expect(afterWrite.succeeded).toBe(4);
+  });
 });
