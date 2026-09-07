@@ -2023,6 +2023,8 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 `CREDENTIAL_ACCOUNT_NOT_FOUND` を返す。画面の分岐を迂回しても素通りしない。
 
 **Files:**
+- Modify: `src/shared/lib/password-policy.ts`
+- Create: `src/shared/lib/password-policy.test.ts`
 - Create: `src/features/user/change-password/{schema,schema.test,usecase,usecase.test,handler,handler.test}.ts`
 - Create: `src/features/user/set-password/{schema,schema.test,usecase,usecase.test,handler,handler.test}.ts`
 - Create: `src/components/profile/PasswordSection.tsx`
@@ -2043,9 +2045,12 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
   - `setPasswordAction: ProfileFormAction`
   - `PasswordSection({ hasPassword, changeAction, setAction })`
 
-**共有スキーマは作らない。** 新しいパスワードの長さ規則は 2 つの schema.ts に
-同じ形で書く。切り出さないのは、片方が `refine` で現在のパスワードとの
-比較を持ち、もう片方が持たないため。共通化しても差分のほうが目立つ。
+**新しいパスワードの規則は `shared/lib/password-policy.ts` に 1 つだけ持つ。**
+`change-password` と `set-password` は同列のスライスで互いに import できず、
+規則を 2 か所に書くと「設定では通るのに変更で弾かれる」ずれが起きる。
+`changePasswordSchema` の `refine`（現在と同じ値を弾く）はオブジェクトに付くので、
+フィールドの規則を共有する妨げにならない。未実装のパスワードリセット設計
+（`/reset-password`）も同じ規則を要るため、置き場所は shared にする。
 
 **注意:** `auth.api.setPassword` は `createAuthEndpoint.serverOnly` で定義されている。
 HTTP のルートに出ないため `authClient` からは呼べず、Server Action から
@@ -2133,30 +2138,94 @@ describe("changePasswordSchema", () => {
 Run: `pnpm vitest run src/features/user/change-password/schema.test.ts`
 Expected: FAIL。`./schema` が存在しない。
 
-- [ ] **Step 3: `change-password/schema.ts` を書く**
+- [ ] **Step 3: 共有の `newPasswordSchema` を足し、`change-password/schema.ts` を書く**
+
+先に `src/shared/lib/password-policy.ts` の末尾へ足す。
 
 ```ts
 import { z } from "zod";
+
+/**
+ * 新しく設定するパスワードの規則。変更（change-password）と設定（set-password）は
+ * 同列のスライスで互いに import できないため、規則そのものは shared に 1 つだけ持つ。
+ * 2 か所に書くと「設定では通るのに変更で弾かれる」ずれが起きる。
+ *
+ * 既存パスワードの検証には使わない。ポリシーを変える前に登録した短い
+ * パスワードの人が、変更操作そのものをできなくなってしまう。
+ */
+export const newPasswordSchema = z
+  .string()
+  .min(
+    MIN_PASSWORD_LENGTH,
+    `パスワードは${MIN_PASSWORD_LENGTH}文字以上で入力してください`,
+  )
+  .max(
+    MAX_PASSWORD_LENGTH,
+    `パスワードは${MAX_PASSWORD_LENGTH}文字以内で入力してください`,
+  );
+```
+
+`src/shared/lib/password-policy.test.ts` を新規に作る。
+
+```ts
+import { describe, expect, it } from "vitest";
 import {
   MAX_PASSWORD_LENGTH,
   MIN_PASSWORD_LENGTH,
-} from "@/shared/lib/password-policy";
+  newPasswordSchema,
+} from "./password-policy";
+
+describe("newPasswordSchema", () => {
+  it("下限ちょうどの長さを通す", () => {
+    expect(
+      newPasswordSchema.safeParse("a".repeat(MIN_PASSWORD_LENGTH)).success,
+    ).toBe(true);
+  });
+
+  it("下限より 1 文字短いと弾く", () => {
+    const result = newPasswordSchema.safeParse(
+      "a".repeat(MIN_PASSWORD_LENGTH - 1),
+    );
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues[0].message).toBe(
+        "パスワードは8文字以上で入力してください",
+      );
+    }
+  });
+
+  it("上限ちょうどの長さを通す", () => {
+    expect(
+      newPasswordSchema.safeParse("a".repeat(MAX_PASSWORD_LENGTH)).success,
+    ).toBe(true);
+  });
+
+  it("上限より 1 文字長いと弾く", () => {
+    const result = newPasswordSchema.safeParse(
+      "a".repeat(MAX_PASSWORD_LENGTH + 1),
+    );
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues[0].message).toBe(
+        "パスワードは128文字以内で入力してください",
+      );
+    }
+  });
+});
+```
+
+そのうえで `src/features/user/change-password/schema.ts` を書く。
+
+```ts
+import { z } from "zod";
+import { newPasswordSchema } from "@/shared/lib/password-policy";
 
 export const changePasswordSchema = z
   .object({
     // 現在のパスワードは長さで弾かない。ポリシーを変える前に登録した
     // 短いパスワードの人が、変更操作そのものをできなくなってしまうため。
     currentPassword: z.string().min(1, "現在のパスワードを入力してください"),
-    newPassword: z
-      .string()
-      .min(
-        MIN_PASSWORD_LENGTH,
-        `パスワードは${MIN_PASSWORD_LENGTH}文字以上で入力してください`,
-      )
-      .max(
-        MAX_PASSWORD_LENGTH,
-        `パスワードは${MAX_PASSWORD_LENGTH}文字以内で入力してください`,
-      ),
+    newPassword: newPasswordSchema,
   })
   // Better Auth 側は同じ値への変更を拒まない。黙って「変更しました」と
   // 出るのは誤解を招くので、ここで弾く。
@@ -2170,8 +2239,8 @@ export type ChangePasswordInput = z.infer<typeof changePasswordSchema>;
 
 - [ ] **Step 4: テストが通ることを確認する**
 
-Run: `pnpm vitest run src/features/user/change-password/schema.test.ts`
-Expected: PASS（6 件）
+Run: `pnpm vitest run src/shared/lib/password-policy.test.ts src/features/user/change-password/schema.test.ts`
+Expected: PASS（4 件 + 6 件）
 
 - [ ] **Step 5: `change-password/usecase.test.ts` を書く（失敗する）**
 
@@ -2494,27 +2563,17 @@ Expected: FAIL。`./schema` が存在しない。
 
 ```ts
 import { z } from "zod";
-import {
-  MAX_PASSWORD_LENGTH,
-  MIN_PASSWORD_LENGTH,
-} from "@/shared/lib/password-policy";
+import { newPasswordSchema } from "@/shared/lib/password-policy";
 
 /**
  * 現在のパスワードを受け取らない。この操作が使えるのはそもそも
  * パスワードを持たない人（Google だけで登録した人）だけであり、
  * 本人確認はセッションが担っている。
+ *
+ * 長さの規則は change-password と同じ newPasswordSchema を使う。
  */
 export const setPasswordSchema = z.object({
-  newPassword: z
-    .string()
-    .min(
-      MIN_PASSWORD_LENGTH,
-      `パスワードは${MIN_PASSWORD_LENGTH}文字以上で入力してください`,
-    )
-    .max(
-      MAX_PASSWORD_LENGTH,
-      `パスワードは${MAX_PASSWORD_LENGTH}文字以内で入力してください`,
-    ),
+  newPassword: newPasswordSchema,
 });
 
 export type SetPasswordInput = z.infer<typeof setPasswordSchema>;
@@ -3078,6 +3137,9 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 `@/features/**` を import できないため、判別は `shared` 側に置くしかない。
 
 **Files:**
+- Create: `src/shared/lib/mail/html.ts`
+- Create: `src/shared/lib/mail/html.test.ts`
+- Modify: `src/shared/lib/auth-verification-email.ts`
 - Create: `src/shared/lib/auth-email-change-email.ts`
 - Create: `src/shared/lib/auth-email-change-email.test.ts`
 - Modify: `src/shared/lib/auth.ts`
@@ -3099,6 +3161,102 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
   - `changeEmail(port, input, headers): Effect.Effect<unknown, AuthError>`
   - `changeEmailAction: ProfileFormAction`
   - `EmailSection({ currentEmail, action })`
+
+**HTML のエスケープと宛名の組み立ては共有する。** 既存の
+`auth-verification-email.ts` が持っている `escapeHtml` と
+「`name` が空なら `email` を使う」宛名の規則を `src/shared/lib/mail/html.ts` へ
+下ろし、既存を含む 3 つの文面ビルダー（登録確認・メール変更確認・変更通知）が
+同じものを使う。エスケープ漏れは 1 か所直せば全部に効く形にしておく。
+
+- [ ] **Step 0: `mail/html.ts` を切り出す**
+
+`src/shared/lib/mail/html.test.ts` を新規に作る。
+
+```ts
+import { describe, expect, it } from "vitest";
+import { escapeHtml, greetingName } from "./html";
+
+describe("escapeHtml", () => {
+  it("HTML の意味を持つ 5 文字を実体参照にする", () => {
+    expect(escapeHtml("&<>\"'")).toBe("&amp;&lt;&gt;&quot;&#39;");
+  });
+
+  it("& を最初に置換するので、実体参照が二重にならない", () => {
+    expect(escapeHtml("<")).toBe("&lt;");
+  });
+
+  it("エスケープ不要な文字はそのまま返す", () => {
+    expect(escapeHtml("竹添太郎")).toBe("竹添太郎");
+  });
+});
+
+describe("greetingName", () => {
+  it("名前があればそれを使う", () => {
+    expect(greetingName({ email: "a@example.test", name: "竹添太郎" })).toBe(
+      "竹添太郎",
+    );
+  });
+
+  it("名前が空白だけならメールアドレスを使う", () => {
+    expect(greetingName({ email: "a@example.test", name: "  " })).toBe(
+      "a@example.test",
+    );
+  });
+
+  it("名前が無ければメールアドレスを使う", () => {
+    expect(greetingName({ email: "a@example.test" })).toBe("a@example.test");
+  });
+});
+```
+
+Run: `pnpm vitest run src/shared/lib/mail/html.test.ts`
+Expected: FAIL。`./html` が存在しない。
+
+`src/shared/lib/mail/html.ts` を書く。
+
+```ts
+import type { MailAddress } from "./types";
+
+/**
+ * HTML の文脈へ差し込む値をエスケープする。name はユーザーの入力、
+ * url はクエリに & を含むため、どちらも素通しにはできない。
+ *
+ * 文面ビルダーが増えるたびに写すのではなく 1 か所に置く。
+ * 漏れがあったときに直す場所が 1 つで済む。
+ */
+export const escapeHtml = (raw: string): string =>
+  raw
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+
+/**
+ * メールの宛名。User.name はスキーマ上 NOT NULL なので、実運用で
+ * 到達しうる欠損の形は undefined ではなく空文字。トリムした上で
+ * ?? ではなく || で判定しないと「 様」になってしまう。
+ */
+export const greetingName = (to: MailAddress): string =>
+  to.name?.trim() || to.email;
+```
+
+Run: `pnpm vitest run src/shared/lib/mail/html.test.ts`
+Expected: PASS（6 件）
+
+既存の `src/shared/lib/auth-verification-email.ts` から `escapeHtml` の定義を消し、
+`./mail/html` から import して使う。宛名を組み立てている
+`const greetingName = to.name?.trim() || to.email;` の行も消し、
+`const greeting = greetingName(to);` に置き換える（import した関数名と
+衝突しないよう、局所変数の名前を `greeting` にする）。本体の
+`greetingName` の参照 3 か所を `greeting` に直す。
+
+```ts
+import { escapeHtml, greetingName } from "./mail/html";
+```
+
+Run: `pnpm vitest run src/shared/lib`
+Expected: PASS（既存の確認メールのテストがそのまま通る）
 
 - [ ] **Step 1: `auth-email-change-email.test.ts` を書く（失敗する）**
 
@@ -3236,6 +3394,7 @@ Expected: FAIL。`./auth-email-change-email` が存在しない。
 - [ ] **Step 3: `auth-email-change-email.ts` を書く**
 
 ```ts
+import { escapeHtml, greetingName } from "@/shared/lib/mail/html";
 import type { MailAddress, MailMessage } from "@/shared/lib/mail/types";
 import { VERIFICATION_LINK_EXPIRES_LABEL } from "./email-verification-policy";
 
@@ -3280,21 +3439,6 @@ export const isEmailChangeVerification = (url: string): boolean => {
   }
 };
 
-/**
- * HTML の文脈へ差し込む値をエスケープする。
- * auth-verification-email.ts と同じ理由・同じ規則。
- */
-const escapeHtml = (raw: string): string =>
-  raw
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
-
-/** User.name は空文字で届きうるので、?? ではなく || で畳む。 */
-const greeting = (to: MailAddress): string => to.name?.trim() || to.email;
-
 export const EMAIL_CHANGE_VERIFICATION_SUBJECT =
   "【大会運営】新しいメールアドレスの確認";
 
@@ -3312,10 +3456,10 @@ export const buildEmailChangeVerificationEmail = ({
   to: MailAddress;
   url: string;
 }): MailMessage => {
-  const greetingName = greeting(to);
+  const greeting = greetingName(to);
 
   const text = [
-    `${greetingName} 様`,
+    `${greeting} 様`,
     "",
     "メールアドレスの変更を受け付けました。",
     "次のリンクを開くと、このアドレスへの変更が完了します。",
@@ -3331,7 +3475,7 @@ export const buildEmailChangeVerificationEmail = ({
   const safeUrl = escapeHtml(url);
   const html = [
     '<html><head><meta charset="utf-8"></head><body>',
-    `<p>${escapeHtml(greetingName)} 様</p>`,
+    `<p>${escapeHtml(greeting)} 様</p>`,
     "<p>メールアドレスの変更を受け付けました。<br>次のリンクを開くと、このアドレスへの変更が完了します。</p>",
     `<p><a href="${safeUrl}">${safeUrl}</a></p>`,
     `<p>このリンクは${VERIFICATION_LINK_EXPIRES_LABEL}で無効になります。<br>リンクを開くまで、メールアドレスは変更されません。</p>`,
@@ -3365,10 +3509,10 @@ export const buildEmailChangeNoticeEmail = ({
   to: MailAddress;
   newEmail: string;
 }): MailMessage => {
-  const greetingName = greeting(to);
+  const greeting = greetingName(to);
 
   const text = [
-    `${greetingName} 様`,
+    `${greeting} 様`,
     "",
     "アカウントのメールアドレスを次のアドレスへ変更する申請がありました。",
     "",
@@ -3382,7 +3526,7 @@ export const buildEmailChangeNoticeEmail = ({
 
   const html = [
     '<html><head><meta charset="utf-8"></head><body>',
-    `<p>${escapeHtml(greetingName)} 様</p>`,
+    `<p>${escapeHtml(greeting)} 様</p>`,
     "<p>アカウントのメールアドレスを次のアドレスへ変更する申請がありました。</p>",
     `<p>${escapeHtml(newEmail)}</p>`,
     "<p>新しいアドレス宛に確認メールを送信しています。<br>そのリンクが開かれるまで、メールアドレスは変更されません。</p>",
@@ -5373,16 +5517,8 @@ Expected: FAIL。`./auth-delete-account-email` が存在しない。
 - [ ] **Step 7: `auth-delete-account-email.ts` を書く**
 
 ```ts
+import { escapeHtml, greetingName } from "@/shared/lib/mail/html";
 import type { MailAddress, MailMessage } from "@/shared/lib/mail/types";
-
-/** auth-verification-email.ts と同じ規則でエスケープする。 */
-const escapeHtml = (raw: string): string =>
-  raw
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
 
 export const DELETE_ACCOUNT_EMAIL_SUBJECT =
   "【大会運営】アカウント削除の確認";
@@ -5403,11 +5539,10 @@ export const buildDeleteAccountEmail = ({
   to: MailAddress;
   url: string;
 }): MailMessage => {
-  // User.name は空文字で届きうるので、?? ではなく || で畳む。
-  const greetingName = to.name?.trim() || to.email;
+  const greeting = greetingName(to);
 
   const text = [
-    `${greetingName} 様`,
+    `${greeting} 様`,
     "",
     "アカウント削除の申請を受け付けました。",
     "次のリンクをログイン中のブラウザで開くと、削除が実行されます。",
@@ -5422,7 +5557,7 @@ export const buildDeleteAccountEmail = ({
   const safeUrl = escapeHtml(url);
   const html = [
     '<html><head><meta charset="utf-8"></head><body>',
-    `<p>${escapeHtml(greetingName)} 様</p>`,
+    `<p>${escapeHtml(greeting)} 様</p>`,
     "<p>アカウント削除の申請を受け付けました。<br>次のリンクをログイン中のブラウザで開くと、削除が実行されます。</p>",
     `<p><a href="${safeUrl}">${safeUrl}</a></p>`,
     "<p>削除すると、所属している組織からも外れます。元に戻せません。</p>",
