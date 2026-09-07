@@ -64,7 +64,7 @@ export function LoginForm({
       return;
     }
 
-    trackEvent("login", { method: "email" });
+    trackEvent("login", { method: parsed.data.identifier.kind });
     router.push(redirectTo);
     // Server Component 側のセッションを読み直させる。
     router.refresh();

@@ -32,7 +32,9 @@ export default async function TournamentPage({
 
   return (
     <main className="min-h-screen bg-slate-50">
-      <TrackCreated created={typeof created === "string" ? created : undefined} />
+      <TrackCreated
+        created={typeof created === "string" ? created : undefined}
+      />
       <AppHeader
         crumbs={[
           { label: "組織", href: "/" },

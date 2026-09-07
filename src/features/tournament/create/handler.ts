@@ -3,6 +3,7 @@
 import { Effect, Exit } from "effect";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { createdQuery } from "@/shared/lib/analytics/created";
 import { requireOrganization } from "@/shared/middleware/require-organization";
 import { tournamentErrorFormState } from "../effect-to-form-state";
 import type { TournamentFormState } from "../state";
@@ -35,5 +36,7 @@ export const createTournamentAction = async (
   }
 
   revalidatePath(`/orgs/${slug}`);
-  redirect(`/orgs/${slug}/tournaments/${exit.value.id}?created=tournament`);
+  redirect(
+    `/orgs/${slug}/tournaments/${exit.value.id}${createdQuery("tournament")}`,
+  );
 };

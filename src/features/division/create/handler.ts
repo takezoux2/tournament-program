@@ -3,6 +3,7 @@
 import { Effect, Exit } from "effect";
 import { revalidatePath } from "next/cache";
 import { notFound, redirect } from "next/navigation";
+import { createdQuery } from "@/shared/lib/analytics/created";
 import { requireOrganization } from "@/shared/middleware/require-organization";
 import { divisionErrorFormState } from "../effect-to-form-state";
 import type { DivisionFormState } from "../state";
@@ -47,6 +48,6 @@ export const createDivisionAction = async (
 
   revalidatePath(`/orgs/${slug}/tournaments/${tournamentId}`);
   redirect(
-    `/orgs/${slug}/tournaments/${tournamentId}/divisions/${exit.value.id}?created=division`,
+    `/orgs/${slug}/tournaments/${tournamentId}/divisions/${exit.value.id}${createdQuery("division")}`,
   );
 };

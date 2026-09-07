@@ -191,12 +191,13 @@ describe("LoginForm の識別子", () => {
 describe("LoginForm の GA イベント", () => {
   beforeEach(() => {
     signInEmail.mockReset();
+    signInUsername.mockReset();
     trackEvent.mockReset();
   });
 
-  const fillAndSubmit = () => {
+  const fillAndSubmit = (identifier = "yamada@example.com") => {
     fireEvent.change(screen.getByLabelText("ユーザー名またはメールアドレス"), {
-      target: { value: "yamada@example.com" },
+      target: { value: identifier },
     });
     fireEvent.change(screen.getByLabelText("パスワード"), {
       target: { value: "password123" },
@@ -212,6 +213,19 @@ describe("LoginForm の GA イベント", () => {
 
     await waitFor(() =>
       expect(trackEvent).toHaveBeenCalledWith("login", { method: "email" }),
+    );
+  });
+
+  it("ユーザー名でログインに成功したら method: username を送る", async () => {
+    signInUsername.mockResolvedValue({ error: null });
+    render(<LoginForm redirectTo="/" />);
+
+    fillAndSubmit("takezoux2");
+
+    await waitFor(() =>
+      expect(trackEvent).toHaveBeenCalledWith("login", {
+        method: "username",
+      }),
     );
   });
 

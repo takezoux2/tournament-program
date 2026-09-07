@@ -1,32 +1,34 @@
 import { render } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { TrackCreated } from "./TrackCreated";
 
 const trackEvent = vi.fn();
-const replace = vi.fn();
 
 vi.mock("@/shared/lib/analytics/events", () => ({
   trackEvent: (...args: unknown[]) => trackEvent(...args),
 }));
 
-const router = { replace };
-
 vi.mock("next/navigation", () => ({
-  useRouter: () => router,
   usePathname: () => "/orgs/tennis",
 }));
 
 describe("TrackCreated", () => {
+  let replaceState: ReturnType<typeof vi.spyOn>;
+
   beforeEach(() => {
     trackEvent.mockReset();
-    replace.mockReset();
+    replaceState = vi.spyOn(window.history, "replaceState");
+  });
+
+  afterEach(() => {
+    replaceState.mockRestore();
   });
 
   it("created=organization で organization_create を送り、クエリを消す", () => {
     render(<TrackCreated created="organization" />);
 
     expect(trackEvent).toHaveBeenCalledWith("organization_create");
-    expect(replace).toHaveBeenCalledWith("/orgs/tennis");
+    expect(replaceState).toHaveBeenCalledWith(null, "", "/orgs/tennis");
   });
 
   it("created=tournament で tournament_create を送る", () => {
@@ -45,14 +47,14 @@ describe("TrackCreated", () => {
     render(<TrackCreated created={undefined} />);
 
     expect(trackEvent).not.toHaveBeenCalled();
-    expect(replace).not.toHaveBeenCalled();
+    expect(replaceState).not.toHaveBeenCalled();
   });
 
   it("知らない値は無視する（URL は手で打てるため）", () => {
     render(<TrackCreated created="nonsense" />);
 
     expect(trackEvent).not.toHaveBeenCalled();
-    expect(replace).not.toHaveBeenCalled();
+    expect(replaceState).not.toHaveBeenCalled();
   });
 
   it("同じ値で再描画されても 2 回目は送らない", () => {
