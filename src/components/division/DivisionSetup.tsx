@@ -3,11 +3,9 @@ import type {
   DivisionDetail,
   DivisionParticipant,
 } from "@/features/division/repository";
+import { toMatchOrderView } from "@/features/division/match-number-view";
 import { isSingleEliminationShape } from "@/features/division/single-elimination/build";
-import {
-  toMatchNumberView,
-  toSetupView,
-} from "@/features/division/single-elimination/view";
+import { toSetupView } from "@/features/division/single-elimination/view";
 import type { DivisionFormAction } from "@/features/division/state";
 import type { MemberSummary } from "@/features/organization/repository";
 import {
@@ -163,10 +161,11 @@ export function DivisionSetup({
           <Notice>組み合わせを作り直すと、ここに試合番号が出ます</Notice>
         ) : (
           <MatchNumberList
-            rows={toMatchNumberView(
+            rows={toMatchOrderView(
               parsed.matchingConfig,
               parsed.entries,
               participants,
+              division.format,
             )}
             slug={slug}
             tournamentId={tournamentId}

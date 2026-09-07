@@ -73,7 +73,7 @@ const participants = [
 ];
 
 describe("buildScheduleView", () => {
-  it("行が 1 件も無ければ部門順 → round → order で全試合を並べる", () => {
+  it("行が 1 件も無ければ部門順 → 部門内の実施順で全試合を並べる", () => {
     const rows = buildScheduleView([divisionB, divisionA], participants, []);
 
     expect(rows.map((row) => row.key)).toEqual([

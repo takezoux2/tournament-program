@@ -1,10 +1,4 @@
-import {
-  createSlotLabeler,
-  matchCardLabel,
-  matchPositionLabel,
-} from "@/lib/division/label";
 import type { DivisionEntries, MatchingConfig } from "@/lib/division/types";
-import type { MatchNumberRowView } from "../match-number-view";
 import { toSlots } from "./build";
 
 /**
@@ -83,26 +77,4 @@ export const toSetupView = (
   }
 
   return matches;
-};
-
-/**
- * 全試合を round/order 順に並べた試合番号の編集用一覧。
- * toSetupView と違い 1 回戦以外も含む。勝者参照は相手の試合番号で表す。
- * 表示文言は lib/division/label.ts を使う（大会の試合一覧と揃えるため）。
- */
-export const toMatchNumberView = (
-  config: MatchingConfig,
-  entries: DivisionEntries,
-  participants: { id: string; name: string }[],
-): MatchNumberRowView[] => {
-  const labelSlot = createSlotLabeler(config, entries, participants);
-
-  return [...config.matches]
-    .sort((left, right) => left.round - right.round || left.order - right.order)
-    .map((match) => ({
-      matchId: match.id,
-      matchNumber: match.matchNumber,
-      label: matchPositionLabel(match, "SINGLE_ELIMINATION"),
-      card: matchCardLabel(match, labelSlot),
-    }));
 };
