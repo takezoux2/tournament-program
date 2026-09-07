@@ -7,9 +7,9 @@ import type { AnalyticsEvent } from "./events";
  * 直し忘れが型エラーとして出る。
  */
 export const CREATED_EVENTS = {
-  organization: "organization_create",
-  tournament: "tournament_create",
-  division: "division_create",
+  organization: "create_organization",
+  tournament: "create_tournament",
+  division: "create_division",
 } as const satisfies Record<string, AnalyticsEvent>;
 
 export type CreatedKind = keyof typeof CREATED_EVENTS;

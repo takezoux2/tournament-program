@@ -27,20 +27,20 @@ describe("TrackCreated", () => {
   it("created=organization で organization_create を送り、クエリを消す", () => {
     render(<TrackCreated created="organization" />);
 
-    expect(trackEvent).toHaveBeenCalledWith("organization_create");
+    expect(trackEvent).toHaveBeenCalledWith("create_organization");
     expect(replaceState).toHaveBeenCalledWith(null, "", "/orgs/tennis");
   });
 
   it("created=tournament で tournament_create を送る", () => {
     render(<TrackCreated created="tournament" />);
 
-    expect(trackEvent).toHaveBeenCalledWith("tournament_create");
+    expect(trackEvent).toHaveBeenCalledWith("create_tournament");
   });
 
   it("created=division で division_create を送る", () => {
     render(<TrackCreated created="division" />);
 
-    expect(trackEvent).toHaveBeenCalledWith("division_create");
+    expect(trackEvent).toHaveBeenCalledWith("create_division");
   });
 
   it("created が無いときは何もしない", () => {

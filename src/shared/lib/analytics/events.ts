@@ -10,9 +10,9 @@ import { gaMeasurementId } from "./ga-id";
 export type AnalyticsEvent =
   | "sign_up"
   | "login"
-  | "organization_create"
-  | "tournament_create"
-  | "division_create"
+  | "create_organization"
+  | "create_tournament"
+  | "create_division"
   | "record_result";
 
 /**
