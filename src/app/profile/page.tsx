@@ -1,11 +1,14 @@
 import { AppHeader } from "@/components/layout/AppHeader";
 import { DisplayNameForm } from "@/components/profile/DisplayNameForm";
 import { EmailSection } from "@/components/profile/EmailSection";
+import { LinkedAccountsSection } from "@/components/profile/LinkedAccountsSection";
 import { PasswordSection } from "@/components/profile/PasswordSection";
 import { changeEmailAction } from "@/features/user/change-email/handler";
 import { changePasswordAction } from "@/features/user/change-password/handler";
+import { linkGoogleAction } from "@/features/user/link-google/handler";
 import { findLinkedAccounts } from "@/features/user/repository";
 import { setPasswordAction } from "@/features/user/set-password/handler";
+import { unlinkGoogleAction } from "@/features/user/unlink-account/handler";
 import { updateNameAction } from "@/features/user/update-name/handler";
 import { requireSession } from "@/shared/middleware/require-session";
 
@@ -49,6 +52,16 @@ export default async function ProfilePage() {
             hasPassword={linkedAccounts.hasPassword}
             changeAction={changePasswordAction}
             setAction={setPasswordAction}
+          />
+        </section>
+
+        <section className="space-y-4 rounded border border-slate-200 bg-white px-5 py-4">
+          <h2 className="text-sm font-bold text-slate-800">連携アカウント</h2>
+          <LinkedAccountsSection
+            google={linkedAccounts.google}
+            hasPassword={linkedAccounts.hasPassword}
+            linkAction={linkGoogleAction}
+            unlinkAction={unlinkGoogleAction}
           />
         </section>
       </div>

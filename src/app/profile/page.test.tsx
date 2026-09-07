@@ -37,6 +37,14 @@ vi.mock("@/features/user/set-password/handler", () => ({
   setPasswordAction: vi.fn(),
 }));
 
+vi.mock("@/features/user/link-google/handler", () => ({
+  linkGoogleAction: vi.fn(),
+}));
+
+vi.mock("@/features/user/unlink-account/handler", () => ({
+  unlinkGoogleAction: vi.fn(),
+}));
+
 const { default: ProfilePage } = await import("./page");
 
 describe("ProfilePage", () => {
@@ -98,5 +106,26 @@ describe("ProfilePage", () => {
     render(await ProfilePage());
 
     expect(screen.getByText("taro@example.test")).toBeInTheDocument();
+  });
+
+  it("Google 未連携なら連携ボタンを出す", async () => {
+    render(await ProfilePage());
+
+    expect(
+      screen.getByRole("button", { name: "Google と連携する" }),
+    ).toBeInTheDocument();
+  });
+
+  it("Google 連携済みなら解除ボタンを出す", async () => {
+    findLinkedAccounts.mockResolvedValue({
+      hasPassword: true,
+      google: { accountId: "a2", linkedAt: new Date("2026-09-02T00:00:00Z") },
+    });
+
+    render(await ProfilePage());
+
+    expect(
+      screen.getByRole("button", { name: "連携を解除" }),
+    ).toBeInTheDocument();
   });
 });
