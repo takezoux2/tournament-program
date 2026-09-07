@@ -128,7 +128,7 @@ describe("DivisionSetup", () => {
       ),
     ).toBeInTheDocument();
     expect(
-      screen.getByText("組み合わせを作り直すと、ここに試合番号が出ます"),
+      screen.getByText("組み合わせを作り直すと、ここに試合の実施順が出ます"),
     ).toBeInTheDocument();
     // 生成ボタンは残す。押せば直る。
     expect(
@@ -230,6 +230,10 @@ describe("DivisionSetup", () => {
       expect(entryListProps?.disabled).toBe(true);
       expect(addEntryFormProps?.disabled).toBe(true);
       expect(matchingSectionProps?.disabled).toBe(true);
+      // 実施順と試合番号は構造を変えないため、locked でも編集できる。
+      // MatchOrderList は disabled を受け取らない prop 契約なので、
+      // 渡されていないこと自体がその仕様を型より外でも固定する。
+      expect(matchOrderListProps?.disabled).toBeUndefined();
     } finally {
       // 後続テストは冒頭で static import した実物の DivisionSetup を使うので
       // 直接の影響はないが、モジュールレジストリを汚さないよう明示的に戻す。

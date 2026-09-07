@@ -154,7 +154,7 @@ export function LeagueSetup({
 
       <section className="space-y-3">
         <h2 className="text-sm font-bold text-slate-700">試合の実施順</h2>
-        {/* 番号の変更は構造を変えないため、locked でも編集できる */}
+        {/* 実施順と番号の変更は構造を変えないため、locked でも編集できる */}
         {mismatched ? (
           <Notice>対戦表を作り直すと、ここに試合が出ます</Notice>
         ) : (

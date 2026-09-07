@@ -159,7 +159,7 @@ export function DivisionSetup({
         <h2 className="text-sm font-bold text-slate-700">試合の実施順</h2>
         {/* 実施順と番号の変更は構造を変えないため、locked でも編集できる */}
         {mismatched ? (
-          <Notice>組み合わせを作り直すと、ここに試合番号が出ます</Notice>
+          <Notice>組み合わせを作り直すと、ここに試合の実施順が出ます</Notice>
         ) : (
           <MatchOrderList
             rows={toMatchOrderView(
