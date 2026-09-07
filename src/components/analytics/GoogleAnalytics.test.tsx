@@ -1,4 +1,5 @@
 import { render } from "@testing-library/react";
+import { StrictMode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { GoogleAnalytics } from "./GoogleAnalytics";
 
@@ -88,5 +89,18 @@ describe("GoogleAnalytics", () => {
     expect(sentLocation).toBe(
       `${window.location.origin}/orgs/tennis/tournaments/:id`,
     );
+  });
+
+  it("StrictMode で effect が 2 回走っても page_view は 1 回だけ", () => {
+    // 開発時の StrictMode は effect を setup → cleanup → setup と 2 回走らせる。
+    // 素直に書くと同じページビューが 2 回飛ぶ。開発サーバへステージング用の
+    // 測定 ID を向ける使い方を想定しているので、そこで数字が倍にならないこと。
+    render(
+      <StrictMode>
+        <GoogleAnalytics gaId="G-ABC123XYZ" />
+      </StrictMode>,
+    );
+
+    expect(window.gtag).toHaveBeenCalledTimes(1);
   });
 });

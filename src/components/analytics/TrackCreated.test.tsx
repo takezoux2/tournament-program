@@ -1,4 +1,5 @@
 import { render } from "@testing-library/react";
+import { StrictMode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { TrackCreated } from "./TrackCreated";
 
@@ -60,6 +61,18 @@ describe("TrackCreated", () => {
   it("同じ値で再描画されても 2 回目は送らない", () => {
     const { rerender } = render(<TrackCreated created="organization" />);
     rerender(<TrackCreated created="organization" />);
+
+    expect(trackEvent).toHaveBeenCalledTimes(1);
+  });
+
+  it("StrictMode で effect が 2 回走っても 1 回しか送らない", () => {
+    // クエリを消すのは history の書き換えだけでサーバー側は再描画されないため、
+    // StrictMode の 2 回目の setup にも created は同じ値のまま届く。
+    render(
+      <StrictMode>
+        <TrackCreated created="organization" />
+      </StrictMode>,
+    );
 
     expect(trackEvent).toHaveBeenCalledTimes(1);
   });

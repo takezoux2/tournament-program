@@ -2,7 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import Script from "next/script";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { sanitizePagePath } from "@/shared/lib/analytics/sanitize-url";
 
 /**
@@ -22,9 +22,19 @@ import { sanitizePagePath } from "@/shared/lib/analytics/sanitize-url";
 export function GoogleAnalytics({ gaId }: { gaId: string }) {
   const pathname = usePathname();
 
+  // 直前に送ったパス。StrictMode は開発時に effect を
+  // setup → cleanup → setup と 2 回走らせるため、素直に書くと同じ
+  // ページビューが 2 回飛ぶ。本番の挙動は変わらないが、開発サーバに
+  // ステージング用の測定 ID を向ける使い方を想定しているので、
+  // そこで数字が倍にならないようにしておく。ref は StrictMode の
+  // 再実行をまたいで保持されるので、これで 1 回に落ちる。
+  const lastSent = useRef<string | null>(null);
+
   // 初回もクライアント遷移も、同じ経路で 1 回ずつ送る。初回だけ config に
   // 兼ねさせると、送信経路が 2 つになり片方だけサニタイズし忘れる。
   useEffect(() => {
+    if (lastSent.current === pathname) return;
+    lastSent.current = pathname;
     window.gtag("event", "page_view", {
       page_location: window.location.origin + sanitizePagePath(pathname),
     });

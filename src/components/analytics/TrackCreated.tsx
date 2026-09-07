@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import {
   CREATED_EVENTS,
   type CreatedKind,
@@ -21,14 +21,21 @@ const eventFor = (created: string): AnalyticsEvent | undefined =>
 
 export function TrackCreated({ created }: { created: string | undefined }) {
   const pathname = usePathname();
+  // StrictMode は開発時に effect を setup → cleanup → setup と 2 回走らせる。
+  // クエリを消すのは history の書き換えだけでサーバー側は再描画されないため、
+  // created は 2 回目も同じ値のまま届き、イベントが二重に飛ぶ。
+  // ref は StrictMode の再実行をまたいで保持されるので、これで 1 回に落ちる。
+  const fired = useRef(false);
 
   useEffect(() => {
     if (created === undefined) return;
+    if (fired.current) return;
     // URL は誰でも手で打てる。既知の値だけを通し、イベント名が
     // 外部入力で汚れないようにする。
     const event = eventFor(created);
     if (event === undefined) return;
 
+    fired.current = true;
     trackEvent(event);
     // クエリを消す。リロードや URL の共有で二重に計上されるのを防ぐ。
     // router.replace だとサーバーコンポーネントが直前に走らせたのと同じ
