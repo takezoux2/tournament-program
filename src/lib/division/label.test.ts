@@ -89,7 +89,7 @@ describe("matchPositionLabel", () => {
       bracket: "winners",
       round: 2,
       order: 1,
-      sequence: 0,
+      sequence: 1,
       matchNumber: "5",
       slots: [
         { kind: "entry", entryId: "e1" },
@@ -103,9 +103,9 @@ describe("matchPositionLabel", () => {
       );
     });
 
-    it("リーグは節で表す", () => {
-      // リーグの round は節番号。「2回戦」と出すと進行順画面が嘘をつく。
-      expect(matchPositionLabel(match, "ROUND_ROBIN")).toBe("第2節 第2試合");
+    it("リーグは実施順の通し番号で表す", () => {
+      // リーグに節は無い。round は常に 1 なので「1回戦」と出すと嘘になる。
+      expect(matchPositionLabel(match, "ROUND_ROBIN")).toBe("第2試合");
     });
   });
 });

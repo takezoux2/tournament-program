@@ -53,37 +53,42 @@ export const circleRounds = (count: number): [number, number][][] => {
 };
 
 /**
- * 試合 id。節と節内の位置だけから決まるので、組み立て直しても同じ id になる。
- * 接頭辞を single-elimination の `m{round}-{order}` と変えてあるのは、
- * 形式を取り違えたデータが混ざったときに見分けられるようにするため。
+ * 試合 id。生成時の通し番号だけから決まる。接頭辞を single-elimination の
+ * `m{round}-{order}` と変えてあるのは、形式を取り違えたデータが混ざったときに
+ * 見分けられるようにするため。`r1-` の 1 は「リーグに節は無い（round は常に 1）」
+ * ことを表していて、実施順ではない。並べ替えても id は変わらない。
  */
-const matchId = (round: number, order: number): string => `r${round}-${order}`;
+const matchId = (order: number): string => `r1-${order}`;
 
 /**
  * エントリーのシード順から総当たりの組み合わせを組み立てる。
  * 2 人未満なら空を返す。呼び出し側はそれを「作れなかった」と読める。
+ *
+ * 円卓法で節ごとの組を作り、それを上から連結して 1 本の並びにする。
+ * 節はここで消費されて保存されない（リーグに節を分ける必要が無いため）が、
+ * 節の順に連結することで「同じ人が続けて試合をしにくい並び」が既定になる。
  */
 export const buildRoundRobin = (entries: DivisionEntry[]): MatchingConfig => {
   const sorted = [...entries].sort((left, right) => left.seed - right.seed);
   const matches: BracketMatch[] = [];
 
-  circleRounds(sorted.length).forEach((pairs, index) => {
-    const round = index + 1;
-    pairs.forEach(([left, right], order) => {
+  for (const pairs of circleRounds(sorted.length)) {
+    for (const [left, right] of pairs) {
+      const order = matches.length;
       matches.push({
-        id: matchId(round, order),
+        id: matchId(order),
         bracket: "winners",
-        round,
+        round: 1,
         order,
-        sequence: matches.length,
-        matchNumber: String(matches.length + 1),
+        sequence: order,
+        matchNumber: String(order + 1),
         slots: [
           { kind: "entry", entryId: sorted[left].id },
           { kind: "entry", entryId: sorted[right].id },
         ],
       });
-    });
-  });
+    }
+  }
 
   return { version: 1, matches };
 };

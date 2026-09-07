@@ -97,18 +97,44 @@ describe("buildRoundRobin", () => {
     expect(buildRoundRobin(entriesOf(5)).matches).toHaveLength(10);
   });
 
-  it("round は節番号、order は節内の位置、id は r{節}-{位置}", () => {
-    const { matches } = buildRoundRobin(entriesOf(4));
-    expect(matches.map((match) => match.id)).toEqual([
+  it("節を保存しない（全試合が round 1 の 1 本の並び）", () => {
+    const config = buildRoundRobin(entriesOf(4));
+
+    expect(config.matches.map((match) => match.round)).toEqual([1, 1, 1, 1, 1, 1]);
+    expect(config.matches.map((match) => match.order)).toEqual([0, 1, 2, 3, 4, 5]);
+    expect(config.matches.map((match) => match.sequence)).toEqual([
+      0, 1, 2, 3, 4, 5,
+    ]);
+    expect(config.matches.map((match) => match.id)).toEqual([
       "r1-0",
       "r1-1",
-      "r2-0",
-      "r2-1",
-      "r3-0",
-      "r3-1",
+      "r1-2",
+      "r1-3",
+      "r1-4",
+      "r1-5",
     ]);
-    expect(matches[2].round).toBe(2);
-    expect(matches[2].order).toBe(0);
+    expect(config.matches.map((match) => match.matchNumber)).toEqual([
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6",
+    ]);
+  });
+
+  it("並びは円卓法の節を上から連結した順のまま", () => {
+    // 4 人なら 第1節(A-D, B-C) → 第2節(A-C, D-B) → 第3節(A-B, C-D)。
+    // 同じ人が続けて出にくい並びが、節を消しても保たれることを確かめる。
+    const config = buildRoundRobin(entriesOf(4));
+
+    expect(
+      config.matches.map((match) =>
+        match.slots
+          .map((slot) => (slot.kind === "entry" ? slot.entryId : "?"))
+          .join("-"),
+      ),
+    ).toEqual(["e1-e4", "e2-e3", "e1-e3", "e4-e2", "e1-e2", "e3-e4"]);
   });
 
   it("matchNumber は全節を通した連番", () => {

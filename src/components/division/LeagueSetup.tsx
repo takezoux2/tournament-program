@@ -1,13 +1,11 @@
 import { DIVISION_FORMAT_LABELS } from "@/features/division/format";
+import { toMatchOrderView } from "@/features/division/match-number-view";
 import type {
   DivisionDetail,
   DivisionParticipant,
 } from "@/features/division/repository";
 import { isRoundRobinShape } from "@/features/division/round-robin/build";
-import {
-  toCrossTableView,
-  toRoundView,
-} from "@/features/division/round-robin/view";
+import { toCrossTableView } from "@/features/division/round-robin/view";
 import type { DivisionFormAction } from "@/features/division/state";
 import type { MemberSummary } from "@/features/organization/repository";
 import {
@@ -19,7 +17,7 @@ import { AddEntryForm } from "./AddEntryForm";
 import { EntryList } from "./EntryList";
 import { GenerateMatchingForm } from "./GenerateMatchingForm";
 import { LeagueCrossTable } from "./LeagueCrossTable";
-import { LeagueRoundList } from "./LeagueRoundList";
+import { MatchNumberList } from "./MatchNumberList";
 import { Notice } from "./Notice";
 
 /**
@@ -154,16 +152,17 @@ export function LeagueSetup({
       </section>
 
       <section className="space-y-3">
-        <h2 className="text-sm font-bold text-slate-700">節ごとの試合</h2>
+        <h2 className="text-sm font-bold text-slate-700">試合の実施順</h2>
         {/* 番号の変更は構造を変えないため、locked でも編集できる */}
         {mismatched ? (
-          <Notice>対戦表を作り直すと、ここに節ごとの試合が出ます</Notice>
+          <Notice>対戦表を作り直すと、ここに試合が出ます</Notice>
         ) : (
-          <LeagueRoundList
-            rounds={toRoundView(
+          <MatchNumberList
+            rows={toMatchOrderView(
               parsed.matchingConfig,
               parsed.entries,
               participants,
+              division.format,
             )}
             slug={slug}
             tournamentId={tournamentId}

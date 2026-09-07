@@ -230,7 +230,7 @@ describe("buildScheduleView", () => {
     ]);
   });
 
-  it("リーグの部門は節の文言で並べる", () => {
+  it("リーグの部門は実施順の通し番号で並べる", () => {
     const league: ScheduleDivision = {
       id: "dL",
       name: "リーグ",
@@ -267,7 +267,7 @@ describe("buildScheduleView", () => {
 
     expect(rows).toHaveLength(1);
     expect(rows[0].kind).toBe("match");
-    expect(rows[0].kind === "match" && rows[0].label).toBe("第1節 第1試合");
+    expect(rows[0].kind === "match" && rows[0].label).toBe("第1試合");
   });
 });
 

@@ -29,7 +29,7 @@ export type BracketMatch = {
   /** 部門内で一意 */
   id: string;
   bracket: BracketSide;
-  /** 1 = 1 回戦。ROUND_ROBIN では節番号 */
+  /** 1 = 1 回戦。ROUND_ROBIN は節を持たないので常に 1 */
   round: number;
   /** ラウンド内の上からの位置。0 始まり */
   order: number;

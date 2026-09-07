@@ -105,18 +105,29 @@ export const buildFromSlots = (slots: SlotSource[]): MatchingConfig => {
  *
  * 部門の編集画面（/edit）は format を無条件に書き換えられるため、
  * リーグで組んだ星取表を持ったまま SINGLE_ELIMINATION になった部門が
- * 存在しうる。その星取表は 2 回戦以降が無く全スロットが entry なので、
- * 2 回戦以降の全スロットが winnerOf かどうかで見分けられる。
+ * 存在しうる。その星取表は全スロットが entry なので、2 回戦以降の
+ * 全スロットが winnerOf かどうかで見分けられる。
  * 空の組み合わせは「まだ作っていない」であって形が違うわけではないので true。
  *
  * 1 試合だけの組み合わせ（1 回戦のみ）は両形式で区別が付かない。
  * 2 人の総当たりも 2 人のトーナメントも「1 試合だけ」という同じ形になり、
  * 同じサイズでは両者が同型（isomorphic）だから区別する意味も無い。
+ *
+ * リーグは Task 3 で全試合を round 1 として保存するようになったため、
+ * 「2 回戦以降が無い」だけでは 3 人以上のリーグの星取表（round 1 の試合が
+ * 複数ある）を見分けられない（フィルタが空になり every が空配列で
+ * true になってしまう）。2 回戦以降が無いときは試合数も見て、1 試合を
+ * 超えていれば false にする。
  */
-export const isSingleEliminationShape = (config: MatchingConfig): boolean =>
-  config.matches
-    .filter((match) => match.round >= 2)
-    .every((match) => match.slots.every((slot) => slot.kind === "winnerOf"));
+export const isSingleEliminationShape = (config: MatchingConfig): boolean => {
+  const higherRounds = config.matches.filter((match) => match.round >= 2);
+  if (higherRounds.length === 0) {
+    return config.matches.length <= 1;
+  }
+  return higherRounds.every((match) =>
+    match.slots.every((slot) => slot.kind === "winnerOf"),
+  );
+};
 
 /**
  * 木から 1 回戦のスロット割当を取り出す。buildFromSlots の逆向き。

@@ -232,4 +232,35 @@ describe("isSingleEliminationShape", () => {
     expect(config.matches.some((match) => match.round === 2)).toBe(true);
     expect(isSingleEliminationShape(config)).toBe(true);
   });
+
+  it("全試合が round 1 の複数試合（リーグの並び）は false", () => {
+    // Task 3 でリーグの組み合わせは全試合が round 1 になった。「round >= 2 が
+    // 無い」というだけで判定すると、2 試合以上あっても空配列の every が
+    // 常に true を返してリーグの星取表を見分けられなくなる。試合数も
+    // 見て、2 試合以上あれば round 1 だけの並びを false にする。
+    const config: MatchingConfig = {
+      version: 1,
+      matches: [
+        {
+          id: "r1-0",
+          bracket: "winners",
+          round: 1,
+          order: 0,
+          sequence: 0,
+          matchNumber: "1",
+          slots: [entry("a"), entry("b")],
+        },
+        {
+          id: "r1-1",
+          bracket: "winners",
+          round: 1,
+          order: 1,
+          sequence: 1,
+          matchNumber: "2",
+          slots: [entry("a"), entry("c")],
+        },
+      ],
+    };
+    expect(isSingleEliminationShape(config)).toBe(false);
+  });
 });
