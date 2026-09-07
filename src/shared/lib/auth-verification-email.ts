@@ -1,19 +1,8 @@
 import type { MailAddress, MailMessage } from "@/shared/lib/mail/types";
 import { VERIFICATION_LINK_EXPIRES_LABEL } from "./email-verification-policy";
+import { escapeHtml, greetingName } from "./mail/html";
 
 export const VERIFICATION_EMAIL_SUBJECT = "【大会運営】メールアドレスの確認";
-
-/**
- * HTML の文脈へ差し込む値をエスケープする。name はユーザーの入力、
- * url はクエリに & を含むため、どちらも素通しにはできない。
- */
-const escapeHtml = (raw: string): string =>
-  raw
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
 
 /**
  * 仮登録したユーザーへ送る確認メールを組み立てる。
@@ -31,13 +20,10 @@ export const buildVerificationEmail = ({
   to: MailAddress;
   url: string;
 }): MailMessage => {
-  // User.name はスキーマ上 NOT NULL なので、実運用で到達しうる欠損の形は
-  // undefined ではなく空文字。トリムした上で ?? ではなく || で判定しないと
-  // 「 様」になってしまう。
-  const greetingName = to.name?.trim() || to.email;
+  const greeting = greetingName(to);
 
   const text = [
-    `${greetingName} 様`,
+    `${greeting} 様`,
     "",
     "ご登録ありがとうございます。現在は仮登録の状態です。",
     "次のリンクを開くと登録が完了します。",
@@ -53,7 +39,7 @@ export const buildVerificationEmail = ({
   const safeUrl = escapeHtml(url);
   const html = [
     '<html><head><meta charset="utf-8"></head><body>',
-    `<p>${escapeHtml(greetingName)} 様</p>`,
+    `<p>${escapeHtml(greeting)} 様</p>`,
     "<p>ご登録ありがとうございます。現在は仮登録の状態です。<br>次のリンクを開くと登録が完了します。</p>",
     `<p><a href="${safeUrl}">${safeUrl}</a></p>`,
     `<p>このリンクは${VERIFICATION_LINK_EXPIRES_LABEL}で無効になります。<br>期限が切れた場合は、ログインを試すと確認メールを送り直します。</p>`,

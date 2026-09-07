@@ -4,6 +4,10 @@ import { prismaAdapter } from "@better-auth/prisma-adapter";
 import { betterAuth } from "better-auth";
 import { nextCookies } from "better-auth/next-js";
 import { prisma } from "@/shared/db/prisma";
+import {
+  buildEmailChangeVerificationEmail,
+  isEmailChangeVerification,
+} from "@/shared/lib/auth-email-change-email";
 import { authUserConfig } from "@/shared/lib/auth-user-config";
 import { usernamePlugin } from "@/shared/lib/auth-username-plugin";
 import { buildVerificationEmail } from "@/shared/lib/auth-verification-email";
@@ -43,12 +47,16 @@ export const auth = betterAuth({
     // 認証だけ済ませ、ログインは本人が使う端末で改めて行ってもらう。
     autoSignInAfterVerification: false,
     sendVerificationEmail: async ({ user, url }) => {
+      const to = { email: user.email, name: user.name };
+      const from = resolveMailFrom(process.env);
+      // このフックは登録時の確認とメールアドレス変更の確認の両方で呼ばれ、
+      // どちらなのかを示す引数を受け取らない。判別できる手がかりは、
+      // こちらが changeEmail へ渡した callbackURL が url に埋まっていること
+      // だけ。判定は auth-email-change-email.ts の純粋関数が持つ。
       await getMailer().send(
-        buildVerificationEmail({
-          from: resolveMailFrom(process.env),
-          to: { email: user.email, name: user.name },
-          url,
-        }),
+        isEmailChangeVerification(url)
+          ? buildEmailChangeVerificationEmail({ from, to, url })
+          : buildVerificationEmail({ from, to, url }),
       );
     },
   },
@@ -74,8 +82,15 @@ export const auth = betterAuth({
   },
   // username の宣言（additionalFields）は auth-user-config.ts に切り出してある。
   // auth-user-config.test.ts がその配線を usernameAdditionalField との
-  // 同一性で固定しているので、ここではそのまま渡すだけにする。
-  user: authUserConfig,
+  // 同一性で固定しているので、ここでは展開して changeEmail だけ足す。
+  user: {
+    ...authUserConfig,
+    // 既定では無効で、有効にしないと changeEmail が CHANGE_EMAIL_DISABLED を返す。
+    // sendChangeEmailConfirmation は置かない。置くと確認メールが現アドレス宛に
+    // なり、新アドレスの到達性を確かめないまま確定する経路になる。
+    // 変更前のアドレスへの通知は features/user/change-email 側から送る。
+    changeEmail: { enabled: true },
+  },
   account: {
     // Google は検証済みのメールアドレスを返すため、同じメールの既存ユーザーへ
     // メール確認を挟まずに連携してよい。

@@ -1,6 +1,8 @@
 import { AppHeader } from "@/components/layout/AppHeader";
 import { DisplayNameForm } from "@/components/profile/DisplayNameForm";
+import { EmailSection } from "@/components/profile/EmailSection";
 import { PasswordSection } from "@/components/profile/PasswordSection";
+import { changeEmailAction } from "@/features/user/change-email/handler";
 import { changePasswordAction } from "@/features/user/change-password/handler";
 import { findLinkedAccounts } from "@/features/user/repository";
 import { setPasswordAction } from "@/features/user/set-password/handler";
@@ -26,6 +28,14 @@ export default async function ProfilePage() {
           <DisplayNameForm
             action={updateNameAction}
             defaultName={session.user.name}
+          />
+        </section>
+
+        <section className="space-y-4 rounded border border-slate-200 bg-white px-5 py-4">
+          <h2 className="text-sm font-bold text-slate-800">メールアドレス</h2>
+          <EmailSection
+            currentEmail={session.user.email}
+            action={changeEmailAction}
           />
         </section>
 

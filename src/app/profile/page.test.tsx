@@ -29,6 +29,10 @@ vi.mock("@/features/user/change-password/handler", () => ({
   changePasswordAction: vi.fn(),
 }));
 
+vi.mock("@/features/user/change-email/handler", () => ({
+  changeEmailAction: vi.fn(),
+}));
+
 vi.mock("@/features/user/set-password/handler", () => ({
   setPasswordAction: vi.fn(),
 }));
@@ -88,5 +92,11 @@ describe("ProfilePage", () => {
     expect(
       screen.getByRole("heading", { name: "パスワードの設定", level: 2 }),
     ).toBeInTheDocument();
+  });
+
+  it("現在のメールアドレスが出る", async () => {
+    render(await ProfilePage());
+
+    expect(screen.getByText("taro@example.test")).toBeInTheDocument();
   });
 });
