@@ -9,8 +9,10 @@ vi.mock("@/shared/lib/analytics/events", () => ({
   trackEvent: (...args: unknown[]) => trackEvent(...args),
 }));
 
+const router = { replace };
+
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({ replace }),
+  useRouter: () => router,
   usePathname: () => "/orgs/tennis",
 }));
 
