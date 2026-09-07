@@ -22,9 +22,9 @@ import {
   type ScheduleFormAction,
 } from "@/features/schedule/state";
 import type { ScheduleRowView } from "@/features/schedule/types";
+import { resolveDragReorder } from "@/lib/dnd/reorder";
 import { ScheduleDividerRow } from "./ScheduleDividerRow";
 import { ScheduleMatchRow } from "./ScheduleMatchRow";
-import { resolveDragReorder } from "./schedule-drag";
 
 /**
  * 1 行ぶんの並べ替え可能な枠。掴む場所をハンドルのボタンに限るのは、
