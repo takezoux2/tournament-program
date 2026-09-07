@@ -36,5 +36,7 @@ export const createOrganizationAction = async (
 
   revalidatePath("/");
   // redirect は例外を投げて制御を打ち切るため、Effect の実行が終わった後に呼ぶ。
-  redirect(`/orgs/${exit.value.slug}`);
+  // ?created= は遷移先の TrackCreated が GA イベントを撃つための印。
+  // 撃った直後にクエリは消される。
+  redirect(`/orgs/${exit.value.slug}?created=organization`);
 };

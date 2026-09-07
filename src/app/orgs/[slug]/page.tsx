@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { TrackCreated } from "@/components/analytics/TrackCreated";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { TournamentList } from "@/components/tournament/TournamentList";
 import { listTournamentsInOrganization } from "@/features/tournament/repository";
@@ -7,8 +8,10 @@ import { requireOrganization } from "@/shared/middleware/require-organization";
 
 export default async function OrganizationPage({
   params,
+  searchParams,
 }: PageProps<"/orgs/[slug]">) {
   const { slug } = await params;
+  const { created } = await searchParams;
   const { session, organization, ability } = await requireOrganization(slug);
   const tournaments = await listTournamentsInOrganization(organization.id);
   const canViewUsers = canByCode(ability, "user.view");
@@ -16,6 +19,7 @@ export default async function OrganizationPage({
 
   return (
     <main className="min-h-screen bg-slate-50">
+      <TrackCreated created={typeof created === "string" ? created : undefined} />
       <AppHeader
         crumbs={[{ label: "組織", href: "/" }, { label: organization.name }]}
         userName={session.user.name}

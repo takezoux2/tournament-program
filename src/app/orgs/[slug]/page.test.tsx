@@ -9,6 +9,12 @@ vi.mock("@/components/auth/LogoutButton", () => ({
   LogoutButton: () => <button type="button">ログアウト</button>,
 }));
 
+// TrackCreated が useRouter/usePathname を使うため、next/navigation もモックする。
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ replace: vi.fn() }),
+  usePathname: () => "/",
+}));
+
 const callOrder: string[] = [];
 
 const requireOrganization = vi.fn();

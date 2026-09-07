@@ -35,5 +35,5 @@ export const createTournamentAction = async (
   }
 
   revalidatePath(`/orgs/${slug}`);
-  redirect(`/orgs/${slug}/tournaments/${exit.value.id}`);
+  redirect(`/orgs/${slug}/tournaments/${exit.value.id}?created=tournament`);
 };

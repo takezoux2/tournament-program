@@ -47,6 +47,6 @@ export const createDivisionAction = async (
 
   revalidatePath(`/orgs/${slug}/tournaments/${tournamentId}`);
   redirect(
-    `/orgs/${slug}/tournaments/${tournamentId}/divisions/${exit.value.id}`,
+    `/orgs/${slug}/tournaments/${tournamentId}/divisions/${exit.value.id}?created=division`,
   );
 };
