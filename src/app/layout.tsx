@@ -1,5 +1,5 @@
-import { GoogleAnalytics } from "@next/third-parties/google";
 import type { Metadata } from "next";
+import { GoogleAnalytics } from "@/components/analytics/GoogleAnalytics";
 import { gaMeasurementId } from "@/shared/lib/analytics/ga-id";
 import "./globals.css";
 

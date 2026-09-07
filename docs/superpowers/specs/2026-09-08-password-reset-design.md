@@ -233,6 +233,14 @@ UI は既存の `*.test.tsx` と同じく Testing Library で:
 既存の `auth-verification-email.test.ts` と同じ割り切り。代わりに
 注入される `buildPasswordResetEmail` 側を厚く固める。
 
+## GA への配慮
+
+`/reset-password?token=<token>` は better-auth のリダイレクト先そのものであり、
+有効なリセットトークンをクエリに載せたページである。GA4 の計測はこの URL を
+そのまま送らない。`docs/superpowers/specs/2026-09-08-ga4-design.md`「追記」の
+とおり `sanitizePagePath` がクエリを落として送るため、トークンは Google 側に
+保存されない。
+
 ## 手動確認
 
 `MAILTRAP_TOKEN` 未設定ならコンソール Mailer がリンクをサーバログへ

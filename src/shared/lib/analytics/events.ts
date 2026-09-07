@@ -1,6 +1,5 @@
 "use client";
 
-import { sendGAEvent } from "@next/third-parties/google";
 import { gaMeasurementId } from "./ga-id";
 
 /**
@@ -24,5 +23,5 @@ export const trackEvent = (
   params?: Record<string, string>,
 ): void => {
   if (gaMeasurementId() === null) return;
-  sendGAEvent("event", name, params ?? {});
+  window.gtag("event", name, params ?? {});
 };

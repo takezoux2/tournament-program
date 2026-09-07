@@ -1,17 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-
-const sendGAEvent = vi.fn();
-
-vi.mock("@next/third-parties/google", () => ({
-  sendGAEvent: (...args: unknown[]) => sendGAEvent(...args),
-}));
-
-const { trackEvent } = await import("./events");
+import { trackEvent } from "./events";
 
 const original = process.env.NEXT_PUBLIC_GA_ID;
 
 beforeEach(() => {
-  sendGAEvent.mockReset();
+  window.gtag = vi.fn();
 });
 
 afterEach(() => {
@@ -20,6 +13,8 @@ afterEach(() => {
   } else {
     process.env.NEXT_PUBLIC_GA_ID = original;
   }
+  // @ts-expect-error テスト後始末のため型を無視して消す
+  delete window.gtag;
 });
 
 describe("trackEvent", () => {
@@ -28,7 +23,7 @@ describe("trackEvent", () => {
 
     trackEvent("login", { method: "email" });
 
-    expect(sendGAEvent).not.toHaveBeenCalled();
+    expect(window.gtag).not.toHaveBeenCalled();
   });
 
   it("測定 ID があれば event として名前とパラメータを送る", () => {
@@ -36,7 +31,7 @@ describe("trackEvent", () => {
 
     trackEvent("login", { method: "email" });
 
-    expect(sendGAEvent).toHaveBeenCalledWith("event", "login", {
+    expect(window.gtag).toHaveBeenCalledWith("event", "login", {
       method: "email",
     });
   });
@@ -46,6 +41,6 @@ describe("trackEvent", () => {
 
     trackEvent("record_result");
 
-    expect(sendGAEvent).toHaveBeenCalledWith("event", "record_result", {});
+    expect(window.gtag).toHaveBeenCalledWith("event", "record_result", {});
   });
 });
