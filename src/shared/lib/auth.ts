@@ -2,8 +2,11 @@ import "server-only";
 
 import { prismaAdapter } from "@better-auth/prisma-adapter";
 import { betterAuth } from "better-auth";
+import { APIError } from "better-auth/api";
 import { nextCookies } from "better-auth/next-js";
+import { findSoleGranterOrganizations } from "@/shared/authz/sole-granter";
 import { prisma } from "@/shared/db/prisma";
+import { buildDeleteAccountEmail } from "@/shared/lib/auth-delete-account-email";
 import {
   buildEmailChangeVerificationEmail,
   isEmailChangeVerification,
@@ -90,6 +93,36 @@ export const auth = betterAuth({
     // なり、新アドレスの到達性を確かめないまま確定する経路になる。
     // 変更前のアドレスへの通知は features/user/change-email 側から送る。
     changeEmail: { enabled: true },
+    deleteUser: {
+      // 既定では無効で、有効にしないと deleteUser が 404 を返す。
+      enabled: true,
+      sendDeleteAccountVerification: async ({ user, url }) => {
+        await getMailer().send(
+          buildDeleteAccountEmail({
+            from: resolveMailFrom(process.env),
+            to: { email: user.email, name: user.name },
+            url,
+          }),
+        );
+      },
+      // 組織の孤児化ガードの本体。features/user/delete-account の
+      // Server Action でも同じ判定をしているが、境界はこちら。
+      // 確認メールのリンク（/api/auth/delete-user/callback）は Server Action を
+      // 経由しない別の入口で、Better Auth はそちらでも beforeDelete を呼ぶ。
+      //
+      // ここで組織名を出さないのは、この応答が API のエラーとして返るため。
+      // 直し方の案内は画面側（先出しのガード）が受け持つ。
+      beforeDelete: async (user) => {
+        const organizations = await findSoleGranterOrganizations(user.id);
+        if (organizations.length > 0) {
+          throw new APIError("BAD_REQUEST", {
+            message:
+              "権限を配れるのがあなただけの組織があるため、削除できません",
+            code: "SOLE_GRANTER_ORGANIZATION_EXISTS",
+          });
+        }
+      },
+    },
   },
   account: {
     // Google は検証済みのメールアドレスを返すため、同じメールの既存ユーザーへ

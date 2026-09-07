@@ -49,6 +49,10 @@ vi.mock("@/features/user/revoke-sessions/handler", () => ({
   revokeOtherSessionsAction: vi.fn(),
 }));
 
+vi.mock("@/features/user/delete-account/handler", () => ({
+  deleteAccountAction: vi.fn(),
+}));
+
 const { default: ProfilePage } = await import("./page");
 
 describe("ProfilePage", () => {

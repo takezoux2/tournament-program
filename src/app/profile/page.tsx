@@ -1,4 +1,5 @@
 import { AppHeader } from "@/components/layout/AppHeader";
+import { DeleteAccountForm } from "@/components/profile/DeleteAccountForm";
 import { DisplayNameForm } from "@/components/profile/DisplayNameForm";
 import { EmailSection } from "@/components/profile/EmailSection";
 import { LinkedAccountsSection } from "@/components/profile/LinkedAccountsSection";
@@ -6,6 +7,7 @@ import { PasswordSection } from "@/components/profile/PasswordSection";
 import { RevokeSessionsForm } from "@/components/profile/RevokeSessionsForm";
 import { changeEmailAction } from "@/features/user/change-email/handler";
 import { changePasswordAction } from "@/features/user/change-password/handler";
+import { deleteAccountAction } from "@/features/user/delete-account/handler";
 import { linkGoogleAction } from "@/features/user/link-google/handler";
 import { findLinkedAccounts } from "@/features/user/repository";
 import { revokeOtherSessionsAction } from "@/features/user/revoke-sessions/handler";
@@ -70,6 +72,11 @@ export default async function ProfilePage() {
         <section className="space-y-4 rounded border border-slate-200 bg-white px-5 py-4">
           <h2 className="text-sm font-bold text-slate-800">セキュリティ</h2>
           <RevokeSessionsForm action={revokeOtherSessionsAction} />
+        </section>
+
+        <section className="space-y-4 rounded border border-red-200 bg-white px-5 py-4">
+          <h2 className="text-sm font-bold text-red-700">アカウントの削除</h2>
+          <DeleteAccountForm action={deleteAccountAction} />
         </section>
       </div>
     </main>
