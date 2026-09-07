@@ -25,6 +25,14 @@ vi.mock("@/features/user/update-name/handler", () => ({
   updateNameAction: vi.fn(),
 }));
 
+vi.mock("@/features/user/change-password/handler", () => ({
+  changePasswordAction: vi.fn(),
+}));
+
+vi.mock("@/features/user/set-password/handler", () => ({
+  setPasswordAction: vi.fn(),
+}));
+
 const { default: ProfilePage } = await import("./page");
 
 describe("ProfilePage", () => {
@@ -54,6 +62,31 @@ describe("ProfilePage", () => {
 
     expect(
       screen.getByRole("heading", { name: "プロフィール", level: 1 }),
+    ).toBeInTheDocument();
+  });
+
+  it("パスワード設定済みなら変更フォームを出す", async () => {
+    findLinkedAccounts.mockResolvedValue({ hasPassword: true, google: null });
+
+    render(await ProfilePage());
+
+    expect(screen.getByLabelText("現在のパスワード")).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "パスワードの変更", level: 2 }),
+    ).toBeInTheDocument();
+  });
+
+  it("パスワード未設定なら設定フォームを出す", async () => {
+    findLinkedAccounts.mockResolvedValue({
+      hasPassword: false,
+      google: { accountId: "a2", linkedAt: new Date("2026-09-02T00:00:00Z") },
+    });
+
+    render(await ProfilePage());
+
+    expect(screen.queryByLabelText("現在のパスワード")).toBeNull();
+    expect(
+      screen.getByRole("heading", { name: "パスワードの設定", level: 2 }),
     ).toBeInTheDocument();
   });
 });
