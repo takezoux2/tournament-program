@@ -3,10 +3,12 @@ import { DisplayNameForm } from "@/components/profile/DisplayNameForm";
 import { EmailSection } from "@/components/profile/EmailSection";
 import { LinkedAccountsSection } from "@/components/profile/LinkedAccountsSection";
 import { PasswordSection } from "@/components/profile/PasswordSection";
+import { RevokeSessionsForm } from "@/components/profile/RevokeSessionsForm";
 import { changeEmailAction } from "@/features/user/change-email/handler";
 import { changePasswordAction } from "@/features/user/change-password/handler";
 import { linkGoogleAction } from "@/features/user/link-google/handler";
 import { findLinkedAccounts } from "@/features/user/repository";
+import { revokeOtherSessionsAction } from "@/features/user/revoke-sessions/handler";
 import { setPasswordAction } from "@/features/user/set-password/handler";
 import { unlinkGoogleAction } from "@/features/user/unlink-account/handler";
 import { updateNameAction } from "@/features/user/update-name/handler";
@@ -63,6 +65,11 @@ export default async function ProfilePage() {
             linkAction={linkGoogleAction}
             unlinkAction={unlinkGoogleAction}
           />
+        </section>
+
+        <section className="space-y-4 rounded border border-slate-200 bg-white px-5 py-4">
+          <h2 className="text-sm font-bold text-slate-800">セキュリティ</h2>
+          <RevokeSessionsForm action={revokeOtherSessionsAction} />
         </section>
       </div>
     </main>

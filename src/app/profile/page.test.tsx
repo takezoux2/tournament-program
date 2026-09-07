@@ -45,6 +45,10 @@ vi.mock("@/features/user/unlink-account/handler", () => ({
   unlinkGoogleAction: vi.fn(),
 }));
 
+vi.mock("@/features/user/revoke-sessions/handler", () => ({
+  revokeOtherSessionsAction: vi.fn(),
+}));
+
 const { default: ProfilePage } = await import("./page");
 
 describe("ProfilePage", () => {
