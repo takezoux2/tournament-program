@@ -10,9 +10,11 @@ vi.mock("@/shared/db/prisma", () => ({
   },
 }));
 
-const { listMembersInOrganization, listOrganizationsForUser } = await import(
-  "./repository"
-);
+const {
+  listMembersInOrganization,
+  listMembershipsForUser,
+  listOrganizationsForUser,
+} = await import("./repository");
 
 describe("listOrganizationsForUser", () => {
   beforeEach(() => {
@@ -68,5 +70,74 @@ describe("listMembersInOrganization", () => {
       orderBy: { nameKana: "asc" },
       select: { id: true, name: true, nameKana: true },
     });
+  });
+});
+
+describe("listMembershipsForUser", () => {
+  beforeEach(() => {
+    findMany.mockReset();
+  });
+
+  it("userId を where に入れ、参加順に引く", async () => {
+    findMany.mockResolvedValue([]);
+
+    await listMembershipsForUser("u1");
+
+    expect(findMany).toHaveBeenCalledWith({
+      where: { userId: "u1" },
+      orderBy: { joinedAt: "asc" },
+      select: {
+        joinedAt: true,
+        organization: { select: { id: true, name: true, slug: true } },
+        permissions: {
+          select: { permission: { select: { code: true, description: true } } },
+        },
+      },
+    });
+  });
+
+  it("組織と参加日と権限を 1 つの形に均す", async () => {
+    findMany.mockResolvedValue([
+      {
+        joinedAt: new Date("2026-08-01T00:00:00Z"),
+        organization: { id: "o1", name: "テニス部", slug: "tennis" },
+        permissions: [
+          { permission: { code: "user.grant", description: "権限の付与" } },
+          { permission: { code: "org.edit", description: "組織の編集" } },
+        ],
+      },
+    ]);
+
+    const result = await listMembershipsForUser("u1");
+
+    expect(result).toEqual([
+      {
+        id: "o1",
+        name: "テニス部",
+        slug: "tennis",
+        joinedAt: new Date("2026-08-01T00:00:00Z"),
+        permissions: [
+          { code: "user.grant", description: "権限の付与" },
+          { code: "org.edit", description: "組織の編集" },
+        ],
+      },
+    ]);
+  });
+
+  it("権限を 1 つも持たない所属も落とさずに返す", async () => {
+    // 招待されただけで何も付与されていない状態は正常。ここで消すと
+    // 「所属しているのに一覧に出ない」ことになる。
+    findMany.mockResolvedValue([
+      {
+        joinedAt: new Date("2026-08-01T00:00:00Z"),
+        organization: { id: "o1", name: "テニス部", slug: "tennis" },
+        permissions: [],
+      },
+    ]);
+
+    const result = await listMembershipsForUser("u1");
+
+    expect(result).toHaveLength(1);
+    expect(result[0].permissions).toEqual([]);
   });
 });
