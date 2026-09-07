@@ -49,7 +49,7 @@ beforeEach(() => {
   notFound.mockClear();
   requireOrganization.mockResolvedValue({ organization: { id: "o1" } });
   recordResultInDb.mockReturnValue(
-    Effect.succeed({ found: true, value: null }),
+    Effect.succeed({ found: true, value: { recorded: true } }),
   );
 });
 
@@ -131,5 +131,21 @@ describe("recordResultAction", () => {
 
     expect(first.succeeded).toBe(1);
     expect(second.succeeded).toBe(2);
+  });
+
+  it("勝者が変わらず何も書かなかったときは succeeded を増やさない", async () => {
+    // repository は「変更なし」を recorded: false で返す。増やしてしまうと
+    // 同じ勝者の再タップだけで record_result が飛び、記録していない操作が
+    // 記録として計上される。
+    recordResultInDb.mockReturnValue(
+      Effect.succeed({ found: true, value: { recorded: false } }),
+    );
+
+    const state = await recordResultAction(
+      { error: null, succeeded: 3 },
+      formData(validInput),
+    );
+
+    expect(state).toEqual({ error: null, succeeded: 3 });
   });
 });

@@ -24,7 +24,7 @@ import type { RecordResultInput } from "./schema";
 export type RecordResultPort = (
   ids: DivisionIds,
   input: RecordResultInput,
-) => Effect.Effect<DivisionSetupOutcome<null>, DivisionError>;
+) => Effect.Effect<DivisionSetupOutcome<{ recorded: boolean }>, DivisionError>;
 
 /**
  * Prisma の Json 入力は任意プロパティを持つ構造的な型を受け付けない
@@ -47,100 +47,104 @@ const toJsonInput = (results: DivisionResults): Prisma.InputJsonValue =>
 export const recordResultInDb: RecordResultPort = (ids, input) =>
   Effect.tryPromise({
     try: () =>
-      prisma.$transaction(async (tx): Promise<DivisionSetupOutcome<null>> => {
-        const ownership = {
-          id: ids.divisionId,
-          tournament: {
-            id: ids.tournamentId,
-            organizationId: ids.organizationId,
-          },
-        };
+      prisma.$transaction(
+        async (tx): Promise<DivisionSetupOutcome<{ recorded: boolean }>> => {
+          const ownership = {
+            id: ids.divisionId,
+            tournament: {
+              id: ids.tournamentId,
+              organizationId: ids.organizationId,
+            },
+          };
 
-        const row = await tx.division.findFirst({
-          where: ownership,
-          select: {
-            format: true,
-            matchingConfig: true,
-            results: true,
-            revision: true,
-          },
-        });
-        if (!row) {
-          return { found: false };
-        }
-
-        const config = parseMatchingConfig(row.matchingConfig);
-        const current = parseDivisionResults(row.results);
-        if (!config.matches.some((match) => match.id === input.matchId)) {
-          throw new DivisionMatchNotFoundError({ matchId: input.matchId });
-        }
-
-        const existing = current.matches.find(
-          (record) => record.matchId === input.matchId,
-        );
-        const nextWinner =
-          input.winnerEntryId === "" ? null : input.winnerEntryId;
-
-        if (nextWinner !== null) {
-          // 画面ではボタンを無効にしているが、Server Action はページを経由せず
-          // 直接叩ける別の入口なので、ここで独立に確かめる。両スロットが確定
-          // していない試合（未確定・BYE）は入力させない。
-          const resolved = resolveMatchSlots(config, current).get(
-            input.matchId,
-          );
-          const standing =
-            resolved === undefined
-              ? []
-              : resolved.slots.flatMap((slot) =>
-                  slot.state === "entry" ? [slot.entryId] : [],
-                );
-          if (standing.length !== 2 || !standing.includes(nextWinner)) {
-            throw new DivisionSlotNotDecidedError({ matchId: input.matchId });
-          }
-        }
-
-        // 「変更なし」は記録の有無と勝者の値の両方で見る。winnerEntryId: null
-        // （引き分け）の記録は前者だけで比べると「記録が無い」と区別が付かず、
-        // 取り消し（空文字）を送っても何も書かずに成功を返してしまう。
-        // 結果が 1 件でもあれば部門を編集不能にする setup-store の仕様上、
-        // 取り消しはその唯一の逃げ道なので、ここで塞いではいけない。
-        const unchanged =
-          nextWinner === null
-            ? existing === undefined
-            : existing?.winnerEntryId === nextWinner;
-        if (unchanged) {
-          return { found: true, value: null };
-        }
-
-        const cleared = clearResults(
-          current,
-          downstreamMatchIds(input.matchId, config),
-        );
-        const next =
-          nextWinner === null
-            ? clearResults(cleared, new Set([input.matchId]))
-            : applyMatchResult(cleared, {
-                matchId: input.matchId,
-                winnerEntryId: nextWinner,
-              });
-
-        // setup-store の save と同じく、書く直前に反映後の全体を検証する。
-        const errors = validateResults(next, config, row.format);
-        if (errors.length > 0) {
-          throw new DivisionDataError({ reason: errors });
-        }
-
-        const updated = await tx.division.updateMany({
-          where: { ...ownership, revision: row.revision },
-          data: { results: toJsonInput(next), revision: row.revision + 1 },
-        });
-        if (updated.count === 0) {
-          throw new DivisionRevisionConflictError({
-            divisionId: ids.divisionId,
+          const row = await tx.division.findFirst({
+            where: ownership,
+            select: {
+              format: true,
+              matchingConfig: true,
+              results: true,
+              revision: true,
+            },
           });
-        }
+          if (!row) {
+            return { found: false };
+          }
 
-        return { found: true, value: null };
-      }),
+          const config = parseMatchingConfig(row.matchingConfig);
+          const current = parseDivisionResults(row.results);
+          if (!config.matches.some((match) => match.id === input.matchId)) {
+            throw new DivisionMatchNotFoundError({ matchId: input.matchId });
+          }
+
+          const existing = current.matches.find(
+            (record) => record.matchId === input.matchId,
+          );
+          const nextWinner =
+            input.winnerEntryId === "" ? null : input.winnerEntryId;
+
+          if (nextWinner !== null) {
+            // 画面ではボタンを無効にしているが、Server Action はページを経由せず
+            // 直接叩ける別の入口なので、ここで独立に確かめる。両スロットが確定
+            // していない試合（未確定・BYE）は入力させない。
+            const resolved = resolveMatchSlots(config, current).get(
+              input.matchId,
+            );
+            const standing =
+              resolved === undefined
+                ? []
+                : resolved.slots.flatMap((slot) =>
+                    slot.state === "entry" ? [slot.entryId] : [],
+                  );
+            if (standing.length !== 2 || !standing.includes(nextWinner)) {
+              throw new DivisionSlotNotDecidedError({
+                matchId: input.matchId,
+              });
+            }
+          }
+
+          // 「変更なし」は記録の有無と勝者の値の両方で見る。winnerEntryId: null
+          // （引き分け）の記録は前者だけで比べると「記録が無い」と区別が付かず、
+          // 取り消し（空文字）を送っても何も書かずに成功を返してしまう。
+          // 結果が 1 件でもあれば部門を編集不能にする setup-store の仕様上、
+          // 取り消しはその唯一の逃げ道なので、ここで塞いではいけない。
+          const unchanged =
+            nextWinner === null
+              ? existing === undefined
+              : existing?.winnerEntryId === nextWinner;
+          if (unchanged) {
+            return { found: true, value: { recorded: false } };
+          }
+
+          const cleared = clearResults(
+            current,
+            downstreamMatchIds(input.matchId, config),
+          );
+          const next =
+            nextWinner === null
+              ? clearResults(cleared, new Set([input.matchId]))
+              : applyMatchResult(cleared, {
+                  matchId: input.matchId,
+                  winnerEntryId: nextWinner,
+                });
+
+          // setup-store の save と同じく、書く直前に反映後の全体を検証する。
+          const errors = validateResults(next, config, row.format);
+          if (errors.length > 0) {
+            throw new DivisionDataError({ reason: errors });
+          }
+
+          const updated = await tx.division.updateMany({
+            where: { ...ownership, revision: row.revision },
+            data: { results: toJsonInput(next), revision: row.revision + 1 },
+          });
+          if (updated.count === 0) {
+            throw new DivisionRevisionConflictError({
+              divisionId: ids.divisionId,
+            });
+          }
+
+          return { found: true, value: { recorded: true } };
+        },
+      ),
     catch: (reason) => toDivisionError(reason, ids.tournamentId),
   });

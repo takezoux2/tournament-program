@@ -44,5 +44,11 @@ export const recordResultAction = async (
   }
 
   revalidateDivisionResults(slug, tournamentId, divisionId);
+  // 何も書いていないので増やさない。ただし値は持ち越す。undefined に
+  // 落とすとクライアント側のカウンタだけが 0 に戻り、次に本当に記録した
+  // ときの 1 が「前回発火した 3」を超えられず、イベントが黙って消える。
+  if (!exit.value.value.recorded) {
+    return { error: null, succeeded: prevState.succeeded };
+  }
   return { error: null, succeeded: (prevState.succeeded ?? 0) + 1 };
 };

@@ -8,4 +8,5 @@ export const recordResultForDivision = (
   port: RecordResultPort,
   ids: DivisionIds,
   input: RecordResultInput,
-): Effect.Effect<DivisionSetupOutcome<null>, DivisionError> => port(ids, input);
+): Effect.Effect<DivisionSetupOutcome<{ recorded: boolean }>, DivisionError> =>
+  port(ids, input);
