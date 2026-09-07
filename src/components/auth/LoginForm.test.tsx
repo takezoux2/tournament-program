@@ -7,6 +7,7 @@ const signInUsername = vi.fn();
 const signInSocial = vi.fn();
 const push = vi.fn();
 const refresh = vi.fn();
+const trackEvent = vi.fn();
 
 vi.mock("@/shared/lib/auth-client", () => ({
   authClient: {
@@ -20,6 +21,10 @@ vi.mock("@/shared/lib/auth-client", () => ({
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push, refresh }),
+}));
+
+vi.mock("@/shared/lib/analytics/events", () => ({
+  trackEvent: (...args: unknown[]) => trackEvent(...args),
 }));
 
 describe("LoginForm の Google ログインボタン", () => {
@@ -180,5 +185,45 @@ describe("LoginForm の識別子", () => {
     expect(
       screen.getByLabelText("ユーザー名またはメールアドレス"),
     ).toHaveAttribute("type", "text");
+  });
+});
+
+describe("LoginForm の GA イベント", () => {
+  beforeEach(() => {
+    signInEmail.mockReset();
+    trackEvent.mockReset();
+  });
+
+  const fillAndSubmit = () => {
+    fireEvent.change(screen.getByLabelText("ユーザー名またはメールアドレス"), {
+      target: { value: "yamada@example.com" },
+    });
+    fireEvent.change(screen.getByLabelText("パスワード"), {
+      target: { value: "password123" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "ログイン" }));
+  };
+
+  it("ログインに成功したら login を送る", async () => {
+    signInEmail.mockResolvedValue({ error: null });
+    render(<LoginForm redirectTo="/" />);
+
+    fillAndSubmit();
+
+    await waitFor(() =>
+      expect(trackEvent).toHaveBeenCalledWith("login", { method: "email" }),
+    );
+  });
+
+  it("ログインに失敗したときは送らない", async () => {
+    signInEmail.mockResolvedValue({
+      error: { code: "INVALID_EMAIL_OR_PASSWORD" },
+    });
+    render(<LoginForm redirectTo="/" />);
+
+    fillAndSubmit();
+
+    expect(await screen.findByRole("alert")).toBeInTheDocument();
+    expect(trackEvent).not.toHaveBeenCalled();
   });
 });
