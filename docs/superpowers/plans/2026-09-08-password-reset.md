@@ -34,6 +34,7 @@
 | ファイル | 責務 |
 | --- | --- |
 | `src/shared/lib/html-escape.ts` | HTML 文脈へ差し込む値のエスケープ。2 つのメールビルダで共有 |
+| `src/shared/lib/mail/greeting.ts` | メール本文の呼びかけ名の導出。2 つのメールビルダで共有 |
 | `src/shared/lib/password-reset-policy.ts` | リセットリンクの有効期限の定数と表示ラベル |
 | `src/shared/lib/auth-password-reset-email.ts` | リセットメールの件名・本文を組み立てる純粋関数 |
 | `src/features/auth/password-reset/schema.ts` | 申請フォームと再設定フォームの入力検証 |
@@ -48,7 +49,7 @@
 
 | ファイル | 変更内容 |
 | --- | --- |
-| `src/shared/lib/auth-verification-email.ts` | `escapeHtml` を `html-escape.ts` から import する形に置き換え |
+| `src/shared/lib/auth-verification-email.ts` | `escapeHtml` と宛名導出を共有版の import に置き換え |
 | `src/shared/lib/auth.ts` | `sendResetPassword` / `resetPasswordTokenExpiresIn` / `revokeSessionsOnPasswordReset` / `onPasswordReset` |
 | `src/shared/errors/auth-error.ts` | `InvalidResetToken` の追加と `INVALID_TOKEN` の写像 |
 | `src/features/auth/messages.ts` | `InvalidResetToken` の文言 |
@@ -57,18 +58,20 @@
 
 ---
 
-## Task 1: HTML エスケープの切り出し
+## Task 1: メール本文の共通部品の切り出し
 
-`escapeHtml` は今 `auth-verification-email.ts` の中にある。リセットメールのビルダでも要るので、共有の場所へ移す。振る舞いは変えない純粋な移動。
+`escapeHtml` と宛名の導出は今 `auth-verification-email.ts` の中にある。リセットメールのビルダでも同じものが要るので、共有の場所へ移す。振る舞いは変えない純粋な移動。
 
 **Files:**
 - Create: `src/shared/lib/html-escape.ts`
 - Create: `src/shared/lib/html-escape.test.ts`
+- Create: `src/shared/lib/mail/greeting.ts`
+- Create: `src/shared/lib/mail/greeting.test.ts`
 - Modify: `src/shared/lib/auth-verification-email.ts`
 
 **Interfaces:**
-- Consumes: なし
-- Produces: `escapeHtml(raw: string): string`
+- Consumes: `MailAddress`（`@/shared/lib/mail/types`）
+- Produces: `escapeHtml(raw: string): string`、`greetingNameOf(to: MailAddress): string`
 
 - [ ] **Step 1: Write the failing test**
 
@@ -131,6 +134,62 @@ export const escapeHtml = (raw: string): string =>
 Run: `pnpm exec vitest run src/shared/lib/html-escape.test.ts`
 Expected: PASS（4 tests）
 
+- [ ] **Step 4b: 宛名導出のテストを書き、失敗を確認する**
+
+`src/shared/lib/mail/greeting.test.ts`:
+
+```ts
+import { describe, expect, it } from "vitest";
+import { greetingNameOf } from "./greeting";
+
+describe("greetingNameOf", () => {
+  it("名前があればそれを使う", () => {
+    expect(greetingNameOf({ email: "user@example.com", name: "竹添" })).toBe("竹添");
+  });
+
+  it("名前の前後の空白を落とす", () => {
+    expect(greetingNameOf({ email: "user@example.com", name: " 竹添 " })).toBe("竹添");
+  });
+
+  it("名前が空白のみならメールアドレスを使う", () => {
+    // User.name は NOT NULL なので、実運用で到達しうる欠損の形は空文字。
+    // ?? ではなく || で判定していないと「 様」になる。
+    expect(greetingNameOf({ email: "user@example.com", name: "   " })).toBe(
+      "user@example.com",
+    );
+  });
+
+  it("名前が無ければメールアドレスを使う", () => {
+    expect(greetingNameOf({ email: "user@example.com" })).toBe("user@example.com");
+  });
+});
+```
+
+Run: `pnpm exec vitest run src/shared/lib/mail/greeting.test.ts`
+Expected: FAIL — `Failed to resolve import "./greeting"`
+
+- [ ] **Step 4c: 宛名導出を実装し、テストが通ることを確認する**
+
+`src/shared/lib/mail/greeting.ts`:
+
+```ts
+import type { MailAddress } from "./types";
+
+/**
+ * メール本文の呼びかけに使う名前を決める。
+ *
+ * User.name はスキーマ上 NOT NULL なので、実運用で到達しうる欠損の形は
+ * undefined ではなく空文字。トリムした上で ?? ではなく || で判定しないと
+ * 「 様」になってしまう。この判断はメールの種類によらず同じなので、
+ * 各ビルダに書き写さず 1 か所に持つ。
+ */
+export const greetingNameOf = (to: MailAddress): string =>
+  to.name?.trim() || to.email;
+```
+
+Run: `pnpm exec vitest run src/shared/lib/mail/greeting.test.ts`
+Expected: PASS（4 tests）
+
 - [ ] **Step 5: 確認メール側を共有版に差し替える**
 
 `src/shared/lib/auth-verification-email.ts` から次のブロックを**削除**する:
@@ -153,19 +212,35 @@ const escapeHtml = (raw: string): string =>
 
 ```ts
 import { escapeHtml } from "./html-escape";
+import { greetingNameOf } from "./mail/greeting";
+```
+
+同じファイルの `buildVerificationEmail` の中で、次の 3 行（コメント込み）を**削除**する:
+
+```ts
+  // User.name はスキーマ上 NOT NULL なので、実運用で到達しうる欠損の形は
+  // undefined ではなく空文字。トリムした上で ?? ではなく || で判定しないと
+  // 「 様」になってしまう。
+  const greetingName = to.name?.trim() || to.email;
+```
+
+代わりに置く:
+
+```ts
+  const greetingName = greetingNameOf(to);
 ```
 
 - [ ] **Step 6: 既存テストが割れていないことを確認する**
 
-Run: `pnpm exec vitest run src/shared/lib/auth-verification-email.test.ts src/shared/lib/html-escape.test.ts`
-Expected: 両ファイルとも PASS
+Run: `pnpm exec vitest run src/shared/lib/auth-verification-email.test.ts src/shared/lib/html-escape.test.ts src/shared/lib/mail/greeting.test.ts`
+Expected: 3 ファイルとも PASS
 
 - [ ] **Step 7: Commit**
 
 ```bash
-git add src/shared/lib/html-escape.ts src/shared/lib/html-escape.test.ts src/shared/lib/auth-verification-email.ts
+git add src/shared/lib/html-escape.ts src/shared/lib/html-escape.test.ts src/shared/lib/mail/greeting.ts src/shared/lib/mail/greeting.test.ts src/shared/lib/auth-verification-email.ts
 git commit -m "$(cat <<'EOF'
-refactor(mail): extract escapeHtml for reuse across mail builders
+refactor(mail): extract escapeHtml and greeting name for reuse
 
 Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>
 EOF
@@ -371,6 +446,7 @@ Expected: FAIL — `Failed to resolve import "./auth-password-reset-email"`
 `src/shared/lib/auth-password-reset-email.ts`:
 
 ```ts
+import { greetingNameOf } from "@/shared/lib/mail/greeting";
 import type { MailAddress, MailMessage } from "@/shared/lib/mail/types";
 import { escapeHtml } from "./html-escape";
 import { PASSWORD_RESET_LINK_EXPIRES_LABEL } from "./password-reset-policy";
@@ -394,10 +470,7 @@ export const buildPasswordResetEmail = ({
   to: MailAddress;
   url: string;
 }): MailMessage => {
-  // User.name はスキーマ上 NOT NULL なので、実運用で到達しうる欠損の形は
-  // undefined ではなく空文字。トリムした上で ?? ではなく || で判定しないと
-  // 「 様」になってしまう。
-  const greetingName = to.name?.trim() || to.email;
+  const greetingName = greetingNameOf(to);
 
   const text = [
     `${greetingName} 様`,
@@ -1815,7 +1888,6 @@ EOF
 「パスワードをお忘れですか？」リンクと、`/login?reset=1` で戻ってきたときの案内を足す。
 
 **Files:**
-- Modify: `src/features/auth/domain.ts`
 - Modify: `src/components/auth/LoginForm.tsx`
 - Modify: `src/components/auth/LoginForm.test.tsx`
 - Modify: `src/app/(auth)/login/page.tsx`
@@ -1865,31 +1937,13 @@ describe("LoginForm のパスワードリセット導線", () => {
 Run: `pnpm exec vitest run src/components/auth/LoginForm.test.tsx`
 Expected: FAIL — リンクが見つからず、`reset` prop が型に無い
 
-- [ ] **Step 3: `passwordResetNotice` を再エクスポートする**
+- [ ] **Step 3: LoginForm を変更する**
 
-`src/features/auth/domain.ts` の末尾に足す:
-
-```ts
-// パスワードリセットの案内文は password-reset スライスに置いてあるが、
-// ログイン画面が確認メールの案内と並べて使うため、ここから通す。
-// 実装をこちらへ移さないのは、リセット固有の定数（遷移先パスなど）と
-// 同じ場所に置いておきたいためである。
-export { passwordResetNotice } from "./password-reset/domain";
-```
-
-- [ ] **Step 4: LoginForm を変更する**
-
-import に足す:
+import に足す（既存の `@/features/auth/domain` からの import 行はそのまま残す）:
 
 ```ts
-import {
-  passwordResetNotice,
-  verificationCallbackURL,
-  verificationNotice,
-} from "@/features/auth/domain";
+import { passwordResetNotice } from "@/features/auth/password-reset/domain";
 ```
-
-（既存の `verificationCallbackURL` / `verificationNotice` の import 行を上の形に置き換える）
 
 props に `reset` を足す:
 
@@ -1927,7 +1981,7 @@ export function LoginForm({
       </p>
 ```
 
-- [ ] **Step 5: ログインページで `reset` を受け渡す**
+- [ ] **Step 4: ログインページで `reset` を受け渡す**
 
 `src/app/(auth)/login/page.tsx` の `verifyError` を組み立てている行の後に足す:
 
@@ -1947,20 +2001,20 @@ export function LoginForm({
       />
 ```
 
-- [ ] **Step 6: Run test to verify it passes**
+- [ ] **Step 5: Run test to verify it passes**
 
 Run: `pnpm exec vitest run src/components/auth/LoginForm.test.tsx`
 Expected: PASS（既存分 + 新規 4 tests）
 
-- [ ] **Step 7: 全体を検証する**
+- [ ] **Step 6: 全体を検証する**
 
 Run: `pnpm test && pnpm typecheck && pnpm lint`
 Expected: テスト全件 PASS、typecheck エラーなし、lint は CRLF 由来の既知ノイズ以外の指摘なし
 
-- [ ] **Step 8: Commit**
+- [ ] **Step 7: Commit**
 
 ```bash
-git add src/features/auth/domain.ts src/components/auth/LoginForm.tsx src/components/auth/LoginForm.test.tsx "src/app/(auth)/login/page.tsx"
+git add src/components/auth/LoginForm.tsx src/components/auth/LoginForm.test.tsx "src/app/(auth)/login/page.tsx"
 git commit -m "$(cat <<'EOF'
 feat(auth): link password reset from the login form
 
