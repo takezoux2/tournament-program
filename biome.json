@@ -694,6 +694,47 @@
           }
         }
       }
+    },
+    {
+      "includes": ["src/features/user/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": [
+                      "@/features/auth/**",
+                      "@/features/auth",
+                      "@/features/bracket/**",
+                      "@/features/bracket",
+                      "@/features/division/**",
+                      "@/features/division",
+                      "@/features/member/**",
+                      "@/features/member",
+                      "@/features/organization/**",
+                      "@/features/organization",
+                      "@/features/organization-user/**",
+                      "@/features/organization-user",
+                      "@/features/schedule/**",
+                      "@/features/schedule",
+                      "@/features/tournament/**",
+                      "@/features/tournament",
+                      "@/components/**",
+                      "**/components/**",
+                      "@/app/**",
+                      "**/app/**"
+                    ],
+                    "message": "features/user は他の機能・UI・app に依存できません。共通処理は src/shared に置いてください。"
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
     }
   ]
 }
