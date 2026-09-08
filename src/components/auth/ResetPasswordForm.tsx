@@ -24,18 +24,31 @@ export function ResetPasswordForm({
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  // 送信した瞬間に判明した「トークンがもう使えない」場合の案内文。
+  // null なら未発生（=フォームを出したままでよい）。
+  const [invalidatedAtSubmit, setInvalidatedAtSubmit] = useState<string | null>(
+    null,
+  );
   const state = resetTokenState(token, errorCode);
 
   // フォームを出す前にトークンを見るのは、入力させてから弾くより早く
   // 「もう一度申し込む」へ誘導できるため。送信時の INVALID_TOKEN
-  // （申し込み直後に期限が切れた場合など）は下の分岐で拾う。
-  if (state.kind === "invalid") {
+  // （戻る操作での再送、期限切れ後の送信、二重タブでの二重送信など）は
+  // 下の invalidatedAtSubmit で拾い、同じ画面に切り替える。フォームの
+  // 中にインラインでエラーを出すだけだと、二度と成功しない送信ボタンが
+  // 手元に残り、この画面だけ抜け道が無くなってしまうため。
+  if (state.kind === "invalid" || invalidatedAtSubmit !== null) {
+    // state.kind === "invalid" のときは state.message を、送信時に判明した
+    // 場合は invalidatedAtSubmit を使う。どちらも文言の出所は
+    // authErrorMessage / resetTokenState 側で、ここでは選ぶだけにする。
+    const message =
+      state.kind === "invalid" ? state.message : invalidatedAtSubmit;
     return (
       <div className="w-full max-w-sm space-y-4">
         <h1 className="text-xl font-bold text-slate-800">
           パスワードを再設定できません
         </h1>
-        <p className="text-sm text-slate-700">{state.message}</p>
+        <p className="text-sm text-slate-700">{message}</p>
         <Link
           href="/forgot-password"
           className="text-sm text-slate-600 underline"
@@ -70,6 +83,16 @@ export function ResetPasswordForm({
 
     if (Exit.isFailure(exit)) {
       const failure = Cause.failureOption(exit.cause);
+      // InvalidResetToken だけは別扱いにする。トークンが無くなった以上、
+      // このフォームへ入力し直させても必ず同じ失敗になるため、インライン
+      // エラーではなく「もう一度申し込む」画面へ切り替える。
+      if (
+        Option.isSome(failure) &&
+        failure.value._tag === "InvalidResetToken"
+      ) {
+        setInvalidatedAtSubmit(authErrorMessage(failure.value));
+        return;
+      }
       setError(
         Option.isSome(failure)
           ? authErrorMessage(failure.value)

@@ -90,12 +90,33 @@ describe("ResetPasswordForm の送信", () => {
     });
   });
 
-  it("INVALID_TOKEN で失敗したら再申請を促す文言を出し、遷移しない", async () => {
+  it("INVALID_TOKEN で失敗したらフォームを引っ込め、再申請への導線を出す", async () => {
+    // 送信時点でトークンが失効するのは、戻る操作での再送や複数タブでの
+    // 二重送信で普通に起こる。ここで残るボタンが「押しても必ず失敗する
+    // フォーム」にならないよう、事前チェック（resetTokenState）と同じ
+    // 「もう一度申し込む」導線に切り替える。
     resetPassword.mockResolvedValue({ error: { code: "INVALID_TOKEN" } });
     render(<ResetPasswordForm token="t0ken" errorCode={null} />);
     fillAndSubmit("password123", "password123");
 
-    expect(await screen.findByRole("alert")).toHaveTextContent("お申し込み");
+    expect(
+      await screen.findByRole("link", { name: "パスワードの再設定を申し込む" }),
+    ).toHaveAttribute("href", "/forgot-password");
+    expect(screen.queryByLabelText("新しいパスワード")).not.toBeInTheDocument();
+    expect(push).not.toHaveBeenCalled();
+  });
+
+  it("PASSWORD_TOO_SHORT で失敗したらフォームを残し、インラインの案内を出す", async () => {
+    // トークン自体は有効なので、同じ画面で入力し直せば再送信できる。
+    // Fix 1 が INVALID_TOKEN だけを退避先の画面に切り替えることの裏返し。
+    resetPassword.mockResolvedValue({ error: { code: "PASSWORD_TOO_SHORT" } });
+    render(<ResetPasswordForm token="t0ken" errorCode={null} />);
+    fillAndSubmit("password123", "password123");
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "パスワードの長さが要件を満たしていません",
+    );
+    expect(screen.getByLabelText("新しいパスワード")).toBeInTheDocument();
     expect(push).not.toHaveBeenCalled();
   });
 
