@@ -42,7 +42,11 @@ export default async function PermissionsPage({
 
   return (
     <main className="min-h-screen bg-slate-50">
-      <AppHeader crumbs={crumbs} userName={session.user.name} />
+      <AppHeader
+        crumbs={crumbs}
+        userName={session.user.name}
+        userEmail={session.user.email}
+      />
 
       <div className="mx-auto max-w-2xl space-y-4 px-6 py-8">
         <h1 className="text-lg font-bold text-slate-800">権限を編集</h1>

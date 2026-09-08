@@ -49,7 +49,7 @@ export function LogoutButton() {
         type="button"
         onClick={onClick}
         disabled={pending}
-        className="rounded border border-slate-300 px-3 py-1 text-xs text-slate-700 disabled:opacity-50"
+        className="w-full text-left text-sm text-slate-700 disabled:opacity-50"
       >
         {pending ? "ログアウト中..." : "ログアウト"}
       </button>

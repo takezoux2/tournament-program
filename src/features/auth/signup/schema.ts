@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { displayNameSchema } from "@/shared/lib/display-name";
 import { normalizeEmail } from "@/shared/lib/email";
 import {
   MAX_PASSWORD_LENGTH,
@@ -7,15 +8,9 @@ import {
 import { usernameSchema } from "@/shared/lib/username";
 
 export const signupSchema = z.object({
-  name: z
-    .string()
-    .transform((raw) => raw.trim())
-    .pipe(
-      z
-        .string()
-        .min(1, "名前を入力してください")
-        .max(100, "名前は100文字以内で入力してください"),
-    ),
+  // 規則は shared に 1 つだけ持つ。プロフィールの変更側と同じものを使わないと
+  // 「登録では通るのに変更で弾かれる」ずれが起きる。
+  name: displayNameSchema,
   // フォームとサーバ側（better-auth の additionalFields）で規則がずれると
   // 直接 POST で迂回できてしまうため、規則そのものは shared に 1 つだけ持つ。
   username: usernameSchema,

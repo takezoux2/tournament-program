@@ -50,6 +50,7 @@ export default async function DivisionPage({
           { label: division.name },
         ]}
         userName={session.user.name}
+        userEmail={session.user.email}
       />
 
       <div className="mx-auto max-w-4xl space-y-6 px-6 py-8">

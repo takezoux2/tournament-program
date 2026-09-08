@@ -2,8 +2,15 @@ import "server-only";
 
 import { prismaAdapter } from "@better-auth/prisma-adapter";
 import { betterAuth } from "better-auth";
+import { APIError } from "better-auth/api";
 import { nextCookies } from "better-auth/next-js";
+import { findSoleGranterOrganizations } from "@/shared/authz/sole-granter";
 import { prisma } from "@/shared/db/prisma";
+import { buildDeleteAccountEmail } from "@/shared/lib/auth-delete-account-email";
+import {
+  buildEmailChangeVerificationEmail,
+  isEmailChangeVerification,
+} from "@/shared/lib/auth-email-change-email";
 import { buildPasswordResetEmail } from "@/shared/lib/auth-password-reset-email";
 import { authUserConfig } from "@/shared/lib/auth-user-config";
 import { usernamePlugin } from "@/shared/lib/auth-username-plugin";
@@ -72,12 +79,16 @@ export const auth = betterAuth({
     // 認証だけ済ませ、ログインは本人が使う端末で改めて行ってもらう。
     autoSignInAfterVerification: false,
     sendVerificationEmail: async ({ user, url }) => {
+      const to = { email: user.email, name: user.name };
+      const from = resolveMailFrom(process.env);
+      // このフックは登録時の確認とメールアドレス変更の確認の両方で呼ばれ、
+      // どちらなのかを示す引数を受け取らない。判別できる手がかりは、
+      // こちらが changeEmail へ渡した callbackURL が url に埋まっていること
+      // だけ。判定は auth-email-change-email.ts の純粋関数が持つ。
       await getMailer().send(
-        buildVerificationEmail({
-          from: resolveMailFrom(process.env),
-          to: { email: user.email, name: user.name },
-          url,
-        }),
+        isEmailChangeVerification(url)
+          ? buildEmailChangeVerificationEmail({ from, to, url })
+          : buildVerificationEmail({ from, to, url }),
       );
     },
   },
@@ -103,8 +114,55 @@ export const auth = betterAuth({
   },
   // username の宣言（additionalFields）は auth-user-config.ts に切り出してある。
   // auth-user-config.test.ts がその配線を usernameAdditionalField との
-  // 同一性で固定しているので、ここではそのまま渡すだけにする。
-  user: authUserConfig,
+  // 同一性で固定しているので、ここでは展開して changeEmail だけ足す。
+  user: {
+    ...authUserConfig,
+    // 既定では無効で、有効にしないと changeEmail が CHANGE_EMAIL_DISABLED を返す。
+    // sendChangeEmailConfirmation は置かない。置くと確認メールが現アドレス宛に
+    // なり、新アドレスの到達性を確かめないまま確定する経路になる。
+    // 変更前のアドレスへの通知は features/user/change-email 側から送る。
+    changeEmail: { enabled: true },
+    deleteUser: {
+      // 既定では無効で、有効にしないと deleteUser が 404 を返す。
+      enabled: true,
+      sendDeleteAccountVerification: async ({ user, url }) => {
+        await getMailer().send(
+          buildDeleteAccountEmail({
+            from: resolveMailFrom(process.env),
+            to: { email: user.email, name: user.name },
+            url,
+          }),
+        );
+      },
+      // 組織の孤児化ガードの本体。features/user/delete-account の
+      // Server Action でも同じ判定をしているが、境界はこちら。
+      // 確認メールのリンク（/api/auth/delete-user/callback）は Server Action を
+      // 経由しない別の入口で、Better Auth はそちらでも beforeDelete を呼ぶ。
+      //
+      // ここで組織名を出さないのは、この応答が API のエラーとして返るため。
+      // 直し方の案内は画面側（先出しのガード）が受け持つ。
+      //
+      // ここで拒めるのは早期発見どまりで、締め出しを防ぎ切れる境界ではない。
+      // このクエリと internalAdapter.deleteUser は同一トランザクションに
+      // 入っておらず、同じ組織で user.grant を持つ 2 人が同時に削除すると、
+      // 互いに相手がまだ残っているのを見て両方通過し、組織が
+      // grant 保持者ゼロのまま残り得る。
+      // また callback 経路では、この判定より先に deleteUserCallback が
+      // consumeVerificationValue でトークンを消費する。ここで拒まれた
+      // ユーザーは、既に燃え尽きたリンクを見ており、同じ拒否をもう一度
+      // 見るには確認メールの送信からやり直す必要がある。
+      beforeDelete: async (user) => {
+        const organizations = await findSoleGranterOrganizations(user.id);
+        if (organizations.length > 0) {
+          throw new APIError("BAD_REQUEST", {
+            message:
+              "権限を配れるのがあなただけの組織があるため、削除できません",
+            code: "SOLE_GRANTER_ORGANIZATION_EXISTS",
+          });
+        }
+      },
+    },
+  },
   account: {
     // Google は検証済みのメールアドレスを返すため、同じメールの既存ユーザーへ
     // メール確認を挟まずに連携してよい。

@@ -10,7 +10,11 @@ export default async function Home() {
 
   return (
     <main className="min-h-screen bg-slate-50">
-      <AppHeader crumbs={[{ label: "組織" }]} userName={session.user.name} />
+      <AppHeader
+        crumbs={[{ label: "組織" }]}
+        userName={session.user.name}
+        userEmail={session.user.email}
+      />
 
       <div className="mx-auto max-w-2xl space-y-4 px-6 py-8">
         <div className="flex items-center justify-between">

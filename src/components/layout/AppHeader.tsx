@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { LogoutButton } from "@/components/auth/LogoutButton";
+import { UserMenu } from "@/components/layout/UserMenu";
 
 export type Crumb = {
   label: string;
@@ -10,9 +10,11 @@ export type Crumb = {
 export function AppHeader({
   crumbs,
   userName,
+  userEmail,
 }: {
   crumbs: Crumb[];
   userName: string;
+  userEmail: string;
 }) {
   return (
     <header className="flex items-center justify-between border-b border-slate-200 bg-white px-6 py-3">
@@ -31,10 +33,7 @@ export function AppHeader({
           </span>
         ))}
       </nav>
-      <div className="flex items-center gap-3">
-        <span className="text-sm text-slate-700">{userName}</span>
-        <LogoutButton />
-      </div>
+      <UserMenu userName={userName} userEmail={userEmail} />
     </header>
   );
 }

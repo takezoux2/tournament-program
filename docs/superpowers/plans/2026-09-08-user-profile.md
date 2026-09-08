@@ -1416,9 +1416,10 @@ export function DisplayNameForm({
         </p>
       )}
       {state.notice !== null && (
-        <p role="status" className="text-sm text-emerald-700">
-          {state.notice}
-        </p>
+        // <output> は role="status" を暗黙に持つため、Biome の
+        // useSemanticElements ルールを満たしつつ、テストやスクリーンリーダー
+        // からは role="status" として見える（LoginForm と同じ扱い）。
+        <output className="text-sm text-emerald-700">{state.notice}</output>
       )}
 
       <button
@@ -2985,9 +2986,10 @@ export function PasswordSection({
         </p>
       )}
       {state.notice !== null && (
-        <p role="status" className="text-sm text-emerald-700">
-          {state.notice}
-        </p>
+        // <output> は role="status" を暗黙に持つため、Biome の
+        // useSemanticElements ルールを満たしつつ、テストやスクリーンリーダー
+        // からは role="status" として見える（LoginForm と同じ扱い）。
+        <output className="text-sm text-emerald-700">{state.notice}</output>
       )}
 
       <button
@@ -4106,9 +4108,10 @@ export function EmailSection({
         </p>
       )}
       {state.notice !== null && (
-        <p role="status" className="text-sm text-emerald-700">
-          {state.notice}
-        </p>
+        // <output> は role="status" を暗黙に持つため、Biome の
+        // useSemanticElements ルールを満たしつつ、テストやスクリーンリーダー
+        // からは role="status" として見える（LoginForm と同じ扱い）。
+        <output className="text-sm text-emerald-700">{state.notice}</output>
       )}
 
       <button
@@ -4877,9 +4880,10 @@ export function LinkedAccountsSection({
         </p>
       )}
       {state.notice !== null && (
-        <p role="status" className="text-sm text-emerald-700">
-          {state.notice}
-        </p>
+        // <output> は role="status" を暗黙に持つため、Biome の
+        // useSemanticElements ルールを満たしつつ、テストやスクリーンリーダー
+        // からは role="status" として見える（LoginForm と同じ扱い）。
+        <output className="text-sm text-emerald-700">{state.notice}</output>
       )}
     </form>
   );
@@ -5183,9 +5187,10 @@ export function RevokeSessionsForm({ action }: { action: ProfileFormAction }) {
         </p>
       )}
       {state.notice !== null && (
-        <p role="status" className="text-sm text-emerald-700">
-          {state.notice}
-        </p>
+        // <output> は role="status" を暗黙に持つため、Biome の
+        // useSemanticElements ルールを満たしつつ、テストやスクリーンリーダー
+        // からは role="status" として見える（LoginForm と同じ扱い）。
+        <output className="text-sm text-emerald-700">{state.notice}</output>
       )}
 
       <button
@@ -6007,9 +6012,10 @@ export function DeleteAccountForm({ action }: { action: ProfileFormAction }) {
         </p>
       )}
       {state.notice !== null && (
-        <p role="status" className="text-sm text-emerald-700">
-          {state.notice}
-        </p>
+        // <output> は role="status" を暗黙に持つため、Biome の
+        // useSemanticElements ルールを満たしつつ、テストやスクリーンリーダー
+        // からは role="status" として見える（LoginForm と同じ扱い）。
+        <output className="text-sm text-emerald-700">{state.notice}</output>
       )}
 
       <button

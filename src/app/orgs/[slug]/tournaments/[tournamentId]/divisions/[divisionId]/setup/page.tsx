@@ -56,6 +56,7 @@ export default async function DivisionSetupPage({
           { label: "エントリー・組み合わせ" },
         ]}
         userName={session.user.name}
+        userEmail={session.user.email}
       />
 
       <div className="mx-auto max-w-4xl space-y-6 px-6 py-8">

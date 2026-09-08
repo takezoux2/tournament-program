@@ -18,6 +18,7 @@ export default async function NewTournamentPage({
           { label: "大会を作成" },
         ]}
         userName={session.user.name}
+        userEmail={session.user.email}
       />
 
       <div className="mx-auto max-w-sm space-y-6 px-6 py-8">
