@@ -32,6 +32,21 @@ describe("TrackCreated", () => {
     expect(replaceState).toHaveBeenCalledWith(null, "", "/orgs/tennis");
   });
 
+  it("created 以外のクエリは残す", () => {
+    // クエリごと捨てていると、この先どれかのページにタブや絞り込みの
+    // パラメータが増えたとき、作成直後だけ黙って消える。
+    window.history.replaceState(
+      null,
+      "",
+      "/orgs/tennis?created=organization&keep=1",
+    );
+    replaceState.mockClear();
+
+    render(<TrackCreated created="organization" />);
+
+    expect(replaceState).toHaveBeenCalledWith(null, "", "/orgs/tennis?keep=1");
+  });
+
   it("created=tournament で create_tournament を送る", () => {
     render(<TrackCreated created="tournament" />);
 

@@ -1,7 +1,14 @@
 export const MIN_SLUG_LENGTH = 3;
 export const MAX_SLUG_LENGTH = 50;
 
-/** ルーティングと衝突する語。組織 ID として使わせない。 */
+/**
+ * ルーティングと衝突する語。組織 ID として使わせない。
+ *
+ * 後半の 4 語はパスの位置で ID を判定する GA のサニタイズ
+ * （shared/lib/analytics/sanitize-url.ts）と衝突する。例えば slug が
+ * "users" だと /orgs/users/tournaments/new が /orgs/users/:id/new と
+ * 誤って集計される。漏れではないが、集計がずれるので塞いでおく。
+ */
 export const RESERVED_SLUGS = [
   "new",
   "orgs",
@@ -9,6 +16,10 @@ export const RESERVED_SLUGS = [
   "login",
   "signup",
   "mock",
+  "t",
+  "users",
+  "tournaments",
+  "divisions",
 ] as const;
 
 export type SlugViolation =

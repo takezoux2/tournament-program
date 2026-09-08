@@ -50,7 +50,7 @@ describe("trackEvent", () => {
     ]);
   });
 
-  it("パラメータを省略したときは空オブジェクトを渡す", () => {
+  it("パラメータを省略しても既定パラメータ付きで積まれる", () => {
     process.env.NEXT_PUBLIC_GA_ID = "G-ABC123XYZ";
 
     trackEvent("record_result");
@@ -58,7 +58,7 @@ describe("trackEvent", () => {
     expect(queued()).toContainEqual([
       "event",
       "record_result",
-      expect.objectContaining({}),
+      expect.objectContaining({ page_location: expect.any(String) }),
     ]);
   });
 
@@ -99,11 +99,17 @@ describe("trackEvent", () => {
     }
   });
 
-  it("イベントには必ずサニタイズ済みの page_location が載る", () => {
+  it("page_view 以外のイベントにもサニタイズ済みの URL が載る", () => {
     // gtag は page_location 未指定のヒットに document.location.href を
     // 自分で載せる。page_view だけに載せていたときは、login や
     // record_result が ?token=... 付きの生 URL を送っていた（実測）。
+    // クエリと ID の両方が落ちることを、両方入った URL で確かめる。
     process.env.NEXT_PUBLIC_GA_ID = "G-ABC123XYZ";
+    window.history.replaceState(
+      null,
+      "",
+      "/orgs/tennis/tournaments/3f2504e0-4f89-11d3-9a0c-0305e82c3301?token=SECRET",
+    );
 
     trackEvent("record_result");
 
@@ -112,8 +118,10 @@ describe("trackEvent", () => {
     );
     const params = event?.[2] as Record<string, unknown>;
     expect(params.page_location).toBe(
-      `${window.location.origin}${window.location.pathname}`,
+      `${window.location.origin}/orgs/tennis/tournaments/:id`,
     );
+    expect(params.page_location).not.toContain("SECRET");
+    expect(params.page_title).toBe("/orgs/tennis/tournaments/:id");
   });
 
   it("config は複数イベントを送っても 1 回だけ", () => {

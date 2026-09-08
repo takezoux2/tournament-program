@@ -1,5 +1,5 @@
-import { describe, expect, it } from "vitest";
-import { sanitizePagePath } from "./sanitize-url";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { sanitizedReferrer, sanitizePagePath } from "./sanitize-url";
 
 describe("sanitizePagePath", () => {
   it("組織のパスはそのまま通す", () => {
@@ -59,11 +59,68 @@ describe("sanitizePagePath", () => {
     );
   });
 
+  it("位置の表に無いパスでも、形が UUID なら伏せる", () => {
+    // 位置だけで判定すると、後から /invite/<token> のようなパスが
+    // 増えたとき、誰かが表に足すまで素通りしてしまう（fail-open）。
+    expect(
+      sanitizePagePath("/invite/3f2504e0-4f89-11d3-9a0c-0305e82c3301"),
+    ).toBe("/invite/:id");
+  });
+
+  it("形の保険は組織 slug には効かせない", () => {
+    // /orgs の直後は必ず slug。ここだけは形が何であれ素通しにする。
+    expect(sanitizePagePath("/orgs/tokyotennisclub2026")).toBe(
+      "/orgs/tokyotennisclub2026",
+    );
+  });
+
   it("部門 ID も伏せる", () => {
     expect(
       sanitizePagePath(
         "/orgs/tennis-club/tournaments/3f2504e0-4f89-11d3-9a0c-0305e82c3301/divisions/8ab2c1de-0000-4000-8000-000000000001/setup",
       ),
     ).toBe("/orgs/tennis-club/tournaments/:id/divisions/:id/setup");
+  });
+});
+
+describe("sanitizedReferrer", () => {
+  const setReferrer = (value: string): void => {
+    vi.spyOn(document, "referrer", "get").mockReturnValue(value);
+  };
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("同一オリジンの参照元はクエリを落として ID も伏せる", () => {
+    // /reset-password?token=... からページを移動しただけで、次のヒットの
+    // 参照元としてトークンが飛ぶ。page_location を塞いでも 1 つ隣の
+    // 項目から同じ漏れが起きるため、ここも塞ぐ。
+    setReferrer(`${window.location.origin}/reset-password?token=SECRET`);
+
+    expect(sanitizedReferrer()).toBe(
+      `${window.location.origin}/reset-password`,
+    );
+  });
+
+  it("外部からの流入はそのまま通す", () => {
+    // 流入元の分析に要る。伏せるのは自サイト内の URL だけでよい。
+    setReferrer("https://www.google.com/search?q=%E5%A4%A7%E4%BC%9A");
+
+    expect(sanitizedReferrer()).toBe(
+      "https://www.google.com/search?q=%E5%A4%A7%E4%BC%9A",
+    );
+  });
+
+  it("参照元が無ければ undefined", () => {
+    setReferrer("");
+
+    expect(sanitizedReferrer()).toBeUndefined();
+  });
+
+  it("解釈できない参照元は捨てる", () => {
+    setReferrer("not a url");
+
+    expect(sanitizedReferrer()).toBeUndefined();
   });
 });

@@ -2,7 +2,11 @@
 
 import type { AnalyticsEvent } from "./events";
 import { gaMeasurementId } from "./ga-id";
-import { sanitizedPageLocation, sanitizePagePath } from "./sanitize-url";
+import {
+  sanitizedPageLocation,
+  sanitizedReferrer,
+  sanitizePagePath,
+} from "./sanitize-url";
 
 declare global {
   interface Window {
@@ -57,10 +61,13 @@ let configured = false;
  * 画面単位で読め、名前は出ない。
  */
 const defaultParams = (): Record<string, string> => {
-  const location = sanitizedPageLocation();
+  const referrer = sanitizedReferrer();
   return {
-    page_location: location,
+    page_location: sanitizedPageLocation(),
     page_title: sanitizePagePath(window.location.pathname),
+    // 参照元も塞ぐ。指定しないと gtag が document.referrer をそのまま
+    // 載せ、同一オリジンの遷移ではクエリ込みの URL が入る。
+    ...(referrer === undefined ? {} : { page_referrer: referrer }),
   };
 };
 
@@ -70,7 +77,13 @@ const ensureConfigured = (gaId: string): void => {
   push("js", new Date());
   // page_view は自前で送る。既定の config 由来の page_view は
   // クエリ文字列込みの生 URL を載せてしまい、差し替えられない。
-  push("config", gaId, { send_page_view: false, ...defaultParams() });
+  //
+  // config には現在地を入れない。config のパラメータは set より強く、
+  // 1 回きりなので、入れるとセッション最初のページの URL が
+  // 以後ずっと固定される。拡張計測が自分で作るヒット（scroll など）が
+  // 全部その landing URL に紐づいてしまう。既定値は set 側で持つ。
+  push("config", gaId, { send_page_view: false });
+  push("set", defaultParams());
 };
 
 /**
