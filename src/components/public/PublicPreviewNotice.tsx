@@ -8,11 +8,8 @@
  */
 export function PublicPreviewNotice() {
   return (
-    <div
-      role="status"
-      className="rounded border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900"
-    >
+    <output className="block rounded border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900">
       この大会は準備中です。この画面は組織のメンバーにしか表示されません。
-    </div>
+    </output>
   );
 }
