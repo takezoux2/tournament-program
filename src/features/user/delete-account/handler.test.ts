@@ -63,7 +63,7 @@ describe("deleteAccountAction", () => {
 
     expect(deleteUser).not.toHaveBeenCalled();
     expect(result.error).toBe(
-      "テニス部、卓球部 では、権限を配れるのがあなただけです。他の人に「権限の付与」を渡してから、再度お試しください",
+      "テニス部、卓球部 では、権限を配れるのがあなただけです。他の人に「権限の付与」を渡すか、その組織を削除してから、再度お試しください",
     );
   });
 
