@@ -55,6 +55,7 @@ export const validateEntries = (
 /**
  * 組み合わせの整合性を検証する（spec のルール 4〜6）。
  * 参照先の round が自分より必ず小さいことを課すため、循環は構造的に起きない。
+ * あわせて sequence が 0 からの連番になっていることも検証する。
  */
 export const validateMatchingConfig = (
   config: MatchingConfig,
