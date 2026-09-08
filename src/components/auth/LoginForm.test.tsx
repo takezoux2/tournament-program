@@ -265,3 +265,35 @@ describe("LoginForm のパスワード表示切り替え", () => {
     expect(password).toHaveAttribute("type", "password");
   });
 });
+
+describe("LoginForm のパスワードリセット導線", () => {
+  it("申請画面へのリンクを出す", () => {
+    render(<LoginForm redirectTo="/" />);
+
+    expect(
+      screen.getByRole("link", { name: "パスワードをお忘れですか？" }),
+    ).toHaveAttribute("href", "/forgot-password");
+  });
+
+  it("reset が真なら再設定完了の案内を出す", () => {
+    render(<LoginForm redirectTo="/" reset />);
+
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "パスワードを再設定しました",
+    );
+  });
+
+  it("reset が偽なら案内を出さない", () => {
+    render(<LoginForm redirectTo="/" />);
+
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+  });
+
+  it("確認メールの案内が優先される", () => {
+    // 両方のクエリが同時に付く経路は無いが、付いた場合に 2 つの案内が
+    // 重ならないことを固定しておく。
+    render(<LoginForm redirectTo="/" verified reset />);
+
+    expect(screen.getByRole("status")).toHaveTextContent("登録が完了しました");
+  });
+});

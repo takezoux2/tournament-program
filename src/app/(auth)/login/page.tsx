@@ -13,12 +13,16 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
   const rawError = params.error;
   const verifyError = typeof rawError === "string" ? rawError : null;
 
+  // 再設定を終えて戻ってきた場合に付くクエリ。
+  const reset = params.reset === "1";
+
   return (
     <main className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
       <LoginForm
         redirectTo={redirectTo}
         verified={verified}
         verifyError={verifyError}
+        reset={reset}
       />
     </main>
   );
