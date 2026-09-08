@@ -1,7 +1,7 @@
 "use client";
 
 import type { MouseEvent } from "react";
-import { useActionState } from "react";
+import { useActionState, useEffect, useRef } from "react";
 import {
   type DivisionFormAction,
   INITIAL_DIVISION_FORM_STATE,
@@ -10,6 +10,7 @@ import type {
   ResultRowView,
   ResultSlotView,
 } from "@/features/schedule/result-rows";
+import { trackEvent } from "@/shared/lib/analytics/events";
 
 type MatchRow = Extract<ResultRowView, { kind: "match" }>;
 
@@ -73,6 +74,18 @@ export function MatchResultRow({
     INITIAL_DIVISION_FORM_STATE,
   );
   const editable = row.state === "ready" || row.state === "recorded";
+
+  // recordResultAction は成功時も { error: null } を返し、初期状態と
+  // 同じ形になる。さらに同じ行で登録と訂正が繰り返されるため、真偽値では
+  // 足りない。成功のたびに増える succeeded を前回値と比べて発火する。
+  const succeeded = state.succeeded ?? 0;
+  const trackedRef = useRef(0);
+  useEffect(() => {
+    if (succeeded > trackedRef.current) {
+      trackedRef.current = succeeded;
+      trackEvent("record_result");
+    }
+  }, [succeeded]);
 
   // 消えるものがあるときだけ確認する。普段の入力はタップ 1 回で終わらせたい。
   // entryId には押したボタンの勝者候補（取り消しボタンなら null）を渡す。

@@ -49,7 +49,7 @@ beforeEach(() => {
   notFound.mockClear();
   requireOrganization.mockResolvedValue({ organization: { id: "o1" } });
   recordResultInDb.mockReturnValue(
-    Effect.succeed({ found: true, value: null }),
+    Effect.succeed({ found: true, value: { recorded: true } }),
   );
 });
 
@@ -65,7 +65,7 @@ describe("recordResultAction", () => {
       { organizationId: "o1", tournamentId: "t1", divisionId: "d1" },
       { matchId: "m1-0", winnerEntryId: "e1" },
     );
-    expect(state).toEqual({ error: null });
+    expect(state).toEqual({ error: null, succeeded: 1 });
   });
 
   it("成功したら 3 本のページを再検証する", async () => {
@@ -123,5 +123,54 @@ describe("recordResultAction", () => {
       error: "他の人が更新しました。画面を再読み込みしてください",
     });
     expect(revalidateDivisionResults).not.toHaveBeenCalled();
+  });
+
+  it("成功のたびに succeeded が増える（初期状態と、連続した成功を区別するため）", async () => {
+    const first = await recordResultAction({ error: null }, formData(validInput));
+    const second = await recordResultAction(first, formData(validInput));
+
+    expect(first.succeeded).toBe(1);
+    expect(second.succeeded).toBe(2);
+  });
+
+  it("勝者が変わらず何も書かなかったときは succeeded を増やさない", async () => {
+    // repository は「変更なし」を recorded: false で返す。増やしてしまうと
+    // 同じ勝者の再タップだけで record_result が飛び、記録していない操作が
+    // 記録として計上される。
+    recordResultInDb.mockReturnValue(
+      Effect.succeed({ found: true, value: { recorded: false } }),
+    );
+
+    const state = await recordResultAction(
+      { error: null, succeeded: 3 },
+      formData(validInput),
+    );
+
+    expect(state).toEqual({ error: null, succeeded: 3 });
+  });
+
+  it("何も書かなかった後でも、次に記録したら succeeded が 1 だけ進む", async () => {
+    // 書かなかったときに succeeded を落として undefined にすると、
+    // クライアント側のカウンタだけが 0 に戻る。MatchResultRow は
+    // 「前回発火した値」を ref で覚えていて、それを超えたときだけ
+    // 発火するため、次の 1 は過去の 3 を超えられず、本当に記録した
+    // 操作のイベントが黙って消える。持ち越しているかをここで固定する。
+    recordResultInDb.mockReturnValue(
+      Effect.succeed({ found: true, value: { recorded: false } }),
+    );
+    const afterNoWrite = await recordResultAction(
+      { error: null, succeeded: 3 },
+      formData(validInput),
+    );
+
+    recordResultInDb.mockReturnValue(
+      Effect.succeed({ found: true, value: { recorded: true } }),
+    );
+    const afterWrite = await recordResultAction(
+      afterNoWrite,
+      formData(validInput),
+    );
+
+    expect(afterWrite.succeeded).toBe(4);
   });
 });

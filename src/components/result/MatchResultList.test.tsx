@@ -7,6 +7,12 @@ import { MatchResultList } from "./MatchResultList";
 
 const action = vi.fn<DivisionFormAction>(async () => ({ error: null }));
 
+const trackEvent = vi.fn();
+
+vi.mock("@/shared/lib/analytics/events", () => ({
+  trackEvent: (...args: unknown[]) => trackEvent(...args),
+}));
+
 const matchRow = (
   overrides: Partial<Extract<ResultRowView, { kind: "match" }>> = {},
 ): ResultRowView => ({
@@ -227,5 +233,78 @@ describe("MatchResultList", () => {
     renderList([]);
 
     expect(screen.getByText("まだ試合がありません")).toBeInTheDocument();
+  });
+});
+
+describe("MatchResultList の GA イベント", () => {
+  /** 呼ばれるたび succeeded を増やす、成功し続けるアクション */
+  const succeedingAction: DivisionFormAction = async (prev) => ({
+    error: null,
+    succeeded: (prev.succeeded ?? 0) + 1,
+  });
+
+  const failingAction: DivisionFormAction = async () => ({
+    error: "記録できませんでした",
+  });
+
+  const renderWith = (rowAction: DivisionFormAction) =>
+    render(
+      <MatchResultList
+        rows={[matchRow()]}
+        slug="tennis"
+        tournamentId="t1"
+        action={rowAction}
+      />,
+    );
+
+  beforeEach(() => {
+    trackEvent.mockReset();
+  });
+
+  it("初期表示では送らない", () => {
+    renderWith(succeedingAction);
+
+    expect(trackEvent).not.toHaveBeenCalled();
+  });
+
+  it("結果の登録に成功したら record_result を送る", async () => {
+    const user = userEvent.setup();
+    renderWith(succeedingAction);
+
+    await user.click(
+      screen.getByRole("button", { name: "男子 第1試合 山田の勝ち" }),
+    );
+
+    await waitFor(() =>
+      expect(trackEvent).toHaveBeenCalledWith("record_result"),
+    );
+    expect(trackEvent).toHaveBeenCalledTimes(1);
+  });
+
+  it("同じ行で 2 回成功したら 2 回送る", async () => {
+    const user = userEvent.setup();
+    renderWith(succeedingAction);
+
+    const button = screen.getByRole("button", {
+      name: "男子 第1試合 山田の勝ち",
+    });
+
+    await user.click(button);
+    await waitFor(() => expect(trackEvent).toHaveBeenCalledTimes(1));
+
+    await user.click(button);
+    await waitFor(() => expect(trackEvent).toHaveBeenCalledTimes(2));
+  });
+
+  it("失敗したときは送らない", async () => {
+    const user = userEvent.setup();
+    renderWith(failingAction);
+
+    await user.click(
+      screen.getByRole("button", { name: "男子 第1試合 山田の勝ち" }),
+    );
+
+    expect(await screen.findByRole("alert")).toBeInTheDocument();
+    expect(trackEvent).not.toHaveBeenCalled();
   });
 });

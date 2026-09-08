@@ -244,7 +244,9 @@ describe("recordResultInDb", () => {
 
     const exit = await run({ matchId: "m1-0", winnerEntryId: "e1" });
 
-    expect(exit).toStrictEqual(Exit.succeed({ found: true, value: null }));
+    expect(exit).toStrictEqual(
+      Exit.succeed({ found: true, value: { recorded: false } }),
+    );
     expect(updateMany).not.toHaveBeenCalled();
   });
 

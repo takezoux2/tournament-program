@@ -18,8 +18,11 @@ const notFound = vi.fn(() => {
   throw new Error("NEXT_NOT_FOUND");
 });
 
+// TrackCreated が useRouter/usePathname を使うため、既存の notFound モックに足す。
 vi.mock("next/navigation", () => ({
   notFound: () => notFound(),
+  useRouter: () => ({ replace: vi.fn() }),
+  usePathname: () => "/",
 }));
 
 vi.mock("@/shared/middleware/require-organization", () => ({

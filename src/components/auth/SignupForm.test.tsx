@@ -6,6 +6,7 @@ const signUpEmail = vi.fn();
 const signInSocial = vi.fn();
 const push = vi.fn();
 const refresh = vi.fn();
+const trackEvent = vi.fn();
 
 vi.mock("@/shared/lib/auth-client", () => ({
   authClient: {
@@ -20,6 +21,10 @@ vi.mock("@/shared/lib/auth-client", () => ({
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push, refresh }),
+}));
+
+vi.mock("@/shared/lib/analytics/events", () => ({
+  trackEvent: (...args: unknown[]) => trackEvent(...args),
 }));
 
 describe("SignupForm の Google 登録ボタン", () => {
@@ -139,5 +144,62 @@ describe("SignupForm のメール登録", () => {
     expect(
       screen.getByRole("button", { name: "登録する" }),
     ).toBeInTheDocument();
+  });
+});
+
+describe("SignupForm の GA イベント", () => {
+  beforeEach(() => {
+    signUpEmail.mockReset();
+    signInSocial.mockReset();
+    trackEvent.mockReset();
+  });
+
+  const fillAndSubmit = () => {
+    fireEvent.change(screen.getByLabelText("名前"), {
+      target: { value: "山田太郎" },
+    });
+    fireEvent.change(screen.getByLabelText("ユーザー名"), {
+      target: { value: "yamada" },
+    });
+    fireEvent.change(screen.getByLabelText("メールアドレス"), {
+      target: { value: "yamada@example.com" },
+    });
+    fireEvent.change(screen.getByLabelText("パスワード"), {
+      target: { value: "password123" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "登録する" }));
+  };
+
+  it("確認メールの送信まで進んだら sign_up を送る", async () => {
+    signUpEmail.mockResolvedValue({ data: {} });
+    render(<SignupForm redirectTo="/" />);
+
+    fillAndSubmit();
+
+    expect(
+      await screen.findByText("確認メールを送信しました"),
+    ).toBeInTheDocument();
+    expect(trackEvent).toHaveBeenCalledWith("sign_up", { method: "email" });
+  });
+
+  it("登録に失敗したときは送らない", async () => {
+    signUpEmail.mockResolvedValue({ error: { code: "USER_ALREADY_EXISTS" } });
+    render(<SignupForm redirectTo="/" />);
+
+    fillAndSubmit();
+
+    expect(await screen.findByRole("alert")).toBeInTheDocument();
+    expect(trackEvent).not.toHaveBeenCalled();
+  });
+
+  it("Google 登録では送らない（成否を観測できないため）", async () => {
+    signInSocial.mockResolvedValue({ data: {} });
+    render(<SignupForm redirectTo="/" />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Google で登録" }));
+
+    // 送信が終わってボタンが再度有効になるまで待つ
+    await screen.findByRole("button", { name: "Google で登録" });
+    expect(trackEvent).not.toHaveBeenCalled();
   });
 });

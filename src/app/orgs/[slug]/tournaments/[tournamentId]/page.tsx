@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { TrackCreated } from "@/components/analytics/TrackCreated";
 import { DivisionList } from "@/components/division/DivisionList";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { TournamentDetailView } from "@/components/tournament/TournamentDetail";
@@ -10,8 +11,10 @@ import { requireOrganization } from "@/shared/middleware/require-organization";
 
 export default async function TournamentPage({
   params,
+  searchParams,
 }: PageProps<"/orgs/[slug]/tournaments/[tournamentId]">) {
   const { slug, tournamentId } = await params;
+  const { created } = await searchParams;
   const { session, organization } = await requireOrganization(slug);
 
   const tournament = await findTournamentInOrganization(
@@ -29,6 +32,9 @@ export default async function TournamentPage({
 
   return (
     <main className="min-h-screen bg-slate-50">
+      <TrackCreated
+        created={typeof created === "string" ? created : undefined}
+      />
       <AppHeader
         crumbs={[
           { label: "組織", href: "/" },

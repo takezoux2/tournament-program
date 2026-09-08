@@ -12,6 +12,7 @@ import { loginSchema } from "@/features/auth/login/schema";
 import { login } from "@/features/auth/login/usecase";
 import { authErrorMessage } from "@/features/auth/messages";
 import { passwordResetNotice } from "@/features/auth/password-reset/domain";
+import { trackEvent } from "@/shared/lib/analytics/events";
 import { authClient } from "@/shared/lib/auth-client";
 import { runAuthCall } from "@/shared/lib/auth-effect";
 
@@ -77,6 +78,7 @@ export function LoginForm({
       return;
     }
 
+    trackEvent("login", { method: parsed.data.identifier.kind });
     router.push(LOGIN_DESTINATION);
     // Server Component 側のセッションを読み直させる。
     router.refresh();

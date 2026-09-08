@@ -3,6 +3,7 @@
 import { Effect, Exit } from "effect";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { createdQuery } from "@/shared/lib/analytics/created";
 import { requireSession } from "@/shared/middleware/require-session";
 import { organizationErrorFormState } from "../effect-to-form-state";
 import type { OrganizationFormState } from "../state";
@@ -36,5 +37,7 @@ export const createOrganizationAction = async (
 
   revalidatePath("/");
   // redirect は例外を投げて制御を打ち切るため、Effect の実行が終わった後に呼ぶ。
-  redirect(`/orgs/${exit.value.slug}`);
+  // ?created= は遷移先の TrackCreated が GA イベントを撃つための印。
+  // 撃った直後にクエリは消される。
+  redirect(`/orgs/${exit.value.slug}${createdQuery("organization")}`);
 };

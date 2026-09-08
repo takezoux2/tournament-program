@@ -7,6 +7,7 @@ import { verificationCallbackURL } from "@/features/auth/domain";
 import { authErrorMessage } from "@/features/auth/messages";
 import { signupSchema } from "@/features/auth/signup/schema";
 import { signup } from "@/features/auth/signup/usecase";
+import { trackEvent } from "@/shared/lib/analytics/events";
 import { authClient } from "@/shared/lib/auth-client";
 import { runAuthCall } from "@/shared/lib/auth-effect";
 import { VERIFICATION_LINK_EXPIRES_LABEL } from "@/shared/lib/email-verification-policy";
@@ -58,6 +59,9 @@ export function SignupForm({ redirectTo }: { redirectTo: string }) {
 
     // requireEmailVerification によりセッションは発行されない（仮登録）。
     // 遷移させず、確認メールの案内に切り替える。
+    // 仮登録（確認メール送信）の完了時点で撃つ。確認リンクを踏んだ
+    // 本登録の完了ではないことに注意。
+    trackEvent("sign_up", { method: "email" });
     setSentTo(parsed.data.email);
   };
 

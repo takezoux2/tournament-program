@@ -95,7 +95,7 @@ describe("createDivisionAction", () => {
       "/orgs/tennis-club/tournaments/t1",
     );
     expect(redirect).toHaveBeenCalledWith(
-      "/orgs/tennis-club/tournaments/t1/divisions/d1",
+      "/orgs/tennis-club/tournaments/t1/divisions/d1?created=division",
     );
   });
 
