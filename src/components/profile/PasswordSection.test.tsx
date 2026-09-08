@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 import type { ProfileFormAction } from "@/features/user/state";
 import { PasswordSection } from "./PasswordSection";
@@ -67,6 +68,50 @@ describe("PasswordSection", () => {
     expect(screen.getByLabelText("新しいパスワード")).toHaveAttribute(
       "autocomplete",
       "new-password",
+    );
+  });
+
+  it("エラーは alert として出る", async () => {
+    const user = userEvent.setup();
+    const errorAction: ProfileFormAction = async () => ({
+      error: "テスト用のエラー",
+      notice: null,
+    });
+    render(
+      <PasswordSection
+        hasPassword={false}
+        changeAction={errorAction}
+        setAction={errorAction}
+      />,
+    );
+
+    await user.type(screen.getByLabelText("新しいパスワード"), "password123");
+    await user.click(screen.getByRole("button", { name: "パスワードを設定" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "テスト用のエラー",
+    );
+  });
+
+  it("通知は status として出る", async () => {
+    const user = userEvent.setup();
+    const noticeAction: ProfileFormAction = async () => ({
+      error: null,
+      notice: "テスト用の通知",
+    });
+    render(
+      <PasswordSection
+        hasPassword={false}
+        changeAction={noticeAction}
+        setAction={noticeAction}
+      />,
+    );
+
+    await user.type(screen.getByLabelText("新しいパスワード"), "password123");
+    await user.click(screen.getByRole("button", { name: "パスワードを設定" }));
+
+    expect(await screen.findByRole("status")).toHaveTextContent(
+      "テスト用の通知",
     );
   });
 });

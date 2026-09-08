@@ -30,7 +30,7 @@ export const authErrorMessage: (error: AuthError) => string =
       // 「再送しました」と言い切れるのはそのため。
       () => "メールアドレスが未確認です。確認メールを再送しました",
     ),
-    // ここから 5 つはプロフィール画面（features/user）の経路で返るコード。
+    // ここから 6 つはプロフィール画面（features/user）の経路で返るコード。
     // ログイン・登録の画面では起きないが、AuthError は 1 つの型なので
     // Match.exhaustive が網羅を要求する。到達しない前提の無難な文言を置く。
     Match.tag("InvalidPassword", () => "パスワードが正しくありません"),
@@ -38,6 +38,11 @@ export const authErrorMessage: (error: AuthError) => string =
     Match.tag(
       "SessionNotFresh",
       () => "セキュリティのため、再度ログインしてからお試しください",
+    ),
+    Match.tag(
+      "SessionExpired",
+      () =>
+        "セッションの有効期限が切れています。再度ログインしてからお試しください",
     ),
     Match.tag(
       "LastAccountUnlinkForbidden",

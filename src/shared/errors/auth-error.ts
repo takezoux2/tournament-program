@@ -45,6 +45,18 @@ export class SessionNotFresh extends Data.TaggedError("SessionNotFresh")<{
 }> {}
 
 /**
+ * セッションが消えている。sensitiveSessionMiddleware が changeEmail /
+ * changePassword / setPassword / deleteUser を守っており、ログアウト済み・
+ * Cookie 破棄済みなどで返る。BYPASS_AUTH=1 のローカル実行でも、この経路の
+ * 書き込みは同じコードで弾かれる。時間を置いても直らず、直す手段はログイン
+ * し直すことだけなので、UnexpectedAuthError の「時間をおいて再試行」とは
+ * 分けて持つ。
+ */
+export class SessionExpired extends Data.TaggedError("SessionExpired")<{
+  readonly code: string;
+}> {}
+
+/**
  * 最後の 1 つの認証方法は解除できない。これがあるおかげで、パスワード未設定の
  * まま Google 連携を外して締め出される経路が存在しない。
  */
@@ -77,6 +89,7 @@ export type AuthError =
   | InvalidPassword
   | PasswordAlreadySet
   | SessionNotFresh
+  | SessionExpired
   | LastAccountUnlinkForbidden
   | AccountNotFound
   | UnexpectedAuthError;
@@ -126,6 +139,11 @@ export const toAuthError = (
       return new PasswordAlreadySet({ code });
     case "SESSION_NOT_FRESH":
       return new SessionNotFresh({ code });
+    // sensitiveSessionMiddleware がセッション消失を検知したときに返る。
+    // default に落として UnexpectedAuthError にすると「時間をおいて再試行」
+    // という、再ログインでしか直らないこの状況には従えない案内になる。
+    case "UNAUTHORIZED":
+      return new SessionExpired({ code });
     case "FAILED_TO_UNLINK_LAST_ACCOUNT":
       return new LastAccountUnlinkForbidden({ code });
     case "ACCOUNT_NOT_FOUND":

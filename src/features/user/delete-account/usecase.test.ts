@@ -22,7 +22,7 @@ describe("deleteAccount", () => {
   it("port が投げた APIError を AuthError に写して伝える", async () => {
     const apiError = new Error("boom");
     apiError.name = "APIError";
-    Object.assign(apiError, { body: { code: "UNAUTHORIZED" } });
+    Object.assign(apiError, { body: { code: "SOMETHING_WE_DO_NOT_HANDLE" } });
     const port: DeleteAccountPort = () => Promise.reject(apiError);
 
     const exit = await Effect.runPromiseExit(deleteAccount(port, headers));

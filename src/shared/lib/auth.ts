@@ -112,6 +112,16 @@ export const auth = betterAuth({
       //
       // ここで組織名を出さないのは、この応答が API のエラーとして返るため。
       // 直し方の案内は画面側（先出しのガード）が受け持つ。
+      //
+      // ここで拒めるのは早期発見どまりで、締め出しを防ぎ切れる境界ではない。
+      // このクエリと internalAdapter.deleteUser は同一トランザクションに
+      // 入っておらず、同じ組織で user.grant を持つ 2 人が同時に削除すると、
+      // 互いに相手がまだ残っているのを見て両方通過し、組織が
+      // grant 保持者ゼロのまま残り得る。
+      // また callback 経路では、この判定より先に deleteUserCallback が
+      // consumeVerificationValue でトークンを消費する。ここで拒まれた
+      // ユーザーは、既に燃え尽きたリンクを見ており、同じ拒否をもう一度
+      // 見るには確認メールの送信からやり直す必要がある。
       beforeDelete: async (user) => {
         const organizations = await findSoleGranterOrganizations(user.id);
         if (organizations.length > 0) {

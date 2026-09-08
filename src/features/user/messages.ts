@@ -51,6 +51,14 @@ export const profileErrorMessage: (error: AuthError) => string =
         "セキュリティのため、この操作にはログインし直しが必要です。一度ログアウトしてから再度お試しください",
     ),
     Match.tag(
+      "SessionExpired",
+      // sensitiveSessionMiddleware が changeEmail / changePassword /
+      // setPassword / deleteUser でセッション消失を検知したときに返る。
+      // 時間を置いても直らないので、再試行ではなく再ログインを案内する。
+      () =>
+        "ログインの有効期限が切れています。ログインし直してからもう一度お試しください",
+    ),
+    Match.tag(
       "LastAccountUnlinkForbidden",
       () =>
         "最後のログイン方法は解除できません。先にパスワードを設定してください",

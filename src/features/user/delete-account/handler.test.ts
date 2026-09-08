@@ -93,7 +93,7 @@ describe("deleteAccountAction", () => {
   it("Better Auth が失敗したら文言に写して返す", async () => {
     const apiError = new Error("boom");
     apiError.name = "APIError";
-    Object.assign(apiError, { body: { code: "UNAUTHORIZED" } });
+    Object.assign(apiError, { body: { code: "SOMETHING_WE_DO_NOT_HANDLE" } });
     deleteUser.mockRejectedValue(apiError);
 
     const result = await deleteAccountAction(

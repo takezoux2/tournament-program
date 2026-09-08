@@ -120,7 +120,7 @@ describe("changeEmailAction", () => {
   it("Better Auth が失敗したら通知を送らず、文言に写して返す", async () => {
     const apiError = new Error("boom");
     apiError.name = "APIError";
-    Object.assign(apiError, { body: { code: "UNAUTHORIZED" } });
+    Object.assign(apiError, { body: { code: "SOMETHING_WE_DO_NOT_HANDLE" } });
     changeEmailApi.mockRejectedValue(apiError);
 
     const result = await changeEmailAction(

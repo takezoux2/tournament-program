@@ -1,5 +1,6 @@
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import userEvent from "@testing-library/user-event";
+import { describe, expect, it, vi } from "vitest";
 import type { ProfileFormAction } from "@/features/user/state";
 import { LinkedAccountsSection } from "./LinkedAccountsSection";
 
@@ -74,5 +75,101 @@ describe("LinkedAccountsSection", () => {
     );
 
     expect(screen.getByRole("button", { name: "連携を解除" })).toBeEnabled();
+  });
+
+  it("エラーは alert として出る", async () => {
+    const user = userEvent.setup();
+    const errorAction: ProfileFormAction = async () => ({
+      error: "テスト用のエラー",
+      notice: null,
+    });
+    render(
+      <LinkedAccountsSection
+        google={null}
+        hasPassword
+        linkAction={errorAction}
+        unlinkAction={noopAction}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Google と連携する" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "テスト用のエラー",
+    );
+  });
+
+  it("通知は status として出る", async () => {
+    const user = userEvent.setup();
+    const noticeAction: ProfileFormAction = async () => ({
+      error: null,
+      notice: "テスト用の通知",
+    });
+    render(
+      <LinkedAccountsSection
+        google={null}
+        hasPassword
+        linkAction={noticeAction}
+        unlinkAction={noopAction}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Google と連携する" }));
+
+    expect(await screen.findByRole("status")).toHaveTextContent(
+      "テスト用の通知",
+    );
+  });
+
+  it("未連携なら linkAction を呼び、unlinkAction は呼ばない", async () => {
+    const user = userEvent.setup();
+    const link = vi.fn<ProfileFormAction>(async () => ({
+      error: null,
+      notice: "連携しました",
+    }));
+    const unlink = vi.fn<ProfileFormAction>(async () => ({
+      error: null,
+      notice: "解除しました",
+    }));
+    render(
+      <LinkedAccountsSection
+        google={null}
+        hasPassword
+        linkAction={link}
+        unlinkAction={unlink}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Google と連携する" }));
+
+    await screen.findByRole("status");
+    expect(link).toHaveBeenCalled();
+    expect(unlink).not.toHaveBeenCalled();
+  });
+
+  it("連携済みなら unlinkAction を呼び、linkAction は呼ばない", async () => {
+    const user = userEvent.setup();
+    const link = vi.fn<ProfileFormAction>(async () => ({
+      error: null,
+      notice: "連携しました",
+    }));
+    const unlink = vi.fn<ProfileFormAction>(async () => ({
+      error: null,
+      notice: "解除しました",
+    }));
+    render(
+      <LinkedAccountsSection
+        google={google}
+        hasPassword
+        linkAction={link}
+        unlinkAction={unlink}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "連携を解除" }));
+
+    await screen.findByRole("status");
+    expect(unlink).toHaveBeenCalled();
+    expect(link).not.toHaveBeenCalled();
   });
 });

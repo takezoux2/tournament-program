@@ -93,6 +93,7 @@ describe("toAuthError", () => {
     ["INVALID_PASSWORD", "InvalidPassword"],
     ["PASSWORD_ALREADY_SET", "PasswordAlreadySet"],
     ["SESSION_NOT_FRESH", "SessionNotFresh"],
+    ["UNAUTHORIZED", "SessionExpired"],
     ["FAILED_TO_UNLINK_LAST_ACCOUNT", "LastAccountUnlinkForbidden"],
     ["ACCOUNT_NOT_FOUND", "AccountNotFound"],
   ])("%s を %s に写像する", (code, tag) => {

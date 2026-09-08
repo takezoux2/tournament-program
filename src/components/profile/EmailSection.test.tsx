@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 import type { ProfileFormAction } from "@/features/user/state";
 import { EmailSection } from "./EmailSection";
@@ -45,5 +46,47 @@ describe("EmailSection", () => {
     expect(
       screen.getByRole("button", { name: "確認メールを送信" }),
     ).toBeInTheDocument();
+  });
+
+  it("エラーは alert として出る", async () => {
+    const user = userEvent.setup();
+    const errorAction: ProfileFormAction = async () => ({
+      error: "テスト用のエラー",
+      notice: null,
+    });
+    render(
+      <EmailSection currentEmail="old@example.test" action={errorAction} />,
+    );
+
+    await user.type(
+      screen.getByLabelText("新しいメールアドレス"),
+      "new@example.test",
+    );
+    await user.click(screen.getByRole("button", { name: "確認メールを送信" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "テスト用のエラー",
+    );
+  });
+
+  it("通知は status として出る", async () => {
+    const user = userEvent.setup();
+    const noticeAction: ProfileFormAction = async () => ({
+      error: null,
+      notice: "テスト用の通知",
+    });
+    render(
+      <EmailSection currentEmail="old@example.test" action={noticeAction} />,
+    );
+
+    await user.type(
+      screen.getByLabelText("新しいメールアドレス"),
+      "new@example.test",
+    );
+    await user.click(screen.getByRole("button", { name: "確認メールを送信" }));
+
+    expect(await screen.findByRole("status")).toHaveTextContent(
+      "テスト用の通知",
+    );
   });
 });

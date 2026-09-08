@@ -6,6 +6,7 @@ import {
   InvalidPassword,
   LastAccountUnlinkForbidden,
   PasswordAlreadySet,
+  SessionExpired,
   SessionNotFresh,
   UnexpectedAuthError,
   WeakPassword,
@@ -34,6 +35,14 @@ describe("profileErrorMessage", () => {
       profileErrorMessage(new SessionNotFresh({ code: "SESSION_NOT_FRESH" })),
     ).toBe(
       "セキュリティのため、この操作にはログインし直しが必要です。一度ログアウトしてから再度お試しください",
+    );
+  });
+
+  it("セッション切れは、再試行ではなく再ログインを促す", () => {
+    expect(
+      profileErrorMessage(new SessionExpired({ code: "UNAUTHORIZED" })),
+    ).toBe(
+      "ログインの有効期限が切れています。ログインし直してからもう一度お試しください",
     );
   });
 
