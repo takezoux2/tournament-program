@@ -237,9 +237,9 @@ UI は既存の `*.test.tsx` と同じく Testing Library で:
 
 `/reset-password?token=<token>` は better-auth のリダイレクト先そのものであり、
 有効なリセットトークンをクエリに載せたページである。GA4 の計測はこの URL を
-そのまま送らない。`docs/superpowers/specs/2026-09-08-ga4-design.md`「追記」の
-とおり `sanitizePagePath` がクエリを落として送るため、トークンは Google 側に
-保存されない。
+そのまま送らない。`docs/superpowers/specs/2026-09-08-ga4-design.md`
+「GA へ送る URL のサニタイズ」のとおり `sanitizePagePath` がクエリを落として
+送るため、トークンは Google 側に保存されない。
 
 ## 手動確認
 
