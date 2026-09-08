@@ -65,6 +65,12 @@ export const profileErrorMessage: (error: AuthError) => string =
     ),
     Match.tag("AccountNotFound", () => "その連携は見つかりませんでした"),
     Match.tag(
+      "InvalidResetToken",
+      // このタグはパスワードリセット画面の経路でのみ発生し、
+      // プロフィール画面では到達しない。網羅のための無難な文言。
+      () => "リンクが無効か期限切れです。お手数ですが再度お申し込みください",
+    ),
+    Match.tag(
       "UnexpectedAuthError",
       () => "処理に失敗しました。時間をおいて再度お試しください",
     ),

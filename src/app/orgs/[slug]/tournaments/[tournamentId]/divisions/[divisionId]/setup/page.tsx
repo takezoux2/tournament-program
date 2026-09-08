@@ -5,6 +5,7 @@ import { addEntryAction } from "@/features/division/add-entry/handler";
 import { generateMatchingAction } from "@/features/division/generate-matching/handler";
 import { removeEntryAction } from "@/features/division/remove-entry/handler";
 import { reorderEntryAction } from "@/features/division/reorder-entry/handler";
+import { reorderMatchesAction } from "@/features/division/reorder-matches/handler";
 import {
   findDivisionInTournament,
   listParticipantsInTournament,
@@ -75,6 +76,7 @@ export default async function DivisionSetupPage({
             reorderEntry: reorderEntryAction,
             generateMatching: generateMatchingAction,
             swapSlots: swapSlotsAction,
+            reorderMatches: reorderMatchesAction,
             setMatchNumber: setMatchNumberAction,
             setPlayerNumber: setPlayerNumberAction,
           }}

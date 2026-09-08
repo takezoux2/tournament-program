@@ -4,6 +4,7 @@ import {
   type AuthError,
   InvalidCredentials,
   InvalidPassword,
+  InvalidResetToken,
   LastAccountUnlinkForbidden,
   PasswordAlreadySet,
   SessionExpired,
@@ -70,6 +71,12 @@ describe("profileErrorMessage", () => {
     expect(
       profileErrorMessage(new AccountNotFound({ code: "ACCOUNT_NOT_FOUND" })),
     ).toBe("その連携は見つかりませんでした");
+  });
+
+  it("リセットトークンが無効な場合の文言がある(このタグはリセット画面の経路でのみ発生する)", () => {
+    expect(
+      profileErrorMessage(new InvalidResetToken({ code: "INVALID_TOKEN" })),
+    ).toBe("リンクが無効か期限切れです。お手数ですが再度お申し込みください");
   });
 
   it("パスワードの長さ違反の文言がある", () => {

@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { SessionNotFresh, toAuthError } from "@/shared/errors/auth-error";
+import {
+  InvalidResetToken,
+  SessionNotFresh,
+  toAuthError,
+} from "@/shared/errors/auth-error";
 import { authErrorMessage } from "./messages";
 
 describe("authErrorMessage", () => {
@@ -56,5 +60,16 @@ describe("authErrorMessage", () => {
     expect(
       authErrorMessage(new SessionNotFresh({ code: "SESSION_NOT_FRESH" })),
     ).toBe("セキュリティのため、再度ログインしてからお試しください");
+  });
+
+  it("InvalidResetToken には再申請を促す文言を返す", () => {
+    const message = authErrorMessage(
+      new InvalidResetToken({ code: "INVALID_TOKEN" }),
+    );
+    // password-reset/domain.ts の resetTokenState と文言を 1 つに揃えて
+    // いるため、他のケースと同じく完全一致で固定する。
+    expect(message).toBe(
+      "リンクが無効か期限切れです。お手数ですが再度お申し込みください",
+    );
   });
 });

@@ -1,4 +1,5 @@
-import { escapeHtml, greetingName } from "@/shared/lib/mail/html";
+import { escapeHtml } from "@/shared/lib/html-escape";
+import { greetingNameOf } from "@/shared/lib/mail/greeting";
 import type { MailAddress, MailMessage } from "@/shared/lib/mail/types";
 
 export const DELETE_ACCOUNT_EMAIL_SUBJECT = "【大会運営】アカウント削除の確認";
@@ -19,7 +20,7 @@ export const buildDeleteAccountEmail = ({
   to: MailAddress;
   url: string;
 }): MailMessage => {
-  const greeting = greetingName(to);
+  const greeting = greetingNameOf(to);
 
   const text = [
     `${greeting} 様`,

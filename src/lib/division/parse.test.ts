@@ -144,6 +144,7 @@ describe("parseMatchingConfig", () => {
           bracket: "winners",
           round: 1,
           order: 0,
+          sequence: 0,
           matchNumber: "1",
           slots: [{ kind: "entry", entryId: "e1" }, { kind: "bye" }],
         },
@@ -152,6 +153,7 @@ describe("parseMatchingConfig", () => {
           bracket: "losers",
           round: 2,
           order: 0,
+          sequence: 1,
           matchNumber: "2",
           slots: [
             { kind: "winnerOf", matchId: "m1" },
@@ -216,6 +218,99 @@ describe("parseMatchingConfig", () => {
         ],
       }),
     ).toThrow(DivisionJsonError);
+  });
+
+  it("sequence の無い旧データには round/order 順で 0 からの連番を振る", () => {
+    const match = (id: string, round: number, order: number) => ({
+      id,
+      bracket: "winners",
+      round,
+      order,
+      matchNumber: id,
+      slots: [{ kind: "bye" }, { kind: "bye" }],
+    });
+    const config = parseMatchingConfig({
+      version: 1,
+      // 配列順を round 順と逆に置き、並べ替えたうえで振ることを確かめる
+      matches: [match("m2-0", 2, 0), match("m1-0", 1, 0), match("m1-1", 1, 1)],
+    });
+
+    // 返す配列自体が実施順になっている（下流は配列順をそのまま読む）
+    expect(config.matches.map((match) => match.id)).toEqual([
+      "m1-0",
+      "m1-1",
+      "m2-0",
+    ]);
+    expect(config.matches.map((match) => match.sequence)).toEqual([0, 1, 2]);
+  });
+
+  it("sequence があればその昇順に並べ、0 からの連番に詰め直す", () => {
+    const match = (id: string, order: number, sequence: number) => ({
+      id,
+      bracket: "winners",
+      round: 1,
+      order,
+      sequence,
+      matchNumber: id,
+      slots: [{ kind: "bye" }, { kind: "bye" }],
+    });
+    const config = parseMatchingConfig({
+      version: 1,
+      // 3 番目の試合を先頭へ動かしたあとの並び。値も 0 始まりでない。
+      matches: [match("a", 0, 5), match("b", 1, 9), match("c", 2, 1)],
+    });
+
+    expect(config.matches.map((match) => match.id)).toEqual(["c", "a", "b"]);
+    expect(config.matches.map((match) => match.sequence)).toEqual([0, 1, 2]);
+  });
+
+  it("sequence が一部にしか無ければ全件を round/order 順で振り直す", () => {
+    // 途中まで書き込まれた壊れたデータ。中途半端な値を信じると並びが
+    // 飛び飛びになるので、揃っていないときは既定の順に戻す。
+    const config = parseMatchingConfig({
+      version: 1,
+      matches: [
+        {
+          id: "m1-1",
+          bracket: "winners",
+          round: 1,
+          order: 1,
+          sequence: 0,
+          matchNumber: "2",
+          slots: [{ kind: "bye" }, { kind: "bye" }],
+        },
+        {
+          id: "m1-0",
+          bracket: "winners",
+          round: 1,
+          order: 0,
+          matchNumber: "1",
+          slots: [{ kind: "bye" }, { kind: "bye" }],
+        },
+      ],
+    });
+
+    expect(config.matches.map((match) => match.id)).toEqual(["m1-0", "m1-1"]);
+    expect(config.matches.map((match) => match.sequence)).toEqual([0, 1]);
+  });
+
+  it("sequence が整数以外なら DivisionJsonError", () => {
+    expect(() =>
+      parseMatchingConfig({
+        version: 1,
+        matches: [
+          {
+            id: "m1-0",
+            bracket: "winners",
+            round: 1,
+            order: 0,
+            sequence: "1",
+            matchNumber: "1",
+            slots: [{ kind: "bye" }, { kind: "bye" }],
+          },
+        ],
+      }),
+    ).toThrow(/matchingConfig\.matches\[0\]\.sequence/);
   });
 });
 

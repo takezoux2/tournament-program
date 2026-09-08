@@ -1,13 +1,11 @@
 import { DIVISION_FORMAT_LABELS } from "@/features/division/format";
+import { toMatchOrderView } from "@/features/division/match-number-view";
 import type {
   DivisionDetail,
   DivisionParticipant,
 } from "@/features/division/repository";
 import { isSingleEliminationShape } from "@/features/division/single-elimination/build";
-import {
-  toMatchNumberView,
-  toSetupView,
-} from "@/features/division/single-elimination/view";
+import { toSetupView } from "@/features/division/single-elimination/view";
 import type { DivisionFormAction } from "@/features/division/state";
 import type { MemberSummary } from "@/features/organization/repository";
 import {
@@ -20,7 +18,7 @@ import { DivisionBracket } from "./DivisionBracket";
 import { EntryList } from "./EntryList";
 import { GenerateMatchingForm } from "./GenerateMatchingForm";
 import { MatchingSection } from "./MatchingSection";
-import { MatchNumberList } from "./MatchNumberList";
+import { MatchOrderList } from "./MatchOrderList";
 import { Notice } from "./Notice";
 
 export type DivisionSetupActions = {
@@ -29,6 +27,7 @@ export type DivisionSetupActions = {
   reorderEntry: DivisionFormAction;
   generateMatching: DivisionFormAction;
   swapSlots: DivisionFormAction;
+  reorderMatches: DivisionFormAction;
   setMatchNumber: DivisionFormAction;
   setPlayerNumber: DivisionFormAction;
 };
@@ -157,21 +156,24 @@ export function DivisionSetup({
       </section>
 
       <section className="space-y-3">
-        <h2 className="text-sm font-bold text-slate-700">試合番号</h2>
-        {/* 番号の変更は構造を変えないため、locked でも編集できる */}
+        <h2 className="text-sm font-bold text-slate-700">試合の実施順</h2>
+        {/* 実施順と番号の変更は構造を変えないため、locked でも編集できる */}
         {mismatched ? (
-          <Notice>組み合わせを作り直すと、ここに試合番号が出ます</Notice>
+          <Notice>組み合わせを作り直すと、ここに試合の実施順が出ます</Notice>
         ) : (
-          <MatchNumberList
-            rows={toMatchNumberView(
+          <MatchOrderList
+            rows={toMatchOrderView(
               parsed.matchingConfig,
               parsed.entries,
               participants,
+              division.format,
             )}
             slug={slug}
             tournamentId={tournamentId}
             divisionId={division.id}
-            action={actions.setMatchNumber}
+            reorderAction={actions.reorderMatches}
+            setMatchNumberAction={actions.setMatchNumber}
+            emptyMessage="まだ組み合わせがありません"
           />
         )}
       </section>

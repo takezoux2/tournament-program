@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { resolveDragReorder } from "./schedule-drag";
+import { resolveDragReorder } from "./reorder";
 
 const keys = ["a", "b", "c", "d"];
 

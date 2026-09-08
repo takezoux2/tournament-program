@@ -4,11 +4,13 @@ import { auth } from "@/shared/lib/auth";
 import { getBypassSession } from "@/shared/lib/auth-bypass-session";
 
 /**
- * 認証の実際のセキュリティ境界。保護したい Server Component / Server Action の
- * 冒頭で必ず呼ぶ。proxy.ts の Cookie チェックは体感速度のための最適化であって
- * 署名検証をしていないため、境界として当てにしてはならない。
+ * ログインしていればセッションを、していなければ null を返す。
+ * 公開ページ（/t/**）のように「ログイン不要だが、ログインしていれば
+ * 見えるものが増える」画面で閲覧者を知るために使う。
+ * リダイレクトしないので、これ自体はセキュリティ境界ではない。
+ * 境界が要る画面では requireSession() を使うこと。
  */
-export const requireSession = async () => {
+export const getOptionalSession = async () => {
   // 開発用バイパス（BYPASS_AUTH=1）。有効なときだけ非 null が返るため、
   // 未設定の通常運用では以降の処理はこれまでと完全に同じ。
   const bypassSession = await getBypassSession();
@@ -16,7 +18,16 @@ export const requireSession = async () => {
     return bypassSession;
   }
 
-  const session = await auth.api.getSession({ headers: await headers() });
+  return await auth.api.getSession({ headers: await headers() });
+};
+
+/**
+ * 認証の実際のセキュリティ境界。保護したい Server Component / Server Action の
+ * 冒頭で必ず呼ぶ。proxy.ts の Cookie チェックは体感速度のための最適化であって
+ * 署名検証をしていないため、境界として当てにしてはならない。
+ */
+export const requireSession = async () => {
+  const session = await getOptionalSession();
   if (!session) {
     redirect("/login");
   }

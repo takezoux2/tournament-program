@@ -71,6 +71,17 @@ export class AccountNotFound extends Data.TaggedError("AccountNotFound")<{
   readonly code: string;
 }> {}
 
+/**
+ * パスワードリセットのトークンが無効・期限切れ・使用済みのときに返る。
+ *
+ * Better Auth の INVALID_TOKEN は汎用のコードだが、この repo で
+ * クライアントからこのコードを受け取りうる経路は今のところリセットだけ。
+ * 確認メールの失敗は callbackURL の ?error= で返るため、この写像は通らない。
+ */
+export class InvalidResetToken extends Data.TaggedError("InvalidResetToken")<{
+  readonly code: string;
+}> {}
+
 export class UnexpectedAuthError extends Data.TaggedError(
   "UnexpectedAuthError",
 )<{
@@ -92,6 +103,7 @@ export type AuthError =
   | SessionExpired
   | LastAccountUnlinkForbidden
   | AccountNotFound
+  | InvalidResetToken
   | UnexpectedAuthError;
 
 /**
@@ -148,6 +160,10 @@ export const toAuthError = (
       return new LastAccountUnlinkForbidden({ code });
     case "ACCOUNT_NOT_FOUND":
       return new AccountNotFound({ code });
+    // reset-password のトークンが無効・期限切れ・使用済みのとき。
+    // Better Auth はこの 3 つを区別せずに返す（api/routes/password.mjs）。
+    case "INVALID_TOKEN":
+      return new InvalidResetToken({ code });
     default:
       return new UnexpectedAuthError({
         code: code ?? "UNKNOWN",

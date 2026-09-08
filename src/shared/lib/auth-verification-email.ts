@@ -1,6 +1,7 @@
 import type { MailAddress, MailMessage } from "@/shared/lib/mail/types";
 import { VERIFICATION_LINK_EXPIRES_LABEL } from "./email-verification-policy";
-import { escapeHtml, greetingName } from "./mail/html";
+import { escapeHtml } from "./html-escape";
+import { greetingNameOf } from "./mail/greeting";
 
 export const VERIFICATION_EMAIL_SUBJECT = "【大会運営】メールアドレスの確認";
 
@@ -20,10 +21,10 @@ export const buildVerificationEmail = ({
   to: MailAddress;
   url: string;
 }): MailMessage => {
-  const greeting = greetingName(to);
+  const greetingName = greetingNameOf(to);
 
   const text = [
-    `${greeting} 様`,
+    `${greetingName} 様`,
     "",
     "ご登録ありがとうございます。現在は仮登録の状態です。",
     "次のリンクを開くと登録が完了します。",
@@ -39,7 +40,7 @@ export const buildVerificationEmail = ({
   const safeUrl = escapeHtml(url);
   const html = [
     '<html><head><meta charset="utf-8"></head><body>',
-    `<p>${escapeHtml(greeting)} 様</p>`,
+    `<p>${escapeHtml(greetingName)} 様</p>`,
     "<p>ご登録ありがとうございます。現在は仮登録の状態です。<br>次のリンクを開くと登録が完了します。</p>",
     `<p><a href="${safeUrl}">${safeUrl}</a></p>`,
     `<p>このリンクは${VERIFICATION_LINK_EXPIRES_LABEL}で無効になります。<br>期限が切れた場合は、ログインを試すと確認メールを送り直します。</p>`,

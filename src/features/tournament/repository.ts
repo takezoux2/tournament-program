@@ -49,6 +49,11 @@ export const findTournamentInOrganization = (
 export type PublicTournament = TournamentDetail & {
   organizationId: string;
   organizationName: string;
+  /**
+   * 公開状態ではなく、閲覧者が組織メンバーであることでゲートを通ったか。
+   * 公開可否の判断ではなく、準備中バナーを出すかどうかの表示用フラグ。
+   */
+  isPreview: boolean;
 };
 
 /**
@@ -60,12 +65,33 @@ export type PublicTournament = TournamentDetail & {
  * 新しい状態が世界に公開されてしまわないようにするため。
  * 組織スコープの findTournamentInOrganization とは別関数にしてあり、
  * 公開の判断がこの 1 箇所に閉じている。
+ *
+ * viewerUserId は、その大会の組織メンバーに限って準備中（DRAFT）の
+ * 大会もプレビューさせるための閲覧者。メンバー判定もリレーションで
+ * where に書くため、クエリは 1 本のままで公開の判断はここに閉じたままになる。
+ * デフォルト値を付けず必須引数にしてあるのは、呼び出し側で渡し忘れると
+ * 型エラーになるようにするため。既定値を与えると、渡し忘れた画面だけ
+ * プレビューが黙って効かなくなり、原因が分かりにくい。
+ * viewerUserId には必ずセッション由来の値（getOptionalSession() の
+ * user.id）だけを渡すこと。URL やクエリ文字列から来た値を渡すと、
+ * 閲覧者を名乗るだけで他組織の準備中の大会が見えてしまう。
  */
 export const findPublicTournament = async (
   tournamentId: string,
+  viewerUserId: string | null,
 ): Promise<PublicTournament | null> => {
   const row = await prisma.tournament.findFirst({
-    where: { id: tournamentId, status: { in: PUBLIC_TOURNAMENT_STATUSES } },
+    where: {
+      id: tournamentId,
+      OR: [
+        { status: { in: PUBLIC_TOURNAMENT_STATUSES } },
+        // 未ログインのときは項自体を組み立てない。空配列の展開なので
+        // where の形は従来と同じ（許可されるのは公開状態だけ）になる。
+        ...(viewerUserId === null
+          ? []
+          : [{ organization: { users: { some: { userId: viewerUserId } } } }]),
+      ],
+    },
     select: {
       id: true,
       name: true,
@@ -84,5 +110,9 @@ export const findPublicTournament = async (
   // organization.name はここで平す。ネストしたまま運ぶと、
   // 画面側が Prisma の select の形を知ることになる。
   const { organization, ...rest } = row;
-  return { ...rest, organizationName: organization.name };
+  return {
+    ...rest,
+    organizationName: organization.name,
+    isPreview: !PUBLIC_TOURNAMENT_STATUSES.includes(row.status),
+  };
 };

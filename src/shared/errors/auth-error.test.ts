@@ -105,4 +105,10 @@ describe("toAuthError", () => {
       code: "SESSION_NOT_FRESH",
     });
   });
+
+  it("INVALID_TOKEN を InvalidResetToken に写す", () => {
+    const error = toAuthError("INVALID_TOKEN", undefined);
+    expect(error._tag).toBe("InvalidResetToken");
+    expect(error).toMatchObject({ code: "INVALID_TOKEN" });
+  });
 });

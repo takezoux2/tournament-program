@@ -11,6 +11,7 @@ import {
   buildEmailChangeVerificationEmail,
   isEmailChangeVerification,
 } from "@/shared/lib/auth-email-change-email";
+import { buildPasswordResetEmail } from "@/shared/lib/auth-password-reset-email";
 import { authUserConfig } from "@/shared/lib/auth-user-config";
 import { usernamePlugin } from "@/shared/lib/auth-username-plugin";
 import { buildVerificationEmail } from "@/shared/lib/auth-verification-email";
@@ -20,6 +21,7 @@ import {
   MAX_PASSWORD_LENGTH,
   MIN_PASSWORD_LENGTH,
 } from "@/shared/lib/password-policy";
+import { PASSWORD_RESET_LINK_EXPIRES_IN_SECONDS } from "@/shared/lib/password-reset-policy";
 import { usernameBaseFromEmail } from "@/shared/lib/username";
 import { findAvailableUsername } from "@/shared/lib/username-availability";
 
@@ -40,6 +42,33 @@ export const auth = betterAuth({
     requireEmailVerification: true,
     minPasswordLength: MIN_PASSWORD_LENGTH,
     maxPasswordLength: MAX_PASSWORD_LENGTH,
+    // Better Auth は sendResetPassword が無いと /request-password-reset を
+    // RESET_PASSWORD_DISABLED で拒否する（api/routes/password.mjs）。
+    sendResetPassword: async ({ user, url }) => {
+      await getMailer().send(
+        buildPasswordResetEmail({
+          from: resolveMailFrom(process.env),
+          to: { email: user.email, name: user.name },
+          url,
+        }),
+      );
+    },
+    resetPasswordTokenExpiresIn: PASSWORD_RESET_LINK_EXPIRES_IN_SECONDS,
+    // パスワードリセットは乗っ取りからの復帰手段でもあるため、他端末の
+    // セッションを残さない。既定は false。
+    revokeSessionsOnPasswordReset: true,
+    // リセットリンクを開けたこと自体がメール所有の証明なので、未確認のまま
+    // 残っていたアカウントをここで本登録に引き上げる。これをしないと
+    // requireEmailVerification によりリセット直後のログインが
+    // EMAIL_NOT_VERIFIED で弾かれ、確認メールをもう 1 通踏ませることになる。
+    // Better Auth はこのフックを deleteUserSessions より先に呼ぶため、
+    // 更新はセッション失効の前に走る。
+    onPasswordReset: async ({ user }) => {
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { emailVerified: true },
+      });
+    },
   },
   emailVerification: {
     expiresIn: VERIFICATION_LINK_EXPIRES_IN_SECONDS,

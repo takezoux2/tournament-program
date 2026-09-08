@@ -20,7 +20,7 @@ export type ScheduleDivision = {
   name: string;
   /** 大会内での表示順。行の無い試合を末尾へ足すときの並び順に使う。 */
   order: number;
-  /** 試合の位置の文言（回戦か節か）を決めるのに使う。 */
+  /** 試合の位置の文言（回戦か通し番号か）を決めるのに使う。 */
   format: DivisionFormat;
   entries: DivisionEntries;
   matchingConfig: MatchingConfig;

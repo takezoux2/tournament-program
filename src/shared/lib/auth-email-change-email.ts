@@ -1,4 +1,5 @@
-import { escapeHtml, greetingName } from "@/shared/lib/mail/html";
+import { escapeHtml } from "@/shared/lib/html-escape";
+import { greetingNameOf } from "@/shared/lib/mail/greeting";
 import type { MailAddress, MailMessage } from "@/shared/lib/mail/types";
 import { VERIFICATION_LINK_EXPIRES_LABEL } from "./email-verification-policy";
 
@@ -60,7 +61,7 @@ export const buildEmailChangeVerificationEmail = ({
   to: MailAddress;
   url: string;
 }): MailMessage => {
-  const greeting = greetingName(to);
+  const greeting = greetingNameOf(to);
 
   const text = [
     `${greeting} 様`,
@@ -113,7 +114,7 @@ export const buildEmailChangeNoticeEmail = ({
   to: MailAddress;
   newEmail: string;
 }): MailMessage => {
-  const greeting = greetingName(to);
+  const greeting = greetingNameOf(to);
 
   const text = [
     `${greeting} 様`,

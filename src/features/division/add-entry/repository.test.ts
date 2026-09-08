@@ -350,7 +350,7 @@ describe("addEntryInDb", () => {
     );
 
     const written = divisionUpdateMany.mock.calls[0][0].data.matchingConfig;
-    // 3 人の総当たりは 3 節 3 試合。
+    // 3 人の総当たりは 3 試合。
     expect(written.matches).toHaveLength(3);
     // 手で振った試合番号が消えたことを画面へ伝えるためのフラグ。
     expect(result).toEqual({ found: true, value: { regenerated: true } });

@@ -11,22 +11,31 @@ const match = (
   id: string,
   round: number,
   order: number,
+  sequence: number,
   matchNumber: string,
   slots: BracketMatch["slots"],
-): BracketMatch => ({ id, bracket: "winners", round, order, matchNumber, slots });
+): BracketMatch => ({
+  id,
+  bracket: "winners",
+  round,
+  order,
+  sequence,
+  matchNumber,
+  slots,
+});
 
 const matchingConfig: MatchingConfig = {
   version: 1,
   matches: [
-    match("m1-0", 1, 0, "1", [
+    match("m1-0", 1, 0, 0, "1", [
       { kind: "entry", entryId: "e1" },
       { kind: "entry", entryId: "e2" },
     ]),
-    match("m1-1", 1, 1, "2", [
+    match("m1-1", 1, 1, 1, "2", [
       { kind: "entry", entryId: "e3" },
       { kind: "bye" },
     ]),
-    match("m2-0", 2, 0, "3", [
+    match("m2-0", 2, 0, 2, "3", [
       { kind: "winnerOf", matchId: "m1-0" },
       { kind: "winnerOf", matchId: "m1-1" },
     ]),

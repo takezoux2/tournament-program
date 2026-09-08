@@ -29,10 +29,18 @@ export type BracketMatch = {
   /** 部門内で一意 */
   id: string;
   bracket: BracketSide;
-  /** 1 = 1 回戦。ROUND_ROBIN では節番号 */
+  /** 1 = 1 回戦。ROUND_ROBIN は節を持たないので常に 1 */
   round: number;
   /** ラウンド内の上からの位置。0 始まり */
   order: number;
+  /**
+   * 部門内での実施順。0 始まりの連番。並べ替えで変わる。
+   *
+   * round/order は「ブラケット上のどこにある試合か」を表し、描画座標に
+   * そのまま使われる（features/bracket/layout-bracket.ts）。実施順として
+   * 動かすと対戦表の形が崩れるため、「何番目にやるか」は別の項に持つ。
+   */
+  sequence: number;
   /** 表示用の試合番号。部門内で一意。デフォルトは round/order 順の連番 */
   matchNumber: string;
   slots: [SlotSource, SlotSource];

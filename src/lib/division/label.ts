@@ -60,7 +60,7 @@ export const matchCardLabel = (
 
 /**
  * 「1回戦 第1試合」のような構造上の位置。
- * リーグの round は節番号なので、形式によって数え方の言葉を変える。
+ * リーグには節も回戦も無いので、実施順の通し番号だけで表す。
  * 形式を引数に取るのは、この関数が大会の進行順（複数の部門が混ざる）でも
  * 使われるため。呼び出し側がその試合の部門の形式を知っている。
  */
@@ -69,5 +69,5 @@ export const matchPositionLabel = (
   format: DivisionFormat,
 ): string =>
   format === "ROUND_ROBIN"
-    ? `第${match.round}節 第${match.order + 1}試合`
+    ? `第${match.sequence + 1}試合`
     : `${match.round}回戦 第${match.order + 1}試合`;

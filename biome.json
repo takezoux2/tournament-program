@@ -173,8 +173,11 @@
                       "@/features/auth/signup",
                       "@/features/auth/logout/**",
                       "@/features/auth/logout",
+                      "@/features/auth/password-reset/**",
+                      "@/features/auth/password-reset",
                       "**/signup/**",
-                      "**/logout/**"
+                      "**/logout/**",
+                      "**/password-reset/**"
                     ],
                     "message": "同列のスライスには依存できません。共有するものは features/auth 直下か src/shared へ。"
                   }
@@ -218,8 +221,11 @@
                       "@/features/auth/login",
                       "@/features/auth/logout/**",
                       "@/features/auth/logout",
+                      "@/features/auth/password-reset/**",
+                      "@/features/auth/password-reset",
                       "**/login/**",
-                      "**/logout/**"
+                      "**/logout/**",
+                      "**/password-reset/**"
                     ],
                     "message": "同列のスライスには依存できません。共有するものは features/auth 直下か src/shared へ。"
                   }
