@@ -3,6 +3,7 @@
 import { usePathname } from "next/navigation";
 import Script from "next/script";
 import { useEffect, useRef } from "react";
+import { gaMeasurementId } from "@/shared/lib/analytics/ga-id";
 import { sendGtagEvent, setGtagPageContext } from "@/shared/lib/analytics/gtag";
 
 /**
@@ -23,8 +24,13 @@ import { sendGtagEvent, setGtagPageContext } from "@/shared/lib/analytics/gtag";
  * スクリプトを描かないのは、beforeInteractive が 404 などシェルの
  * 差し替わるページで出力されず、window.gtag 未定義で落ちるため。
  */
-export function GoogleAnalytics({ gaId }: { gaId: string }) {
+export function GoogleAnalytics() {
   const pathname = usePathname();
+  // 測定 ID はここでも自分で読む。レイアウトから prop で受け取ると、
+  // スクリプトを読み込むかどうか（サーバー側の値）と、イベントを送るか
+  // どうか（sendGtagEvent がクライアント側で読む値）が別々の判断になり、
+  // 食い違うと gtag.js だけ読み込んで何も送らない状態になりうる。
+  const gaId = gaMeasurementId();
 
   // 直前に送ったパス。StrictMode は開発時に effect を
   // setup → cleanup → setup と 2 回走らせるため、素直に書くと同じ
@@ -42,6 +48,8 @@ export function GoogleAnalytics({ gaId }: { gaId: string }) {
     setGtagPageContext();
     sendGtagEvent("page_view");
   }, [pathname]);
+
+  if (gaId === null) return null;
 
   return (
     <Script

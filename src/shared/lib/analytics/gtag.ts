@@ -1,5 +1,6 @@
 "use client";
 
+import type { AnalyticsEvent } from "./events";
 import { gaMeasurementId } from "./ga-id";
 import { sanitizedPageLocation, sanitizePagePath } from "./sanitize-url";
 
@@ -82,9 +83,14 @@ export const setGtagPageContext = (): void => {
   push("set", defaultParams());
 };
 
-/** 測定 ID が無ければ何もしない。dataLayer にも触らない。 */
+/**
+ * 測定 ID が無ければ何もしない。dataLayer にも触らない。
+ *
+ * name を AnalyticsEvent に縛るのは、GA4 が未知のイベント名も黙って
+ * 受け付けてしまい、タイポに送信後は気づけないため。
+ */
 export const sendGtagEvent = (
-  name: string,
+  name: AnalyticsEvent,
   params: Record<string, unknown> = {},
 ): void => {
   const gaId = gaMeasurementId();

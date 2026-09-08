@@ -55,7 +55,7 @@ describe("GoogleAnalytics", () => {
   });
 
   it("gtag.js を測定 ID 付きで読み込む", () => {
-    const { container } = render(<GoogleAnalytics gaId="G-ABC123XYZ" />);
+    const { container } = render(<GoogleAnalytics />);
 
     expect(container.querySelector("#ga-src")?.getAttribute("src")).toBe(
       "https://www.googletagmanager.com/gtag/js?id=G-ABC123XYZ",
@@ -65,7 +65,7 @@ describe("GoogleAnalytics", () => {
   it("config は send_page_view: false で積まれる", () => {
     // 既定の config は page_location（クエリ込みの生 URL）で page_view を
     // 即送ってしまう。自前で送るために必ず切っておく。
-    render(<GoogleAnalytics gaId="G-ABC123XYZ" />);
+    render(<GoogleAnalytics />);
 
     expect(queued()).toContainEqual([
       "config",
@@ -75,7 +75,7 @@ describe("GoogleAnalytics", () => {
   });
 
   it("初回描画で page_view を 1 回だけ、サニタイズ済みの page_location で送る", () => {
-    render(<GoogleAnalytics gaId="G-ABC123XYZ" />);
+    render(<GoogleAnalytics />);
 
     expect(pageViews()).toEqual([
       expect.objectContaining({
@@ -85,10 +85,10 @@ describe("GoogleAnalytics", () => {
   });
 
   it("パスが変わって再描画されると、新しいパスでもう 1 回送る", () => {
-    const { rerender } = render(<GoogleAnalytics gaId="G-ABC123XYZ" />);
+    const { rerender } = render(<GoogleAnalytics />);
 
     goTo("/orgs/other");
-    rerender(<GoogleAnalytics gaId="G-ABC123XYZ" />);
+    rerender(<GoogleAnalytics />);
 
     expect(pageViews()).toEqual([
       expect.objectContaining({
@@ -107,7 +107,7 @@ describe("GoogleAnalytics", () => {
     document.title = "全日本選手権 | 東京テニスクラブ";
     goTo("/t/3f2504e0-4f89-11d3-9a0c-0305e82c3301");
 
-    render(<GoogleAnalytics gaId="G-ABC123XYZ" />);
+    render(<GoogleAnalytics />);
 
     expect(pageViews()[0].page_title).toBe("/t/:id");
   });
@@ -117,7 +117,7 @@ describe("GoogleAnalytics", () => {
     // Google に保存されるのを防ぐ。ここが本機能の主目的。
     goTo("/reset-password");
 
-    render(<GoogleAnalytics gaId="G-ABC123XYZ" />);
+    render(<GoogleAnalytics />);
 
     expect(pageViews()[0].page_location).toBe(
       `${window.location.origin}/reset-password`,
@@ -127,7 +127,7 @@ describe("GoogleAnalytics", () => {
   it("ID を含むパスでは生の ID が page_location に現れない", () => {
     goTo("/orgs/tennis/tournaments/3f2504e0-4f89-11d3-9a0c-0305e82c3301");
 
-    render(<GoogleAnalytics gaId="G-ABC123XYZ" />);
+    render(<GoogleAnalytics />);
 
     const sent = pageViews()[0].page_location as string;
 
@@ -141,18 +141,21 @@ describe("GoogleAnalytics", () => {
     // 測定 ID を向ける使い方を想定しているので、そこで数字が倍にならないこと。
     render(
       <StrictMode>
-        <GoogleAnalytics gaId="G-ABC123XYZ" />
+        <GoogleAnalytics />
       </StrictMode>,
     );
 
     expect(pageViews()).toHaveLength(1);
   });
 
-  it("測定 ID が無ければ dataLayer に一切触らない", () => {
+  it("測定 ID が無ければ dataLayer に一切触らず、スクリプトも出さない", () => {
+    // スクリプトを読むかどうかとイベントを送るかどうかが同じ値を見ている
+    // ことの確認。別々だと gtag.js だけ読み込んで何も送らない状態になる。
     delete process.env.NEXT_PUBLIC_GA_ID;
 
-    render(<GoogleAnalytics gaId="G-ABC123XYZ" />);
+    const { container } = render(<GoogleAnalytics />);
 
     expect(queued()).toEqual([]);
+    expect(container.querySelector("#ga-src")).toBeNull();
   });
 });

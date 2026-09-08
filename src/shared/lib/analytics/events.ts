@@ -12,7 +12,9 @@ export type AnalyticsEvent =
   | "create_organization"
   | "create_tournament"
   | "create_division"
-  | "record_result";
+  | "record_result"
+  /** GA4 の標準イベント。GoogleAnalytics が自前で送る。 */
+  | "page_view";
 
 /**
  * GA4 へカスタムイベントを送る。
