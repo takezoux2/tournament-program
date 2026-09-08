@@ -1,22 +1,4 @@
-import {
-  createSlotLabeler,
-  matchCardLabel,
-  matchPositionLabel,
-} from "@/lib/division/label";
 import type { DivisionEntries, MatchingConfig } from "@/lib/division/types";
-import type { MatchNumberRowView } from "../match-number-view";
-
-/** 1 節ぶんの表示内容。 */
-export type LeagueRoundView = {
-  /** 節番号（1 始まり） */
-  round: number;
-  matches: MatchNumberRowView[];
-  /**
-   * その節に試合が無いエントリーの表示名。偶数人なら常に空。
-   * 休みは matchingConfig に保存しないので、ここで差分から算出する。
-   */
-  restingLabels: string[];
-};
 
 /** エントリーを seed 昇順に並べ、表示名を解決した一覧を返す。 */
 const labeledEntries = (
@@ -34,53 +16,6 @@ const labeledEntries = (
       // なるのは困る。文言は lib/division/label.ts と揃える。
       label: nameById.get(entry.participantId) ?? "（不明な参加者）",
     }));
-};
-
-/**
- * 保存済みの組み合わせを節ごとの一覧に変換する。
- * 節の昇順、節の中は order の昇順。試合番号の編集フォームもこの行を使う。
- */
-export const toRoundView = (
-  config: MatchingConfig,
-  entries: DivisionEntries,
-  participants: { id: string; name: string }[],
-): LeagueRoundView[] => {
-  const labelSlot = createSlotLabeler(config, entries, participants);
-  const all = labeledEntries(entries, participants);
-
-  const byRound = new Map<number, typeof config.matches>();
-  for (const match of config.matches) {
-    byRound.set(match.round, [...(byRound.get(match.round) ?? []), match]);
-  }
-
-  return [...byRound.keys()]
-    .sort((left, right) => left - right)
-    .map((round) => {
-      const matches = [...(byRound.get(round) ?? [])].sort(
-        (left, right) => left.order - right.order,
-      );
-
-      const playing = new Set(
-        matches.flatMap((match) =>
-          match.slots.flatMap((slot) =>
-            slot.kind === "entry" ? [slot.entryId] : [],
-          ),
-        ),
-      );
-
-      return {
-        round,
-        matches: matches.map((match) => ({
-          matchId: match.id,
-          matchNumber: match.matchNumber,
-          label: matchPositionLabel(match, "ROUND_ROBIN"),
-          card: matchCardLabel(match, labelSlot),
-        })),
-        restingLabels: all
-          .filter((entry) => !playing.has(entry.entryId))
-          .map((entry) => entry.label),
-      };
-    });
 };
 
 /** 星取表の 1 マス。 */

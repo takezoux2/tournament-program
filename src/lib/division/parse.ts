@@ -88,9 +88,15 @@ const parseBracketSide = (value: unknown, path: string): BracketSide => {
     : fail(path, "winners / losers / final のいずれか");
 };
 
-/** matchNumber 補完前の 1 試合。旧データには matchNumber が無い。 */
-type ParsedBracketMatch = Omit<BracketMatch, "matchNumber"> & {
+/** matchNumber / sequence 補完前の 1 試合。旧データにはどちらも無い。 */
+type ParsedBracketMatch = Omit<BracketMatch, "matchNumber" | "sequence"> & {
   matchNumber?: string;
+  sequence?: number;
+};
+
+/** matchNumber を補ったあとの 1 試合。sequence はまだ無いことがある。 */
+type NumberedBracketMatch = Omit<BracketMatch, "sequence"> & {
+  sequence?: number;
 };
 
 const parseBracketMatch = (
@@ -115,6 +121,9 @@ const parseBracketMatch = (
   if (record.matchNumber !== undefined) {
     parsed.matchNumber = asString(record.matchNumber, `${path}.matchNumber`);
   }
+  if (record.sequence !== undefined) {
+    parsed.sequence = asInt(record.sequence, `${path}.sequence`);
+  }
   return parsed;
 };
 
@@ -123,7 +132,9 @@ const parseBracketMatch = (
  * round/order 順に、既存の番号と衝突しない最小の正整数を文字列で割り当てる。
  * データ移行を行わない代わりに、読み出しが必ず完全な形へ正規化する。
  */
-const fillMatchNumbers = (matches: ParsedBracketMatch[]): BracketMatch[] => {
+const fillMatchNumbers = (
+  matches: ParsedBracketMatch[],
+): NumberedBracketMatch[] => {
   const used = new Set(
     matches.flatMap((match) =>
       match.matchNumber === undefined ? [] : [match.matchNumber],
@@ -150,8 +161,43 @@ const fillMatchNumbers = (matches: ParsedBracketMatch[]): BracketMatch[] => {
   return matches.map((match) =>
     match.matchNumber === undefined
       ? { ...match, matchNumber: assigned.get(match.id) as string }
-      : (match as BracketMatch),
+      : (match as NumberedBracketMatch),
   );
+};
+
+/**
+ * 実施順を補い、0 からの連番に正規化する。
+ *
+ * 全試合が sequence を持つならその昇順、1 つでも欠けていれば round/order 順に
+ * 並べ、その並びで 0 から振り直す。欠けているのは列を足す前に保存された
+ * 旧データで、round/order 順は運営者が今見ている並びそのものなので、
+ * 補完しても画面の並びは変わらない。
+ *
+ * 揃っていないときに残っている値を使わないのは、途中まで書き込まれた
+ * 壊れたデータで並びが飛び飛びになるのを避けるため。値が揃っていても
+ * 添字で振り直すので、重複や欠番のあるデータもここで詰め直される。
+ * データ移行を行わない代わりに、読み出しが必ず完全な形へ正規化する
+ * （matchNumber の補完と同じ方針）。
+ *
+ * 返す配列の順がそのまま実施順になる。下流は sequence で並べ直さずに
+ * 配列順を読んでよい。
+ */
+const fillSequences = (matches: NumberedBracketMatch[]): BracketMatch[] => {
+  const complete = matches.every((match) => match.sequence !== undefined);
+  const byPosition = (
+    left: NumberedBracketMatch,
+    right: NumberedBracketMatch,
+  ): number => left.round - right.round || left.order - right.order;
+
+  return [...matches]
+    .sort(
+      complete
+        ? (left, right) =>
+            (left.sequence as number) - (right.sequence as number) ||
+            byPosition(left, right)
+        : byPosition,
+    )
+    .map((match, sequence) => ({ ...match, sequence }));
 };
 
 const parseMatchResultRecord = (
@@ -194,9 +240,11 @@ export const parseMatchingConfig = (value: unknown): MatchingConfig => {
   const record = asRecord(value, "matchingConfig");
   return {
     version: asVersion1(record.version, "matchingConfig.version"),
-    matches: fillMatchNumbers(
-      asArray(record.matches, "matchingConfig.matches").map((item, index) =>
-        parseBracketMatch(item, `matchingConfig.matches[${index}]`),
+    matches: fillSequences(
+      fillMatchNumbers(
+        asArray(record.matches, "matchingConfig.matches").map((item, index) =>
+          parseBracketMatch(item, `matchingConfig.matches[${index}]`),
+        ),
       ),
     ),
   };

@@ -7,11 +7,13 @@ const match = (
   round: number,
   order: number,
   slots: BracketMatch["slots"],
+  sequence = 0,
 ): BracketMatch => ({
   id,
   bracket: "winners",
   round,
   order,
+  sequence,
   matchNumber: id,
   slots,
 });
@@ -20,15 +22,33 @@ const match = (
 const config: MatchingConfig = {
   version: 1,
   matches: [
-    match("m1-0", 1, 0, [
-      { kind: "entry", entryId: "e1" },
-      { kind: "entry", entryId: "e2" },
-    ]),
-    match("m1-1", 1, 1, [{ kind: "entry", entryId: "e3" }, { kind: "bye" }]),
-    match("m2-0", 2, 0, [
-      { kind: "winnerOf", matchId: "m1-0" },
-      { kind: "winnerOf", matchId: "m1-1" },
-    ]),
+    match(
+      "m1-0",
+      1,
+      0,
+      [
+        { kind: "entry", entryId: "e1" },
+        { kind: "entry", entryId: "e2" },
+      ],
+      0,
+    ),
+    match(
+      "m1-1",
+      1,
+      1,
+      [{ kind: "entry", entryId: "e3" }, { kind: "bye" }],
+      1,
+    ),
+    match(
+      "m2-0",
+      2,
+      0,
+      [
+        { kind: "winnerOf", matchId: "m1-0" },
+        { kind: "winnerOf", matchId: "m1-1" },
+      ],
+      2,
+    ),
   ],
 };
 
@@ -91,10 +111,16 @@ describe("resolveMatchSlots", () => {
       version: 1,
       matches: [
         config.matches[0],
-        match("mL", 2, 0, [
-          { kind: "loserOf", matchId: "m1-0" },
-          { kind: "entry", entryId: "e4" },
-        ]),
+        match(
+          "mL",
+          2,
+          0,
+          [
+            { kind: "loserOf", matchId: "m1-0" },
+            { kind: "entry", entryId: "e4" },
+          ],
+          1,
+        ),
       ],
     };
 
@@ -116,10 +142,16 @@ describe("downstreamMatchIds", () => {
       version: 1,
       matches: [
         ...config.matches,
-        match("m3-0", 3, 0, [
-          { kind: "winnerOf", matchId: "m2-0" },
-          { kind: "bye" },
-        ]),
+        match(
+          "m3-0",
+          3,
+          0,
+          [
+            { kind: "winnerOf", matchId: "m2-0" },
+            { kind: "bye" },
+          ],
+          3,
+        ),
       ],
     };
 

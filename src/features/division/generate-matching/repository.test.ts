@@ -118,12 +118,12 @@ describe("generateMatchingInDb", () => {
     await Effect.runPromise(generateMatchingInDb(ids));
 
     const written = divisionUpdateMany.mock.calls[0][0].data.matchingConfig;
-    // 3 人なら 3 節 3 試合。勝者参照は 1 つも無い。
+    // 3 人なら 3 試合。節は保存しない（round は常に 1）。勝者参照は 1 つも無い。
     expect(written.matches).toHaveLength(3);
     expect(written.matches.map((match: { id: string }) => match.id)).toEqual([
       "r1-0",
-      "r2-0",
-      "r3-0",
+      "r1-1",
+      "r1-2",
     ]);
   });
 

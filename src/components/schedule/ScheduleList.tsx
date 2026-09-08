@@ -22,9 +22,9 @@ import {
   type ScheduleFormAction,
 } from "@/features/schedule/state";
 import type { ScheduleRowView } from "@/features/schedule/types";
+import { resolveDragReorder } from "@/lib/dnd/reorder";
 import { ScheduleDividerRow } from "./ScheduleDividerRow";
 import { ScheduleMatchRow } from "./ScheduleMatchRow";
-import { resolveDragReorder } from "./schedule-drag";
 
 /**
  * 1 行ぶんの並べ替え可能な枠。掴む場所をハンドルのボタンに限るのは、
@@ -84,7 +84,7 @@ function SortableRow({
 /**
  * 行ごとの操作（ハンドル・挿入ボタン・区切りの入力欄）の名前に差し込む、その行の呼び名。
  * 一覧には同じ種類の行が並ぶので、名前にその行の中身を混ぜて区別できるようにする
- * （components/division/MatchNumberList.tsx と同じ形）。
+ * （components/division/MatchOrderList.tsx と同じ形）。
  *
  * 見出しだけでなく position（1 始まりの並び順）も混ぜるのは、区切りは既定の見出しの
  * まま複数置けるため、見出しだけだと名前が重なって区別できなくなるから。
