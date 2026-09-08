@@ -11,6 +11,7 @@ import {
 import { loginSchema } from "@/features/auth/login/schema";
 import { login } from "@/features/auth/login/usecase";
 import { authErrorMessage } from "@/features/auth/messages";
+import { passwordResetNotice } from "@/features/auth/password-reset/domain";
 import { authClient } from "@/shared/lib/auth-client";
 import { runAuthCall } from "@/shared/lib/auth-effect";
 
@@ -21,10 +22,12 @@ export function LoginForm({
   redirectTo,
   verified = false,
   verifyError = null,
+  reset = false,
 }: {
   redirectTo: string;
   verified?: boolean;
   verifyError?: string | null;
+  reset?: boolean;
 }) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
@@ -33,7 +36,11 @@ export function LoginForm({
   // 保持する。そうしないとログイン失敗のたびに入力し直しになる。
   const [identifier, setIdentifier] = useState("");
   const [passwordVisible, setPasswordVisible] = useState(false);
-  const notice = verificationNotice(verified, verifyError);
+  // 案内の枠は 1 つしか出さない。確認メール由来とリセット由来が同時に
+  // 付く経路は無いが、付いた場合は確認メール側を優先する（ログインできる
+  // かどうかに直結するのはそちらのため）。
+  const notice =
+    verificationNotice(verified, verifyError) ?? passwordResetNotice(reset);
 
   const onSubmit = async (formData: FormData) => {
     setError(null);
@@ -190,6 +197,12 @@ export function LoginForm({
       >
         Google でログイン
       </button>
+
+      <p className="text-sm text-slate-600">
+        <Link href="/forgot-password" className="underline">
+          パスワードをお忘れですか？
+        </Link>
+      </p>
 
       <p className="text-sm text-slate-600">
         アカウントをお持ちでない方は{" "}
