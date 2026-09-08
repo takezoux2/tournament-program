@@ -30,6 +30,7 @@ export default async function OrganizationMembersPage({
           { label: "メンバー" },
         ]}
         userName={session.user.name}
+        userEmail={session.user.email}
       />
 
       <div className="mx-auto max-w-2xl space-y-4 px-6 py-8">

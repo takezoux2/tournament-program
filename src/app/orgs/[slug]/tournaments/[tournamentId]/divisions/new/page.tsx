@@ -33,6 +33,7 @@ export default async function NewDivisionPage({
           { label: "部門を作成" },
         ]}
         userName={session.user.name}
+        userEmail={session.user.email}
       />
 
       <div className="mx-auto max-w-sm space-y-6 px-6 py-8">

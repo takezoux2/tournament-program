@@ -2,11 +2,13 @@ import { render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AppHeader } from "./AppHeader";
 
-// LogoutButton 自体の挙動（ログアウト成功・失敗時の分岐）は
-// LogoutButton.test.tsx で検証済みのため、ここでは AppHeader の
-// パンくず描画ロジックだけに集中できるようモジュールごと差し替える。
-vi.mock("@/components/auth/LogoutButton", () => ({
-  LogoutButton: () => <button type="button">ログアウト</button>,
+// UserMenu 自体の挙動（開閉・Escape・外側クリック）は UserMenu.test.tsx で
+// 検証済みのため、ここでは AppHeader のパンくず描画ロジックだけに集中できる
+// ようモジュールごと差し替える。
+vi.mock("@/components/layout/UserMenu", () => ({
+  UserMenu: ({ userName }: { userName: string }) => (
+    <button type="button">{userName}</button>
+  ),
 }));
 
 describe("AppHeader", () => {
@@ -15,6 +17,7 @@ describe("AppHeader", () => {
       <AppHeader
         crumbs={[{ label: "組織一覧", href: "/orgs" }]}
         userName="竹添"
+        userEmail="taro@example.test"
       />,
     );
 
@@ -25,7 +28,13 @@ describe("AppHeader", () => {
   });
 
   it("href を持たないパンくずはリンクではなくテキストとして描画される", () => {
-    render(<AppHeader crumbs={[{ label: "テニス部" }]} userName="竹添" />);
+    render(
+      <AppHeader
+        crumbs={[{ label: "テニス部" }]}
+        userName="竹添"
+        userEmail="taro@example.test"
+      />,
+    );
 
     expect(screen.getByText("テニス部")).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "テニス部" })).toBeNull();
@@ -40,6 +49,7 @@ describe("AppHeader", () => {
           { label: "設定" },
         ]}
         userName="竹添"
+        userEmail="taro@example.test"
       />,
     );
 
@@ -50,14 +60,28 @@ describe("AppHeader", () => {
     expect(separators).toHaveLength(2);
   });
 
-  it("ユーザー名が表示される", () => {
-    render(<AppHeader crumbs={[{ label: "組織一覧" }]} userName="竹添太郎" />);
+  it("ユーザー名はメニューを開くボタンとして描画される", () => {
+    render(
+      <AppHeader
+        crumbs={[{ label: "組織一覧" }]}
+        userName="竹添太郎"
+        userEmail="taro@example.test"
+      />,
+    );
 
-    expect(screen.getByText("竹添太郎")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "竹添太郎" }),
+    ).toBeInTheDocument();
   });
 
   it("パンくずナビは aria-label 'パンくず' というアクセシブルネームで参照できる", () => {
-    render(<AppHeader crumbs={[{ label: "組織一覧" }]} userName="竹添" />);
+    render(
+      <AppHeader
+        crumbs={[{ label: "組織一覧" }]}
+        userName="竹添"
+        userEmail="taro@example.test"
+      />,
+    );
 
     expect(
       screen.getByRole("navigation", { name: "パンくず" }),
@@ -80,6 +104,7 @@ describe("AppHeader", () => {
         <AppHeader
           crumbs={[{ label: "設定" }, { label: "設定" }]}
           userName="竹添"
+          userEmail="taro@example.test"
         />,
       );
 

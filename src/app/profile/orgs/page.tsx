@@ -17,6 +17,7 @@ export default async function ProfileOrgsPage() {
           { label: "所属組織" },
         ]}
         userName={session.user.name}
+      userEmail={session.user.email}
       />
 
       <div className="mx-auto max-w-xl space-y-4 px-6 py-8">

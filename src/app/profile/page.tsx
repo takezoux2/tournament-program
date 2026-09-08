@@ -25,6 +25,7 @@ export default async function ProfilePage() {
       <AppHeader
         crumbs={[{ label: "プロフィール" }]}
         userName={session.user.name}
+        userEmail={session.user.email}
       />
 
       <div className="mx-auto max-w-xl space-y-8 px-6 py-8">

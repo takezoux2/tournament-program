@@ -39,6 +39,7 @@ export default async function EditDivisionPage({
           { label: "編集" },
         ]}
         userName={session.user.name}
+        userEmail={session.user.email}
       />
 
       <div className="mx-auto max-w-sm space-y-8 px-6 py-8">

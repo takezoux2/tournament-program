@@ -11,6 +11,7 @@ export default async function NewOrganizationPage() {
       <AppHeader
         crumbs={[{ label: "組織", href: "/" }, { label: "組織を作成" }]}
         userName={session.user.name}
+        userEmail={session.user.email}
       />
 
       <div className="mx-auto max-w-sm space-y-6 px-6 py-8">

@@ -35,6 +35,7 @@ export default async function TournamentResultsPage({
           { label: "結果入力" },
         ]}
         userName={session.user.name}
+        userEmail={session.user.email}
       />
 
       <div className="mx-auto max-w-3xl space-y-4 px-6 py-8">
