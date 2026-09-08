@@ -23,7 +23,7 @@ vi.mock("@/shared/lib/auth-bypass-session", () => ({
   getBypassSession: () => getBypassSession(),
 }));
 
-const { requireSession } = await import("./require-session");
+const { getOptionalSession, requireSession } = await import("./require-session");
 
 describe("requireSession", () => {
   beforeEach(() => {
@@ -73,5 +73,41 @@ describe("requireSession", () => {
 
     await expect(requireSession()).rejects.toThrow("NEXT_REDIRECT");
     expect(redirect).toHaveBeenCalledWith("/login");
+  });
+});
+
+describe("getOptionalSession", () => {
+  beforeEach(() => {
+    getSession.mockReset();
+    getBypassSession.mockReset();
+    // 既定はバイパス無効相当（getBypassSession が null を返す）。
+    getBypassSession.mockResolvedValue(null);
+    redirect.mockClear();
+  });
+
+  it("セッションが無ければ null を返し、リダイレクトしない", async () => {
+    // requireSession との唯一の違いがここ。公開ページは未ログインでも
+    // 開けるので、境界ではなく「閲覧者が誰か」を知るためだけに使う。
+    getSession.mockResolvedValue(null);
+
+    await expect(getOptionalSession()).resolves.toBeNull();
+    expect(redirect).not.toHaveBeenCalled();
+  });
+
+  it("セッションがあればそれを返す", async () => {
+    const session = { user: { id: "u1", name: "竹添" } };
+    getSession.mockResolvedValue(session);
+
+    await expect(getOptionalSession()).resolves.toBe(session);
+  });
+
+  it("バイパスセッションを通常認証より優先する", async () => {
+    const bypassed = { session: { userId: "u9" }, user: { id: "u9" } };
+    getBypassSession.mockResolvedValue(bypassed);
+    // 通常認証が失敗する状況でもバイパスが優先される。
+    getSession.mockRejectedValue(new Error("DB down"));
+
+    await expect(getOptionalSession()).resolves.toBe(bypassed);
+    expect(getSession).not.toHaveBeenCalled();
   });
 });

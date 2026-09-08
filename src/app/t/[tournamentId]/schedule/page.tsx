@@ -1,16 +1,22 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { PublicHeader } from "@/components/public/PublicHeader";
+import { PublicPreviewNotice } from "@/components/public/PublicPreviewNotice";
 import { PublicScheduleList } from "@/components/public/PublicScheduleList";
 import { loadScheduleView } from "@/features/schedule/repository";
 import { formatPublicTitle } from "@/features/tournament/format";
 import { findPublicTournament } from "@/features/tournament/repository";
+import { getOptionalSession } from "@/shared/middleware/require-session";
 
 export async function generateMetadata({
   params,
 }: PageProps<"/t/[tournamentId]/schedule">): Promise<Metadata> {
   const { tournamentId } = await params;
-  const tournament = await findPublicTournament(tournamentId);
+  const session = await getOptionalSession();
+  const tournament = await findPublicTournament(
+    tournamentId,
+    session?.user.id ?? null,
+  );
   if (tournament === null) {
     return {};
   }
@@ -29,7 +35,12 @@ export default async function PublicSchedulePage({
   const { tournamentId } = await params;
 
   // 公開ゲート。公開してよい状態だけを where で許可するのはこの関数が持つ。
-  const tournament = await findPublicTournament(tournamentId);
+  // 閲覧者を渡すのは、その組織のメンバーに準備中の大会も見せるため。
+  const session = await getOptionalSession();
+  const tournament = await findPublicTournament(
+    tournamentId,
+    session?.user.id ?? null,
+  );
   if (tournament === null) {
     notFound();
   }
@@ -50,6 +61,7 @@ export default async function PublicSchedulePage({
       />
 
       <div className="mx-auto max-w-3xl space-y-4 px-4 py-6">
+        {tournament.isPreview && <PublicPreviewNotice />}
         <div>
           <h1 className="text-lg font-bold text-slate-800">試合一覧</h1>
           <p className="text-xs text-slate-500">

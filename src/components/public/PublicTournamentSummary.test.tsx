@@ -14,6 +14,7 @@ const buildTournament = (
   description: "",
   organizationId: "o1",
   organizationName: "テニス部",
+  isPreview: false,
   ...overrides,
 });
 
