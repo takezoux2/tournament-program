@@ -56,6 +56,10 @@ describe("authErrorMessage", () => {
     const message = authErrorMessage(
       new InvalidResetToken({ code: "INVALID_TOKEN" }),
     );
-    expect(message).toContain("お申し込み");
+    // password-reset/domain.ts の resetTokenState と文言を 1 つに揃えて
+    // いるため、他のケースと同じく完全一致で固定する。
+    expect(message).toBe(
+      "リンクが無効か期限切れです。お手数ですが再度お申し込みください",
+    );
   });
 });

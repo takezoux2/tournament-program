@@ -1,3 +1,5 @@
+import { INVALID_RESET_TOKEN_MESSAGE } from "@/features/auth/messages";
+
 /**
  * リセットメールのリンクを踏んだ後に戻ってくるパス。
  *
@@ -36,7 +38,7 @@ export const resetTokenState = (
   if (errorCode !== null || token === null || token === "") {
     return {
       kind: "invalid",
-      message: "リンクが無効か期限切れです。お手数ですが再度お申し込みください",
+      message: INVALID_RESET_TOKEN_MESSAGE,
     };
   }
   return { kind: "form", token };

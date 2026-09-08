@@ -48,7 +48,11 @@ describe("resetTokenState", () => {
 
   it("案内文は再申請を促す", () => {
     const state = resetTokenState(null, "INVALID_TOKEN");
-    expect(state.kind === "invalid" && state.message).toContain("お申し込み");
+    // messages.ts の InvalidResetToken と文言を 1 つに揃えているため、
+    // 部分一致ではなく完全一致で固定する。
+    expect(state.kind === "invalid" && state.message).toBe(
+      "リンクが無効か期限切れです。お手数ですが再度お申し込みください",
+    );
   });
 });
 
