@@ -113,6 +113,12 @@ describe("PublicDivisionPage", () => {
     expect(findDivisionInTournament).toHaveBeenCalledWith("o1", "t1", "d1");
   });
 
+  it("公開ゲートに params の tournamentId をそのまま渡す", async () => {
+    await Page(pageProps("t1", "d1"));
+
+    expect(findPublicTournament).toHaveBeenCalledWith("t1", null);
+  });
+
   it("ログイン中は閲覧者の user.id を公開ゲートに渡す", async () => {
     // 渡さないとメンバーでも準備中の大会が 404 になる。
     getOptionalSession.mockResolvedValue({ user: { id: "u1" } });

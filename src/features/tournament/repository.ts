@@ -72,6 +72,9 @@ export type PublicTournament = TournamentDetail & {
  * デフォルト値を付けず必須引数にしてあるのは、呼び出し側で渡し忘れると
  * 型エラーになるようにするため。既定値を与えると、渡し忘れた画面だけ
  * プレビューが黙って効かなくなり、原因が分かりにくい。
+ * viewerUserId には必ずセッション由来の値（getOptionalSession() の
+ * user.id）だけを渡すこと。URL やクエリ文字列から来た値を渡すと、
+ * 閲覧者を名乗るだけで他組織の準備中の大会が見えてしまう。
  */
 export const findPublicTournament = async (
   tournamentId: string,
