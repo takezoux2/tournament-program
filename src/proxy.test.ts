@@ -102,4 +102,14 @@ describe("config.matcher", () => {
   it("t で始まるだけの管理系パスは除外されない（t/ ではなく t だと誤って除外される）", () => {
     expect(matches("/tournaments")).toBe(true);
   });
+
+  it("パスワード再設定系の公開ページはミドルウェアの対象から除外される", () => {
+    expect(matches("/forgot-password")).toBe(false);
+    expect(matches("/reset-password")).toBe(false);
+  });
+
+  it("パスワード再設定系のページ名で始まるだけの別パスは除外されない（末尾一致にしないと誤って除外される）", () => {
+    expect(matches("/forgot-password-history")).toBe(true);
+    expect(matches("/reset-password-audit-log")).toBe(true);
+  });
 });
