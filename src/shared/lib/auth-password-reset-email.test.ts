@@ -6,7 +6,8 @@ import {
 import { PASSWORD_RESET_LINK_EXPIRES_LABEL } from "./password-reset-policy";
 
 const from = { email: "noreply@example.com", name: "大会運営" };
-const url = "https://example.com/api/auth/reset-password/t0ken?callbackURL=%2Freset-password";
+const url =
+  "https://example.com/api/auth/reset-password/t0ken?callbackURL=%2Freset-password";
 
 describe("buildPasswordResetEmail", () => {
   it("件名・差出人・宛先をそのまま載せる", () => {

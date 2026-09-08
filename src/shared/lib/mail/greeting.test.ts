@@ -3,11 +3,15 @@ import { greetingNameOf } from "./greeting";
 
 describe("greetingNameOf", () => {
   it("名前があればそれを使う", () => {
-    expect(greetingNameOf({ email: "user@example.com", name: "竹添" })).toBe("竹添");
+    expect(greetingNameOf({ email: "user@example.com", name: "竹添" })).toBe(
+      "竹添",
+    );
   });
 
   it("名前の前後の空白を落とす", () => {
-    expect(greetingNameOf({ email: "user@example.com", name: " 竹添 " })).toBe("竹添");
+    expect(greetingNameOf({ email: "user@example.com", name: " 竹添 " })).toBe(
+      "竹添",
+    );
   });
 
   it("名前が空白のみならメールアドレスを使う", () => {
@@ -19,6 +23,8 @@ describe("greetingNameOf", () => {
   });
 
   it("名前が無ければメールアドレスを使う", () => {
-    expect(greetingNameOf({ email: "user@example.com" })).toBe("user@example.com");
+    expect(greetingNameOf({ email: "user@example.com" })).toBe(
+      "user@example.com",
+    );
   });
 });

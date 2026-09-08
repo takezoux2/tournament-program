@@ -12,7 +12,9 @@ describe("passwordResetRequestSchema", () => {
   });
 
   it("形式が正しくないメールアドレスを弾く", () => {
-    const parsed = passwordResetRequestSchema.safeParse({ email: "not-an-email" });
+    const parsed = passwordResetRequestSchema.safeParse({
+      email: "not-an-email",
+    });
     expect(parsed.success).toBe(false);
     expect(parsed.success === false && parsed.error.issues[0].message).toBe(
       "メールアドレスの形式が正しくありません",
@@ -20,7 +22,9 @@ describe("passwordResetRequestSchema", () => {
   });
 
   it("空文字を弾く", () => {
-    expect(passwordResetRequestSchema.safeParse({ email: "" }).success).toBe(false);
+    expect(passwordResetRequestSchema.safeParse({ email: "" }).success).toBe(
+      false,
+    );
   });
 });
 
@@ -36,7 +40,9 @@ describe("passwordResetSchema", () => {
   });
 
   it("最小長ちょうどを通す", () => {
-    const parsed = passwordResetSchema.safeParse(valid("a".repeat(MIN_PASSWORD_LENGTH)));
+    const parsed = passwordResetSchema.safeParse(
+      valid("a".repeat(MIN_PASSWORD_LENGTH)),
+    );
     expect(parsed.success).toBe(true);
   });
 

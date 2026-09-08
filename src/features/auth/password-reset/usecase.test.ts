@@ -10,7 +10,9 @@ import { requestPasswordReset, resetPassword } from "./usecase";
 // リセット固有の入力がポートへ正しく渡ることだけを見る。
 describe("requestPasswordReset", () => {
   it("メールアドレスと固定の redirectTo をポートへ渡す", async () => {
-    const port: RequestPasswordResetPort = vi.fn().mockResolvedValue({ error: null });
+    const port: RequestPasswordResetPort = vi
+      .fn()
+      .mockResolvedValue({ error: null });
     const exit = await Effect.runPromiseExit(
       requestPasswordReset(port, { email: "user@example.com" }),
     );
@@ -23,7 +25,9 @@ describe("requestPasswordReset", () => {
   });
 
   it("Promise が reject した場合も AuthError に畳む", async () => {
-    const port: RequestPasswordResetPort = vi.fn().mockRejectedValue(new Error("network"));
+    const port: RequestPasswordResetPort = vi
+      .fn()
+      .mockRejectedValue(new Error("network"));
     const exit = await Effect.runPromiseExit(
       requestPasswordReset(port, { email: "user@example.com" }),
     );
