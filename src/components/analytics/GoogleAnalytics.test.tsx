@@ -10,6 +10,15 @@ vi.mock("next/navigation", () => ({
   usePathname: () => pathname,
 }));
 
+/**
+ * usePathname と実際の URL を揃える。page_location は
+ * window.location から組み立てるので、モックだけ変えても足りない。
+ */
+const goTo = (next: string): void => {
+  pathname = next;
+  window.history.replaceState(null, "", next);
+};
+
 // next/script はテストでは走らせず、素の <script> として描画するだけにする。
 vi.mock("next/script", () => ({
   default: (rest: Record<string, unknown>) => <script {...rest} />,
@@ -30,7 +39,7 @@ const pageViews = (): Record<string, unknown>[] =>
 
 describe("GoogleAnalytics", () => {
   beforeEach(() => {
-    pathname = "/orgs/tennis";
+    goTo("/orgs/tennis");
     process.env.NEXT_PUBLIC_GA_ID = "G-ABC123XYZ";
     window.dataLayer = [];
     resetGtagForTest();
@@ -61,7 +70,7 @@ describe("GoogleAnalytics", () => {
     expect(queued()).toContainEqual([
       "config",
       "G-ABC123XYZ",
-      { send_page_view: false },
+      expect.objectContaining({ send_page_view: false }),
     ]);
   });
 
@@ -69,26 +78,44 @@ describe("GoogleAnalytics", () => {
     render(<GoogleAnalytics gaId="G-ABC123XYZ" />);
 
     expect(pageViews()).toEqual([
-      { page_location: `${window.location.origin}/orgs/tennis` },
+      expect.objectContaining({
+        page_location: `${window.location.origin}/orgs/tennis`,
+      }),
     ]);
   });
 
   it("パスが変わって再描画されると、新しいパスでもう 1 回送る", () => {
     const { rerender } = render(<GoogleAnalytics gaId="G-ABC123XYZ" />);
 
-    pathname = "/orgs/other";
+    goTo("/orgs/other");
     rerender(<GoogleAnalytics gaId="G-ABC123XYZ" />);
 
     expect(pageViews()).toEqual([
-      { page_location: `${window.location.origin}/orgs/tennis` },
-      { page_location: `${window.location.origin}/orgs/other` },
+      expect.objectContaining({
+        page_location: `${window.location.origin}/orgs/tennis`,
+      }),
+      expect.objectContaining({
+        page_location: `${window.location.origin}/orgs/other`,
+      }),
     ]);
+  });
+
+  it("page_title には大会名や組織名を載せない", () => {
+    // /t/** は参加者の本名や大会名を出すため noindex にしてある。
+    // document.title をそのまま送ると、Google に渡さないと決めた名前を
+    // GA 経由で渡すことになる。パスと揃えて名前を出さない。
+    document.title = "全日本選手権 | 東京テニスクラブ";
+    goTo("/t/3f2504e0-4f89-11d3-9a0c-0305e82c3301");
+
+    render(<GoogleAnalytics gaId="G-ABC123XYZ" />);
+
+    expect(pageViews()[0].page_title).toBe("/t/:id");
   });
 
   it("クエリ文字列は page_location に載らない", () => {
     // /reset-password?token=... のようなページで、有効なトークンが
     // Google に保存されるのを防ぐ。ここが本機能の主目的。
-    pathname = "/reset-password";
+    goTo("/reset-password");
 
     render(<GoogleAnalytics gaId="G-ABC123XYZ" />);
 
@@ -98,13 +125,13 @@ describe("GoogleAnalytics", () => {
   });
 
   it("ID を含むパスでは生の ID が page_location に現れない", () => {
-    pathname = "/orgs/tennis/tournaments/clx1a2b3c4d5e6f7g8h9i0jk";
+    goTo("/orgs/tennis/tournaments/3f2504e0-4f89-11d3-9a0c-0305e82c3301");
 
     render(<GoogleAnalytics gaId="G-ABC123XYZ" />);
 
     const sent = pageViews()[0].page_location as string;
 
-    expect(sent).not.toContain("clx1a2b3c4d5e6f7g8h9i0jk");
+    expect(sent).not.toContain("3f2504e0-4f89-11d3-9a0c-0305e82c3301");
     expect(sent).toBe(`${window.location.origin}/orgs/tennis/tournaments/:id`);
   });
 

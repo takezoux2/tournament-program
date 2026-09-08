@@ -3,8 +3,7 @@
 import { usePathname } from "next/navigation";
 import Script from "next/script";
 import { useEffect, useRef } from "react";
-import { sendGtagEvent } from "@/shared/lib/analytics/gtag";
-import { sanitizePagePath } from "@/shared/lib/analytics/sanitize-url";
+import { sendGtagEvent, setGtagPageContext } from "@/shared/lib/analytics/gtag";
 
 /**
  * gtag.js を読み込み、ページビューを自前で送る。
@@ -38,9 +37,10 @@ export function GoogleAnalytics({ gaId }: { gaId: string }) {
   useEffect(() => {
     if (lastSent.current === pathname) return;
     lastSent.current = pathname;
-    sendGtagEvent("page_view", {
-      page_location: window.location.origin + sanitizePagePath(pathname),
-    });
+    // 遷移後の現在地を既定パラメータへ流してから送る。page_location は
+    // sendGtagEvent が載せるので、ここで渡す必要はない。
+    setGtagPageContext();
+    sendGtagEvent("page_view");
   }, [pathname]);
 
   return (

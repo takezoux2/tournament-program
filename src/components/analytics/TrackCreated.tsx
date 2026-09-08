@@ -37,11 +37,20 @@ export function TrackCreated({ created }: { created: string | undefined }) {
 
     fired.current = true;
     trackEvent(event);
-    // クエリを消す。リロードや URL の共有で二重に計上されるのを防ぐ。
+    // created だけを消す。リロードや URL の共有で二重に計上されるのを防ぐ。
     // router.replace だとサーバーコンポーネントが直前に走らせたのと同じ
     // DB クエリを即座に再実行してしまうため、履歴だけを書き換える
     // ネイティブの History API を使う。
-    window.history.replaceState(null, "", pathname);
+    // クエリ全体を捨てないのは、この先どれかのページにタブや絞り込みの
+    // パラメータが増えたとき、作成直後だけ黙って消えるのを避けるため。
+    const params = new URLSearchParams(window.location.search);
+    params.delete("created");
+    const rest = params.toString();
+    window.history.replaceState(
+      null,
+      "",
+      rest === "" ? pathname : `${pathname}?${rest}`,
+    );
   }, [created, pathname]);
 
   return null;
