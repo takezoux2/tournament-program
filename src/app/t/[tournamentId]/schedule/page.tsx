@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { PublicHeader } from "@/components/public/PublicHeader";
+import { PublicPreviewNotice } from "@/components/public/PublicPreviewNotice";
 import { PublicScheduleList } from "@/components/public/PublicScheduleList";
 import { loadScheduleView } from "@/features/schedule/repository";
 import { formatPublicTitle } from "@/features/tournament/format";
@@ -60,6 +61,7 @@ export default async function PublicSchedulePage({
       />
 
       <div className="mx-auto max-w-3xl space-y-4 px-4 py-6">
+        {tournament.isPreview && <PublicPreviewNotice />}
         <div>
           <h1 className="text-lg font-bold text-slate-800">試合一覧</h1>
           <p className="text-xs text-slate-500">

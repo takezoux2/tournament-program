@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { PublicHeader } from "@/components/public/PublicHeader";
 import { PublicParticipantList } from "@/components/public/PublicParticipantList";
+import { PublicPreviewNotice } from "@/components/public/PublicPreviewNotice";
 import { listParticipantsInTournament } from "@/features/division/repository";
 import { formatPublicTitle } from "@/features/tournament/format";
 import { findPublicTournament } from "@/features/tournament/repository";
@@ -64,6 +65,7 @@ export default async function PublicParticipantsPage({
       />
 
       <div className="mx-auto max-w-3xl space-y-4 px-4 py-6">
+        {tournament.isPreview && <PublicPreviewNotice />}
         <h1 className="text-lg font-bold text-slate-800">参加者一覧</h1>
 
         <PublicParticipantList participants={participants} />

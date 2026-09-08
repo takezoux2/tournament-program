@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { DivisionBracket } from "@/components/division/DivisionBracket";
 import { PublicHeader } from "@/components/public/PublicHeader";
+import { PublicPreviewNotice } from "@/components/public/PublicPreviewNotice";
 import {
   findDivisionInTournament,
   listParticipantsInTournament,
@@ -90,6 +91,7 @@ export default async function PublicDivisionPage({
       />
 
       <div className="mx-auto max-w-3xl space-y-3 px-4 py-6">
+        {tournament.isPreview && <PublicPreviewNotice />}
         <h1 className="text-lg font-bold text-slate-800">{division.name}</h1>
 
         {/*

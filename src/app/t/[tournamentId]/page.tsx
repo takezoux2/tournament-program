@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PublicDivisionList } from "@/components/public/PublicDivisionList";
 import { PublicHeader } from "@/components/public/PublicHeader";
+import { PublicPreviewNotice } from "@/components/public/PublicPreviewNotice";
 import { PublicTournamentSummary } from "@/components/public/PublicTournamentSummary";
 import { listDivisionsInTournament } from "@/features/division/repository";
 import { formatPublicTitle } from "@/features/tournament/format";
@@ -62,6 +63,7 @@ export default async function PublicTournamentPage({
       />
 
       <div className="mx-auto max-w-3xl space-y-6 px-4 py-6">
+        {tournament.isPreview && <PublicPreviewNotice />}
         <PublicTournamentSummary tournament={tournament} />
 
         <div className="grid grid-cols-2 gap-2">

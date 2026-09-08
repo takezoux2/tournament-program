@@ -52,6 +52,7 @@ const tournament = {
   description: "",
   organizationId: "o1",
   organizationName: "テニス部",
+  isPreview: false,
 };
 
 const division = {
@@ -180,5 +181,27 @@ describe("PublicDivisionPage", () => {
     findDivisionInTournament.mockResolvedValue(null);
 
     await expect(generateMetadata(pageProps("t1", "d1"))).resolves.toEqual({});
+  });
+
+  it("準備中のプレビューでは準備中バナーを出す", async () => {
+    findPublicTournament.mockResolvedValue({
+      ...tournament,
+      status: "DRAFT" as const,
+      isPreview: true,
+    });
+
+    render(await Page(pageProps("t1", "d1")));
+
+    // 大会トップは概要のステータス欄にも「準備中」を出すため、
+    // 文字列ではなく role で引く。
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "組織のメンバーにしか表示されません",
+    );
+  });
+
+  it("公開済みの大会では準備中バナーを出さない", async () => {
+    render(await Page(pageProps("t1", "d1")));
+
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
   });
 });
