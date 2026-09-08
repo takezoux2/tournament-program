@@ -24,9 +24,10 @@ describe("UserMenu", () => {
   it("閉じている間は aria-expanded が false", () => {
     renderMenu();
 
-    expect(
-      screen.getByRole("button", { name: "竹添太郎" }),
-    ).toHaveAttribute("aria-expanded", "false");
+    expect(screen.getByRole("button", { name: "竹添太郎" })).toHaveAttribute(
+      "aria-expanded",
+      "false",
+    );
   });
 
   it("ユーザー名を押すと開き、aria-expanded が true になる", async () => {
@@ -35,9 +36,10 @@ describe("UserMenu", () => {
 
     await user.click(screen.getByRole("button", { name: "竹添太郎" }));
 
-    expect(
-      screen.getByRole("button", { name: "竹添太郎" }),
-    ).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByRole("button", { name: "竹添太郎" })).toHaveAttribute(
+      "aria-expanded",
+      "true",
+    );
   });
 
   it("開くとプロフィール・所属組織・ログアウトが出る", async () => {
