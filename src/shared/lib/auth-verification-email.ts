@@ -1,19 +1,9 @@
 import type { MailAddress, MailMessage } from "@/shared/lib/mail/types";
 import { VERIFICATION_LINK_EXPIRES_LABEL } from "./email-verification-policy";
+import { escapeHtml } from "./html-escape";
+import { greetingNameOf } from "./mail/greeting";
 
 export const VERIFICATION_EMAIL_SUBJECT = "【大会運営】メールアドレスの確認";
-
-/**
- * HTML の文脈へ差し込む値をエスケープする。name はユーザーの入力、
- * url はクエリに & を含むため、どちらも素通しにはできない。
- */
-const escapeHtml = (raw: string): string =>
-  raw
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
 
 /**
  * 仮登録したユーザーへ送る確認メールを組み立てる。
@@ -31,10 +21,7 @@ export const buildVerificationEmail = ({
   to: MailAddress;
   url: string;
 }): MailMessage => {
-  // User.name はスキーマ上 NOT NULL なので、実運用で到達しうる欠損の形は
-  // undefined ではなく空文字。トリムした上で ?? ではなく || で判定しないと
-  // 「 様」になってしまう。
-  const greetingName = to.name?.trim() || to.email;
+  const greetingName = greetingNameOf(to);
 
   const text = [
     `${greetingName} 様`,

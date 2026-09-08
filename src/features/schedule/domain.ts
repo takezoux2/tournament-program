@@ -39,9 +39,12 @@ const dividerRow = (divider: {
 });
 
 /**
- * 全部門の試合を、部門の order 昇順 → round 昇順 → order 昇順で並べた行にする。
+ * 全部門の試合を、部門の order 昇順 → 部門内の実施順で並べた行にする。
  * 行を持たない試合を末尾へ足すときの「決定的な順」がこれで、
  * 保存の有無にかかわらず同じ入力からは同じ並びになる。
+ *
+ * 部門内は並べ替えない。matchingConfig.matches は parseMatchingConfig が
+ * sequence 昇順で返しており、それが部門の編集画面で運営者が決めた実施順そのもの。
  */
 const buildMatchRows = (
   divisions: ScheduleDivision[],
@@ -56,22 +59,18 @@ const buildMatchRows = (
         participants,
       );
 
-      return [...division.matchingConfig.matches]
-        .sort(
-          (left, right) => left.round - right.round || left.order - right.order,
-        )
-        .map(
-          (match): ScheduleRowView => ({
-            kind: "match",
-            key: matchKey(division.id, match.id),
-            divisionId: division.id,
-            divisionName: division.name,
-            matchId: match.id,
-            matchNumber: match.matchNumber,
-            label: matchPositionLabel(match, division.format),
-            card: matchCardLabel(match, labelSlot),
-          }),
-        );
+      return division.matchingConfig.matches.map(
+        (match): ScheduleRowView => ({
+          kind: "match",
+          key: matchKey(division.id, match.id),
+          divisionId: division.id,
+          divisionName: division.name,
+          matchId: match.id,
+          matchNumber: match.matchNumber,
+          label: matchPositionLabel(match, division.format),
+          card: matchCardLabel(match, labelSlot),
+        }),
+      );
     });
 
 /**

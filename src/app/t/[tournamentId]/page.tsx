@@ -3,17 +3,24 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PublicDivisionList } from "@/components/public/PublicDivisionList";
 import { PublicHeader } from "@/components/public/PublicHeader";
+import { PublicPreviewNotice } from "@/components/public/PublicPreviewNotice";
 import { PublicTournamentSummary } from "@/components/public/PublicTournamentSummary";
 import { listDivisionsInTournament } from "@/features/division/repository";
 import { formatPublicTitle } from "@/features/tournament/format";
 import { findPublicTournament } from "@/features/tournament/repository";
+import { getOptionalSession } from "@/shared/middleware/require-session";
 
 export async function generateMetadata({
   params,
 }: PageProps<"/t/[tournamentId]">): Promise<Metadata> {
   const { tournamentId } = await params;
-  const tournament = await findPublicTournament(tournamentId);
+  const session = await getOptionalSession();
+  const tournament = await findPublicTournament(
+    tournamentId,
+    session?.user.id ?? null,
+  );
   // 公開対象でない大会の名前をタイトルに出さない。本体は notFound になる。
+  // 準備中の大会名が出るのは、そもそもメンバーしか到達できない場合だけ。
   if (tournament === null) {
     return {};
   }
@@ -28,7 +35,12 @@ export default async function PublicTournamentPage({
   const { tournamentId } = await params;
 
   // 公開ゲート。公開してよい状態だけを where で許可するのはこの関数が持つ。
-  const tournament = await findPublicTournament(tournamentId);
+  // 閲覧者を渡すのは、その組織のメンバーに準備中の大会も見せるため。
+  const session = await getOptionalSession();
+  const tournament = await findPublicTournament(
+    tournamentId,
+    session?.user.id ?? null,
+  );
   if (tournament === null) {
     notFound();
   }
@@ -51,6 +63,7 @@ export default async function PublicTournamentPage({
       />
 
       <div className="mx-auto max-w-3xl space-y-6 px-4 py-6">
+        {tournament.isPreview && <PublicPreviewNotice />}
         <PublicTournamentSummary tournament={tournament} />
 
         <div className="grid grid-cols-2 gap-2">

@@ -89,7 +89,7 @@ describe("findPublicTournament", () => {
     findFirst.mockReset();
   });
 
-  it("公開してよい状態を where で許可リストとして絞り込む（公開範囲の回帰テスト）", async () => {
+  it("未ログインのときは公開してよい状態だけを where で許可する（公開範囲の回帰テスト）", async () => {
     // 取得してから status で弾く形にすると、4 ページのうち 1 枚で
     // 書き忘れた箇所がそのまま公開の穴になる。where に置けば
     // 書き忘れは「見つからない」に倒れる。除外リスト（status: { not: "DRAFT" }）
@@ -97,11 +97,34 @@ describe("findPublicTournament", () => {
     // 書き忘れても新しい状態を世界に公開してしまわないため。
     findFirst.mockResolvedValue(null);
 
-    await findPublicTournament("t1");
+    await findPublicTournament("t1", null);
 
     expect(findFirst).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { id: "t1", status: { in: PUBLIC_TOURNAMENT_STATUSES } },
+        where: {
+          id: "t1",
+          OR: [{ status: { in: PUBLIC_TOURNAMENT_STATUSES } }],
+        },
+      }),
+    );
+  });
+
+  it("ログイン中は、閲覧者が組織メンバーである大会も where で許可する", async () => {
+    // 準備中プレビューの入口。メンバー判定もリレーションで where に書くので、
+    // クエリは 1 本のままで、公開可否の判断はこの関数に閉じたままになる。
+    findFirst.mockResolvedValue(null);
+
+    await findPublicTournament("t1", "u1");
+
+    expect(findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          id: "t1",
+          OR: [
+            { status: { in: PUBLIC_TOURNAMENT_STATUSES } },
+            { organization: { users: { some: { userId: "u1" } } } },
+          ],
+        },
       }),
     );
   });
@@ -122,7 +145,7 @@ describe("findPublicTournament", () => {
   it("見つからない場合は null を返す", async () => {
     findFirst.mockResolvedValue(null);
 
-    await expect(findPublicTournament("t1")).resolves.toBeNull();
+    await expect(findPublicTournament("t1", null)).resolves.toBeNull();
   });
 
   it("organization.name を organizationName へ平して返す", async () => {
@@ -137,7 +160,7 @@ describe("findPublicTournament", () => {
       organization: { name: "テニス部" },
     });
 
-    const tournament = await findPublicTournament("t1");
+    const tournament = await findPublicTournament("t1", null);
 
     expect(tournament).toMatchObject({
       id: "t1",
@@ -151,7 +174,7 @@ describe("findPublicTournament", () => {
   it("select に description と organizationId を含める", async () => {
     findFirst.mockResolvedValue(null);
 
-    await findPublicTournament("t1");
+    await findPublicTournament("t1", null);
 
     expect(findFirst).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -161,5 +184,41 @@ describe("findPublicTournament", () => {
         }),
       }),
     );
+  });
+
+  it("公開状態で見つかった大会は isPreview が false", async () => {
+    findFirst.mockResolvedValue({
+      id: "t1",
+      name: "春季大会",
+      startsAt: null,
+      status: "IN_PROGRESS",
+      createdAt: new Date("2026-08-01T00:00:00Z"),
+      description: "",
+      organizationId: "o1",
+      organization: { name: "テニス部" },
+    });
+
+    await expect(findPublicTournament("t1", "u1")).resolves.toMatchObject({
+      isPreview: false,
+    });
+  });
+
+  it("準備中の大会がメンバー資格で見つかった場合は isPreview が true", async () => {
+    // isPreview は公開可否の判断ではなく、バナーを出すかどうかの表示用フラグ。
+    // ゲート自体は where で済んでいる。
+    findFirst.mockResolvedValue({
+      id: "t1",
+      name: "春季大会",
+      startsAt: null,
+      status: "DRAFT",
+      createdAt: new Date("2026-08-01T00:00:00Z"),
+      description: "",
+      organizationId: "o1",
+      organization: { name: "テニス部" },
+    });
+
+    await expect(findPublicTournament("t1", "u1")).resolves.toMatchObject({
+      isPreview: true,
+    });
   });
 });

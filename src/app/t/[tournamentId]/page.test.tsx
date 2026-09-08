@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const findPublicTournament = vi.fn();
 const listDivisionsInTournament = vi.fn();
+const getOptionalSession = vi.fn();
 const notFound = vi.fn(() => {
   // next/navigation の notFound は例外を投げて制御を打ち切る。
   throw new Error("NEXT_NOT_FOUND");
@@ -10,12 +11,15 @@ const notFound = vi.fn(() => {
 
 vi.mock("next/navigation", () => ({ notFound: () => notFound() }));
 vi.mock("@/features/tournament/repository", () => ({
-  findPublicTournament: (tournamentId: string) =>
-    findPublicTournament(tournamentId),
+  findPublicTournament: (tournamentId: string, viewerUserId: string | null) =>
+    findPublicTournament(tournamentId, viewerUserId),
 }));
 vi.mock("@/features/division/repository", () => ({
   listDivisionsInTournament: (organizationId: string, tournamentId: string) =>
     listDivisionsInTournament(organizationId, tournamentId),
+}));
+vi.mock("@/shared/middleware/require-session", () => ({
+  getOptionalSession: () => getOptionalSession(),
 }));
 
 const { default: Page, generateMetadata } = await import("./page");
@@ -35,14 +39,17 @@ const tournament = {
   description: "",
   organizationId: "o1",
   organizationName: "テニス部",
+  isPreview: false,
 };
 
 describe("PublicTournamentPage", () => {
   beforeEach(() => {
     findPublicTournament.mockReset();
     listDivisionsInTournament.mockReset();
+    getOptionalSession.mockReset();
     notFound.mockClear();
     findPublicTournament.mockResolvedValue(tournament);
+    getOptionalSession.mockResolvedValue(null);
     listDivisionsInTournament.mockResolvedValue([
       {
         id: "d1",
@@ -56,7 +63,16 @@ describe("PublicTournamentPage", () => {
   it("公開ゲートに params の tournamentId をそのまま渡す", async () => {
     await Page(pageProps("t1"));
 
-    expect(findPublicTournament).toHaveBeenCalledWith("t1");
+    expect(findPublicTournament).toHaveBeenCalledWith("t1", null);
+  });
+
+  it("ログイン中は閲覧者の user.id を公開ゲートに渡す", async () => {
+    // 渡さないとメンバーでも準備中の大会が 404 になる。
+    getOptionalSession.mockResolvedValue({ user: { id: "u1" } });
+
+    await Page(pageProps("t1"));
+
+    expect(findPublicTournament).toHaveBeenCalledWith("t1", "u1");
   });
 
   it("部門一覧はゲートが返した organizationId で絞り込む", async () => {
@@ -120,5 +136,27 @@ describe("PublicTournamentPage", () => {
     findPublicTournament.mockResolvedValue(null);
 
     await expect(generateMetadata(pageProps("t1"))).resolves.toEqual({});
+  });
+
+  it("準備中のプレビューでは準備中バナーを出す", async () => {
+    findPublicTournament.mockResolvedValue({
+      ...tournament,
+      status: "DRAFT" as const,
+      isPreview: true,
+    });
+
+    render(await Page(pageProps("t1")));
+
+    // 大会トップは概要のステータス欄にも「準備中」を出すため、
+    // 文字列ではなく role で引く。
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "組織のメンバーにしか表示されません",
+    );
+  });
+
+  it("公開済みの大会では準備中バナーを出さない", async () => {
+    render(await Page(pageProps("t1")));
+
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
   });
 });

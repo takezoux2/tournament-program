@@ -48,6 +48,10 @@ export const divisionErrorMessage: (error: DivisionError) => string =
       () => "その試合番号は別の試合で使われています",
     ),
     Match.tag(
+      "DivisionMatchOrderError",
+      () => "並び順が古くなっています。画面を再読み込みしてください",
+    ),
+    Match.tag(
       "DivisionParticipantNotFoundError",
       () => "対象の参加者が見つかりません。画面を再読み込みしてください",
     ),

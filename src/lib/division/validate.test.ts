@@ -98,6 +98,7 @@ describe("validateMatchingConfig", () => {
           bracket: "winners",
           round: 1,
           order: 0,
+          sequence: 0,
           matchNumber: "1",
           slots: [{ kind: "entry", entryId: "e1" }, { kind: "bye" }],
         },
@@ -106,6 +107,7 @@ describe("validateMatchingConfig", () => {
           bracket: "winners",
           round: 1,
           order: 1,
+          sequence: 1,
           matchNumber: "2",
           slots: [
             { kind: "entry", entryId: "e2" },
@@ -117,6 +119,7 @@ describe("validateMatchingConfig", () => {
           bracket: "winners",
           round: 2,
           order: 0,
+          sequence: 2,
           matchNumber: "3",
           slots: [
             { kind: "winnerOf", matchId: "m1" },
@@ -138,6 +141,7 @@ describe("validateMatchingConfig", () => {
           bracket: "winners",
           round: 1,
           order: 0,
+          sequence: 0,
           matchNumber: "1",
           slots: [{ kind: "entry", entryId: "e1" }, { kind: "bye" }],
         },
@@ -146,6 +150,7 @@ describe("validateMatchingConfig", () => {
           bracket: "winners",
           round: 1,
           order: 1,
+          sequence: 1,
           matchNumber: "2",
           slots: [{ kind: "entry", entryId: "e2" }, { kind: "bye" }],
         },
@@ -164,6 +169,7 @@ describe("validateMatchingConfig", () => {
         bracket: "winners",
         round: 1,
         order: 0,
+        sequence: 0,
         matchNumber: "1",
         slots: [{ kind: "entry", entryId: "ghost" }, { kind: "bye" }],
       }),
@@ -181,6 +187,7 @@ describe("validateMatchingConfig", () => {
         bracket: "winners",
         round: 2,
         order: 0,
+        sequence: 0,
         matchNumber: "1",
         slots: [{ kind: "winnerOf", matchId: "ghost" }, { kind: "bye" }],
       }),
@@ -199,6 +206,7 @@ describe("validateMatchingConfig", () => {
           bracket: "winners",
           round: 1,
           order: 0,
+          sequence: 0,
           matchNumber: "1",
           slots: [{ kind: "entry", entryId: "e1" }, { kind: "bye" }],
         },
@@ -207,6 +215,7 @@ describe("validateMatchingConfig", () => {
           bracket: "winners",
           round: 1,
           order: 1,
+          sequence: 1,
           matchNumber: "2",
           slots: [{ kind: "winnerOf", matchId: "m1" }, { kind: "bye" }],
         },
@@ -226,6 +235,7 @@ describe("validateMatchingConfig", () => {
           bracket: "winners",
           round: 2,
           order: 0,
+          sequence: 0,
           matchNumber: "1",
           slots: [{ kind: "entry", entryId: "e1" }, { kind: "bye" }],
         },
@@ -234,6 +244,7 @@ describe("validateMatchingConfig", () => {
           bracket: "losers",
           round: 1,
           order: 0,
+          sequence: 1,
           matchNumber: "2",
           slots: [{ kind: "loserOf", matchId: "m1" }, { kind: "bye" }],
         },
@@ -260,6 +271,7 @@ describe("validateMatchingConfig", () => {
             bracket: "winners",
             round: 1,
             order: 0,
+            sequence: 0,
             matchNumber: "1",
             slots: [{ kind: "bye" }, { kind: "bye" }],
           },
@@ -268,6 +280,7 @@ describe("validateMatchingConfig", () => {
             bracket: "winners",
             round: 1,
             order: 1,
+            sequence: 1,
             matchNumber: "1",
             slots: [{ kind: "bye" }, { kind: "bye" }],
           },
@@ -290,6 +303,7 @@ describe("validateMatchingConfig", () => {
             bracket: "winners",
             round: 1,
             order: 0,
+            sequence: 0,
             matchNumber: "",
             slots: [{ kind: "bye" }, { kind: "bye" }],
           },
@@ -298,6 +312,96 @@ describe("validateMatchingConfig", () => {
       { version: 1, entries: [] },
     );
     expect(errors).toContain("m1-0: matchNumber が空です");
+  });
+
+  it("sequence が 0 からの連番なら通る", () => {
+    const config: MatchingConfig = {
+      version: 1,
+      matches: [
+        {
+          id: "m1-0",
+          bracket: "winners",
+          round: 1,
+          order: 0,
+          sequence: 0,
+          matchNumber: "1",
+          slots: [{ kind: "bye" }, { kind: "bye" }],
+        },
+        {
+          id: "m1-1",
+          bracket: "winners",
+          round: 1,
+          order: 1,
+          sequence: 1,
+          matchNumber: "2",
+          slots: [{ kind: "bye" }, { kind: "bye" }],
+        },
+      ],
+    };
+
+    expect(validateMatchingConfig(config, { version: 1, entries: [] })).toEqual(
+      [],
+    );
+  });
+
+  it("sequence が重複していたらエラー", () => {
+    const config: MatchingConfig = {
+      version: 1,
+      matches: [
+        {
+          id: "m1-0",
+          bracket: "winners",
+          round: 1,
+          order: 0,
+          sequence: 0,
+          matchNumber: "1",
+          slots: [{ kind: "bye" }, { kind: "bye" }],
+        },
+        {
+          id: "m1-1",
+          bracket: "winners",
+          round: 1,
+          order: 1,
+          sequence: 0,
+          matchNumber: "2",
+          slots: [{ kind: "bye" }, { kind: "bye" }],
+        },
+      ],
+    };
+
+    expect(validateMatchingConfig(config, { version: 1, entries: [] })).toEqual(
+      [expect.stringContaining("sequence")],
+    );
+  });
+
+  it("sequence に欠番があったらエラー", () => {
+    const config: MatchingConfig = {
+      version: 1,
+      matches: [
+        {
+          id: "m1-0",
+          bracket: "winners",
+          round: 1,
+          order: 0,
+          sequence: 0,
+          matchNumber: "1",
+          slots: [{ kind: "bye" }, { kind: "bye" }],
+        },
+        {
+          id: "m1-1",
+          bracket: "winners",
+          round: 1,
+          order: 1,
+          sequence: 2,
+          matchNumber: "2",
+          slots: [{ kind: "bye" }, { kind: "bye" }],
+        },
+      ],
+    };
+
+    expect(validateMatchingConfig(config, { version: 1, entries: [] })).toEqual(
+      [expect.stringContaining("sequence")],
+    );
   });
 });
 
@@ -308,6 +412,7 @@ const bracket = config(
     bracket: "winners",
     round: 1,
     order: 0,
+    sequence: 0,
     matchNumber: "1",
     slots: [
       { kind: "entry", entryId: "e1" },
@@ -319,6 +424,7 @@ const bracket = config(
     bracket: "winners",
     round: 1,
     order: 1,
+    sequence: 1,
     matchNumber: "2",
     slots: [
       { kind: "entry", entryId: "e3" },
@@ -330,6 +436,7 @@ const bracket = config(
     bracket: "winners",
     round: 2,
     order: 0,
+    sequence: 2,
     matchNumber: "3",
     slots: [
       { kind: "winnerOf", matchId: "m1" },
@@ -361,6 +468,7 @@ describe("reachableEntryIds", () => {
         bracket: "winners",
         round: 1,
         order: 0,
+        sequence: 0,
         matchNumber: "1",
         slots: [
           { kind: "entry", entryId: "e1" },
@@ -372,6 +480,7 @@ describe("reachableEntryIds", () => {
         bracket: "losers",
         round: 2,
         order: 0,
+        sequence: 1,
         matchNumber: "2",
         slots: [{ kind: "loserOf", matchId: "w1" }, { kind: "bye" }],
       },

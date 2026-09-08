@@ -241,3 +241,118 @@ describe("LoginForm の GA イベント", () => {
     expect(trackEvent).not.toHaveBeenCalled();
   });
 });
+
+describe("LoginForm の成功後の遷移", () => {
+  beforeEach(() => {
+    signInEmail.mockReset();
+    signInUsername.mockReset();
+    signInSocial.mockReset();
+    push.mockClear();
+    refresh.mockClear();
+  });
+
+  it("redirect クエリがあってもログイン成功後は / へ遷移する", async () => {
+    signInEmail.mockResolvedValue({ error: null });
+    render(<LoginForm redirectTo="/orgs" />);
+
+    fireEvent.change(screen.getByLabelText("ユーザー名またはメールアドレス"), {
+      target: { value: "user@example.com" },
+    });
+    fireEvent.change(screen.getByLabelText("パスワード"), {
+      target: { value: "password123" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "ログイン" }));
+
+    await waitFor(() => expect(push).toHaveBeenCalledWith("/"));
+  });
+
+  it("Google ログインも / を callbackURL にする", async () => {
+    signInSocial.mockResolvedValue({ error: null });
+    render(<LoginForm redirectTo="/orgs" />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Google でログイン" }));
+
+    await waitFor(() =>
+      expect(signInSocial).toHaveBeenCalledWith(
+        expect.objectContaining({ callbackURL: "/" }),
+      ),
+    );
+  });
+});
+
+describe("LoginForm の入力保持", () => {
+  beforeEach(() => {
+    signInEmail.mockReset();
+    signInUsername.mockReset();
+    signInSocial.mockReset();
+    push.mockClear();
+    refresh.mockClear();
+  });
+
+  it("ログイン失敗後もユーザー名を残す", async () => {
+    signInEmail.mockResolvedValue({ error: { code: "INVALID_PASSWORD" } });
+    render(<LoginForm redirectTo="/" />);
+
+    const identifier = screen.getByLabelText("ユーザー名またはメールアドレス");
+    fireEvent.change(identifier, { target: { value: "user@example.com" } });
+    fireEvent.change(screen.getByLabelText("パスワード"), {
+      target: { value: "password123" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "ログイン" }));
+
+    await screen.findByRole("alert");
+
+    // React の form action は完了後にフォームをリセットする（jsdom では
+    // 自動で起きないため明示的に発火させる）。制御していない入力は
+    // ここで空に戻り、失敗のたびに再入力を強いられる。
+    fireEvent.reset(identifier.closest("form") as HTMLFormElement);
+    expect(identifier).toHaveValue("user@example.com");
+  });
+});
+
+describe("LoginForm のパスワード表示切り替え", () => {
+  it("ボタンでパスワードの表示と非表示を切り替える", () => {
+    render(<LoginForm redirectTo="/" />);
+
+    const password = screen.getByLabelText("パスワード");
+    expect(password).toHaveAttribute("type", "password");
+
+    fireEvent.click(screen.getByRole("button", { name: "パスワードを表示" }));
+    expect(password).toHaveAttribute("type", "text");
+
+    fireEvent.click(screen.getByRole("button", { name: "パスワードを非表示" }));
+    expect(password).toHaveAttribute("type", "password");
+  });
+});
+
+describe("LoginForm のパスワードリセット導線", () => {
+  it("申請画面へのリンクを出す", () => {
+    render(<LoginForm redirectTo="/" />);
+
+    expect(
+      screen.getByRole("link", { name: "パスワードをお忘れですか？" }),
+    ).toHaveAttribute("href", "/forgot-password");
+  });
+
+  it("reset が真なら再設定完了の案内を出す", () => {
+    render(<LoginForm redirectTo="/" reset />);
+
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "パスワードを再設定しました",
+    );
+  });
+
+  it("reset が偽なら案内を出さない", () => {
+    render(<LoginForm redirectTo="/" />);
+
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+  });
+
+  it("確認メールの案内が優先される", () => {
+    // 両方のクエリが同時に付く経路は無いが、付いた場合に 2 つの案内が
+    // 重ならないことを固定しておく。
+    render(<LoginForm redirectTo="/" verified reset />);
+
+    expect(screen.getByRole("status")).toHaveTextContent("登録が完了しました");
+  });
+});

@@ -55,6 +55,7 @@ export const validateEntries = (
 /**
  * 組み合わせの整合性を検証する（spec のルール 4〜6）。
  * 参照先の round が自分より必ず小さいことを課すため、循環は構造的に起きない。
+ * あわせて sequence が 0 からの連番になっていることも検証する。
  */
 export const validateMatchingConfig = (
   config: MatchingConfig,
@@ -78,6 +79,18 @@ export const validateMatchingConfig = (
     if (match.matchNumber === "") {
       errors.push(`${match.id}: matchNumber が空です`);
     }
+  }
+
+  // 実施順は 0 から抜けなく並んでいなければならない。読み出し（parse.ts）が
+  // 常にこの形へ正規化するため、ここで捕まえるのは書き込み側（生成・並べ替え）の
+  // 不具合。保存の直前にだけ効く網として置く。
+  const sequences = matches
+    .map((match) => match.sequence)
+    .sort((left, right) => left - right);
+  if (sequences.some((sequence, index) => sequence !== index)) {
+    errors.push(
+      `matchingConfig.matches[].sequence が 0 からの連番ではありません: ${sequences.join(", ")}`,
+    );
   }
 
   const entryIds = new Set(entries.entries.map((entry) => entry.id));

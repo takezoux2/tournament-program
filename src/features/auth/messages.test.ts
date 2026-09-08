@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { toAuthError } from "@/shared/errors/auth-error";
+import { InvalidResetToken, toAuthError } from "@/shared/errors/auth-error";
 import { authErrorMessage } from "./messages";
 
 describe("authErrorMessage", () => {
@@ -49,6 +49,17 @@ describe("authErrorMessage", () => {
   it("未知の失敗は汎用文言にする", () => {
     expect(authErrorMessage(toAuthError(undefined, new Error("boom")))).toBe(
       "処理に失敗しました。時間をおいて再度お試しください",
+    );
+  });
+
+  it("InvalidResetToken には再申請を促す文言を返す", () => {
+    const message = authErrorMessage(
+      new InvalidResetToken({ code: "INVALID_TOKEN" }),
+    );
+    // password-reset/domain.ts の resetTokenState と文言を 1 つに揃えて
+    // いるため、他のケースと同じく完全一致で固定する。
+    expect(message).toBe(
+      "リンクが無効か期限切れです。お手数ですが再度お申し込みください",
     );
   });
 });

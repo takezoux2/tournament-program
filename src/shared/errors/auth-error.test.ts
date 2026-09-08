@@ -88,4 +88,10 @@ describe("toAuthError", () => {
       "PASSWORD_TOO_SHORT",
     );
   });
+
+  it("INVALID_TOKEN を InvalidResetToken に写す", () => {
+    const error = toAuthError("INVALID_TOKEN", undefined);
+    expect(error._tag).toBe("InvalidResetToken");
+    expect(error).toMatchObject({ code: "INVALID_TOKEN" });
+  });
 });
