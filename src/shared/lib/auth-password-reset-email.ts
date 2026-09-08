@@ -1,6 +1,6 @@
-import { greetingNameOf } from "@/shared/lib/mail/greeting";
 import type { MailAddress, MailMessage } from "@/shared/lib/mail/types";
 import { escapeHtml } from "./html-escape";
+import { greetingNameOf } from "./mail/greeting";
 import { PASSWORD_RESET_LINK_EXPIRES_LABEL } from "./password-reset-policy";
 
 export const PASSWORD_RESET_EMAIL_SUBJECT = "【大会運営】パスワードの再設定";
