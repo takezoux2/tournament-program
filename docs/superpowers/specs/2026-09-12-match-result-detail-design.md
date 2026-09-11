@@ -305,12 +305,21 @@ export const formatScore = (value: number | null): string | null;
 | `features/division/repository.ts` | `DivisionDetail` に `resultConfig: unknown` を足し、`select` に含める |
 | `features/schedule/types.ts` | `ScheduleDivision` に `resultConfig: DivisionResultConfig` を足す |
 | `features/schedule/repository.ts` | `resultConfig` を選んで `parseDivisionResultConfig` に通す |
-| `features/schedule/result-rows.ts` | `ResultRowView`（match）に `resultConfig` と `winReason` / `scores` / `note` を足す |
+| `features/schedule/result-rows.ts` | `ResultRowView`（match）に `resultConfig` と `winReason` / `scores` / `note` を、divider に `startsAt` を足す |
 | `features/bracket/from-division.ts` | `MatchResult` に `winReason` / `scores` / `note` を載せ、`resultConfig` も渡す |
 | `features/bracket/resolve-bracket.ts` | `ResolvedMatch` に同じ 3 項目と、スロットごとの集計スコアを載せる |
 
 ブラケット側の参加者 id は `DivisionEntry.id` なので、`scores` の `entryId` はそのまま
 スロットに対応づけられる（変換表は要らない）。
+
+`ResultRowView` の区切り行が `startsAt` を持っていないのは、結果入力に時刻が要らないため
+だった。(d) で公開の試合一覧をこの型に移すと区切りの開始予定時刻が消えてしまうので、
+`ScheduleRowView` と同じく `Date | null` を素のまま載せる（書式化は画面側の仕事）。
+
+`revalidate.ts` の `revalidateDivisionResults` に公開ページ（`/t/[tournamentId]/schedule` と
+`/t/[tournamentId]/divisions/[divisionId]`）を足す。公開ブラケットは今も結果を出しているのに
+再検証の対象から漏れており、(d) を足すとその取りこぼしが目に見えるようになる。
+`record-result` も同じ関数を呼ぶので、既存の勝敗入力もあわせて直る。
 
 ## エラー
 
@@ -318,6 +327,10 @@ export const formatScore = (value: number | null): string | null;
 
 - `DivisionResultNotRecordedError` — 勝敗が未記録の試合に詳細を保存しようとした。
   文言は「先に勝敗を記録してください」。
+- `DivisionWinReasonNotAllowedError` — 選択肢にも現在の記録にも無い勝因を保存しようとした。
+  文言は「その勝因は選べません。画面を再読み込みしてください」。この判定には DB 側の
+  `resultConfig.winReason.options` と現在の記録の両方が要るので Zod では書けず、repository で
+  行う。したがって入力エラーではなくドメインエラーになる。
 
 `messages.ts` の対応表にも追加する（Record のキーが網羅されているので、足し忘れは
 コンパイルエラーになる）。
