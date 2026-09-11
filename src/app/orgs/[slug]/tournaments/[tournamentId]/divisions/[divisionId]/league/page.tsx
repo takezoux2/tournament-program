@@ -8,6 +8,7 @@ import { reorderEntryAction } from "@/features/division/reorder-entry/handler";
 import { reorderMatchesAction } from "@/features/division/reorder-matches/handler";
 import {
   findDivisionInTournament,
+  listOverallOrderSources,
   listParticipantsInTournament,
 } from "@/features/division/repository";
 import { setMatchNameAction } from "@/features/division/set-match-name/handler";
@@ -24,12 +25,14 @@ export default async function LeagueSetupPage({
 
   // 詳細ページと違い、参加者とメンバーを常に引く。この画面は
   // ROUND_ROBIN を編集するために開くもので、どちらも必ず使うため。
-  const [tournament, division, participants, members] = await Promise.all([
-    findTournamentInOrganization(organization.id, tournamentId),
-    findDivisionInTournament(organization.id, tournamentId, divisionId),
-    listParticipantsInTournament(organization.id, tournamentId),
-    listMembersInOrganization(organization.id),
-  ]);
+  const [tournament, division, participants, members, overallSeq] =
+    await Promise.all([
+      findTournamentInOrganization(organization.id, tournamentId),
+      findDivisionInTournament(organization.id, tournamentId, divisionId),
+      listParticipantsInTournament(organization.id, tournamentId),
+      listMembersInOrganization(organization.id),
+      listOverallOrderSources(tournamentId),
+    ]);
   if (!tournament || !division) {
     notFound();
   }
@@ -70,6 +73,7 @@ export default async function LeagueSetupPage({
           members={members}
           slug={slug}
           tournamentId={tournament.id}
+          overallSeq={overallSeq}
           actions={{
             addEntry: addEntryAction,
             removeEntry: removeEntryAction,

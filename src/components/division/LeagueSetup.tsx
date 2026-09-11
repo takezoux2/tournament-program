@@ -8,6 +8,7 @@ import { isRoundRobinShape } from "@/features/division/round-robin/build";
 import { toCrossTableView } from "@/features/division/round-robin/view";
 import type { DivisionFormAction } from "@/features/division/state";
 import type { MemberSummary } from "@/features/organization/repository";
+import { resolveMatchNames } from "@/lib/division/match-name";
 import {
   parseDivisionEntries,
   parseDivisionResults,
@@ -41,6 +42,7 @@ export function LeagueSetup({
   slug,
   tournamentId,
   actions,
+  overallSeq,
 }: {
   division: DivisionDetail;
   participants: DivisionParticipant[];
@@ -48,6 +50,8 @@ export function LeagueSetup({
   slug: string;
   tournamentId: string;
   actions: LeagueSetupActions;
+  /** 大会全体の通し番号。{{OverallSeq}} の展開に使う */
+  overallSeq: ReadonlyMap<string, number>;
 }) {
   // ページ側でも弾いているが、この画面はリーグ専用であることを型より外でも守る。
   if (division.format !== "ROUND_ROBIN") {
@@ -95,6 +99,14 @@ export function LeagueSetup({
   // 持ったままリーグになった部門が存在しうる。その木を星取表として
   // 描くと嘘になるため、作り直しを促すだけにする。
   const mismatched = !isRoundRobinShape(parsed.matchingConfig);
+
+  // 星取表と実施順の一覧の両方が同じ展開結果を使う。呼び出しごとに作ると
+  // 同じ試合の名前が食い違って出かねないので、1 回だけ作って両方に渡す。
+  const matchNames = resolveMatchNames(
+    parsed.matchingConfig,
+    division.id,
+    overallSeq,
+  );
 
   return (
     <div className="space-y-6">
@@ -147,6 +159,7 @@ export function LeagueSetup({
               parsed.matchingConfig,
               parsed.entries,
               participants,
+              matchNames,
             )}
           />
         )}
@@ -164,6 +177,7 @@ export function LeagueSetup({
               parsed.entries,
               participants,
               division.format,
+              matchNames,
             )}
             slug={slug}
             tournamentId={tournamentId}

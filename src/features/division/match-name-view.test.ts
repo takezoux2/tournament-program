@@ -27,6 +27,8 @@ const config = buildFromSlots([
   { kind: "entry", entryId: "e4" },
 ]);
 
+const noNames = new Map<string, string>();
+
 describe("toMatchOrderView", () => {
   it("配列の順（＝実施順）のまま行にする", () => {
     const rows = toMatchOrderView(
@@ -34,6 +36,7 @@ describe("toMatchOrderView", () => {
       entries,
       participants,
       "SINGLE_ELIMINATION",
+      noNames,
     );
 
     expect(rows.map((row) => row.matchId)).toEqual(["m1-0", "m1-1", "m2-0"]);
@@ -56,6 +59,7 @@ describe("toMatchOrderView", () => {
       entries,
       participants,
       "SINGLE_ELIMINATION",
+      noNames,
     );
 
     expect(rows.map((row) => row.matchId)).toEqual(["m2-0", "m1-0", "m1-1"]);
@@ -67,6 +71,7 @@ describe("toMatchOrderView", () => {
       entries,
       participants,
       "SINGLE_ELIMINATION",
+      noNames,
     );
 
     expect(row).toEqual({
@@ -78,8 +83,26 @@ describe("toMatchOrderView", () => {
   });
 
   it("名前を引けない参加者は（不明な参加者）として出す", () => {
-    const [row] = toMatchOrderView(config, entries, [], "SINGLE_ELIMINATION");
+    const [row] = toMatchOrderView(
+      config,
+      entries,
+      [],
+      "SINGLE_ELIMINATION",
+      noNames,
+    );
 
     expect(row.card).toBe("（不明な参加者） vs （不明な参加者）");
+  });
+
+  it("渡された展開済みの試合名を行に載せる", () => {
+    const rows = toMatchOrderView(
+      config,
+      entries,
+      participants,
+      "SINGLE_ELIMINATION",
+      new Map([["m1-0", "第9試合"]]),
+    );
+
+    expect(rows[0].matchName).toBe("第9試合");
   });
 });

@@ -20,10 +20,11 @@ const participants = [
 ];
 
 const config = buildRoundRobin(list);
+const noNames = new Map<string, string>();
 
 describe("toCrossTableView", () => {
   it("見出しはシード順のエントリー", () => {
-    const table = toCrossTableView(config, entries, participants);
+    const table = toCrossTableView(config, entries, participants, noNames);
     expect(table.headers.map((header) => header.label)).toEqual([
       "山田",
       "佐藤",
@@ -39,13 +40,13 @@ describe("toCrossTableView", () => {
   });
 
   it("対角は self", () => {
-    const table = toCrossTableView(config, entries, participants);
+    const table = toCrossTableView(config, entries, participants, noNames);
     expect(table.rows[0].cells[0]).toEqual({ kind: "self" });
     expect(table.rows[2].cells[2]).toEqual({ kind: "self" });
   });
 
   it("対戦がある組には試合名が入り、左右対称になる", () => {
-    const table = toCrossTableView(config, entries, participants);
+    const table = toCrossTableView(config, entries, participants, noNames);
     // e1 vs e4 は第1試合 = 通し番号 1。
     expect(table.rows[0].cells[3]).toEqual({ kind: "match", matchName: "1" });
     expect(table.rows[3].cells[0]).toEqual({ kind: "match", matchName: "1" });
@@ -56,6 +57,7 @@ describe("toCrossTableView", () => {
       { version: 1, matches: [] },
       entries,
       participants,
+      noNames,
     );
     expect(table.rows[0].cells[1]).toEqual({ kind: "none" });
   });
@@ -65,8 +67,34 @@ describe("toCrossTableView", () => {
       { version: 1, matches: [] },
       { version: 1, entries: [] },
       participants,
+      noNames,
     );
     expect(table.headers).toEqual([]);
     expect(table.rows).toEqual([]);
+  });
+
+  it("渡された展開済みの試合名をマスに載せる", () => {
+    const matchId = config.matches.find(
+      (match) =>
+        match.slots[0].kind === "entry" &&
+        match.slots[0].entryId === "e1" &&
+        match.slots[1].kind === "entry" &&
+        match.slots[1].entryId === "e4",
+    )?.id;
+    if (matchId === undefined) {
+      throw new Error("e1 vs e4 の試合が見つからない");
+    }
+
+    const table = toCrossTableView(
+      config,
+      entries,
+      participants,
+      new Map([[matchId, "第9試合"]]),
+    );
+
+    expect(table.rows[0].cells[3]).toEqual({
+      kind: "match",
+      matchName: "第9試合",
+    });
   });
 });

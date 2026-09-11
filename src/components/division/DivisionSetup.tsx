@@ -8,6 +8,7 @@ import { isSingleEliminationShape } from "@/features/division/single-elimination
 import { toSetupView } from "@/features/division/single-elimination/view";
 import type { DivisionFormAction } from "@/features/division/state";
 import type { MemberSummary } from "@/features/organization/repository";
+import { resolveMatchNames } from "@/lib/division/match-name";
 import {
   parseDivisionEntries,
   parseDivisionResults,
@@ -39,6 +40,7 @@ export function DivisionSetup({
   slug,
   tournamentId,
   actions,
+  overallSeq,
 }: {
   division: DivisionDetail;
   participants: DivisionParticipant[];
@@ -46,6 +48,8 @@ export function DivisionSetup({
   slug: string;
   tournamentId: string;
   actions: DivisionSetupActions;
+  /** 大会全体の通し番号。{{OverallSeq}} の展開に使う */
+  overallSeq: ReadonlyMap<string, number>;
 }) {
   // ページ側で弾いているため実際には届かないが、防御的にこの画面が
   // トーナメント専用であることを型より外でも守っておく。リーグの
@@ -167,6 +171,7 @@ export function DivisionSetup({
               parsed.entries,
               participants,
               division.format,
+              resolveMatchNames(parsed.matchingConfig, division.id, overallSeq),
             )}
             slug={slug}
             tournamentId={tournamentId}

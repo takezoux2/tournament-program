@@ -1,6 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import type { DivisionDetail } from "@/features/division/repository";
+import { overallSeqKey } from "@/lib/division/overall-order";
 import { DivisionSetup } from "./DivisionSetup";
 
 // ブラケットの組み立てまでは踏み込まないので、区画ごと差し替える。
@@ -40,6 +41,7 @@ const props = {
   participants: [],
   members: [],
   actions,
+  overallSeq: new Map<string, number>(),
 };
 
 describe("DivisionSetup", () => {
@@ -134,6 +136,38 @@ describe("DivisionSetup", () => {
     expect(
       screen.getByRole("button", { name: "組み合わせを生成" }),
     ).toBeInTheDocument();
+  });
+
+  it("overallSeq から展開した試合名を実施順の入力欄に出す", () => {
+    // {{OverallSeq}} は大会全体を見ないと決まらないので、resolveMatchNames が
+    // overallSeq props から展開した結果が MatchOrderList まで届くことを、
+    // 入力欄の値（defaultValue）で確かめる。
+    render(
+      <DivisionSetup
+        {...props}
+        overallSeq={new Map([[overallSeqKey("d1", "m1-0"), 3]])}
+        division={division({
+          matchingConfig: {
+            version: 1,
+            matches: [
+              {
+                id: "m1-0",
+                bracket: "winners",
+                round: 1,
+                order: 0,
+                sequence: 0,
+                matchName: "第{{OverallSeq}}試合",
+                slots: [{ kind: "bye" }, { kind: "bye" }],
+              },
+            ],
+          },
+        })}
+      />,
+    );
+
+    expect(screen.getByLabelText("1回戦 第1試合の試合名")).toHaveValue(
+      "第3試合",
+    );
   });
 
   it("Json が壊れていてもページを落とさない", () => {

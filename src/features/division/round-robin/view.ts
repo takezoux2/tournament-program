@@ -39,6 +39,8 @@ export const toCrossTableView = (
   config: MatchingConfig,
   entries: DivisionEntries,
   participants: { id: string; name: string }[],
+  /** 展開済みの試合名。{{OverallSeq}} は大会全体を見ないと決まらないので上で作って渡す */
+  matchNames: ReadonlyMap<string, string>,
 ): CrossTableView => {
   const headers = labeledEntries(entries, participants);
 
@@ -49,7 +51,11 @@ export const toCrossTableView = (
   for (const match of config.matches) {
     const [first, second] = match.slots;
     if (first.kind === "entry" && second.kind === "entry") {
-      nameByPair.set(pairKey(first.entryId, second.entryId), match.matchName);
+      nameByPair.set(
+        pairKey(first.entryId, second.entryId),
+        // 展開に失敗する経路は無いが、引けなければテンプレートをそのまま出す。
+        matchNames.get(match.id) ?? match.matchName,
+      );
     }
   }
 

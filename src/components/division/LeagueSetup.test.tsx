@@ -49,6 +49,7 @@ const props = {
   ],
   members: [],
   actions,
+  overallSeq: new Map<string, number>(),
 };
 
 describe("LeagueSetup", () => {

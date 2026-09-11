@@ -10,6 +10,7 @@ const findTournamentInOrganization = vi.fn();
 const findDivisionInTournament = vi.fn();
 const listParticipantsInTournament = vi.fn();
 const listMembersInOrganization = vi.fn();
+const listOverallOrderSources = vi.fn();
 const notFound = vi.fn(() => {
   throw new Error("NEXT_NOT_FOUND");
 });
@@ -37,6 +38,8 @@ vi.mock("@/features/division/repository", () => ({
     organizationId: string,
     tournamentId: string,
   ) => listParticipantsInTournament(organizationId, tournamentId),
+  listOverallOrderSources: (tournamentId: string) =>
+    listOverallOrderSources(tournamentId),
 }));
 
 vi.mock("@/features/organization/repository", () => ({
@@ -133,6 +136,7 @@ beforeEach(() => {
   findDivisionInTournament.mockReset();
   listParticipantsInTournament.mockReset();
   listMembersInOrganization.mockReset();
+  listOverallOrderSources.mockReset();
   notFound.mockClear();
 
   requireOrganization.mockResolvedValue({
@@ -146,6 +150,7 @@ beforeEach(() => {
   findDivisionInTournament.mockResolvedValue(division);
   listParticipantsInTournament.mockResolvedValue([]);
   listMembersInOrganization.mockResolvedValue([]);
+  listOverallOrderSources.mockResolvedValue(new Map());
   divisionSetupProps.mockClear();
 });
 
@@ -189,6 +194,20 @@ describe("DivisionSetupPage", () => {
     await expect(DivisionSetupPage(pageProps())).rejects.toThrow(
       "NEXT_NOT_FOUND",
     );
+  });
+
+  it("大会 id で通し番号を読み、DivisionSetup にそのまま渡す", async () => {
+    const overallSeq = new Map([["d1:m1-0", 1]]);
+    listOverallOrderSources.mockResolvedValue(overallSeq);
+
+    render(await DivisionSetupPage(pageProps()));
+
+    expect(listOverallOrderSources).toHaveBeenCalledWith("t1");
+    expect(divisionSetupProps).toHaveBeenCalledTimes(1);
+    const { overallSeq: passed } = divisionSetupProps.mock.calls[0][0] as {
+      overallSeq: unknown;
+    };
+    expect(passed).toBe(overallSeq);
   });
 
   it("8 つの Server Action をそれぞれ対応する actions のプロパティに渡す", async () => {

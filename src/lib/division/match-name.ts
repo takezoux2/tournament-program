@@ -1,4 +1,6 @@
 import Mustache from "mustache";
+import { overallSeqKey } from "./overall-order";
+import type { MatchingConfig } from "./types";
 
 /**
  * 生成直後の試合名。テンプレートなので、並べ替えて実施順が変わると
@@ -34,3 +36,26 @@ export const renderMatchName = (
     return template;
   }
 };
+
+/**
+ * 部門の全試合を展開して「試合 id → 表示名」の対照表にする。
+ *
+ * 通し番号の表が大会全体のキー（部門 id と組）で引くのに対し、
+ * 画面は部門 1 つの中で試合 id だけを持って引きたい。その差をここで吸収する。
+ * 通し番号を引けない試合（通常は起きない）は OverallSeq を 0 にして、
+ * 名前を作れないことより「0 と出る」ほうに倒す。一覧を落とさない。
+ */
+export const resolveMatchNames = (
+  config: MatchingConfig,
+  divisionId: string,
+  overallSeq: ReadonlyMap<string, number>,
+): Map<string, string> =>
+  new Map(
+    config.matches.map((match) => [
+      match.id,
+      renderMatchName(match.matchName, {
+        OverallSeq: overallSeq.get(overallSeqKey(divisionId, match.id)) ?? 0,
+        DivisionSeq: match.sequence + 1,
+      }),
+    ]),
+  );

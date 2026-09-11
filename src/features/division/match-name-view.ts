@@ -37,12 +37,15 @@ export const toMatchOrderView = (
   entries: DivisionEntries,
   participants: { id: string; name: string }[],
   format: DivisionFormat,
+  /** 展開済みの試合名。{{OverallSeq}} は大会全体を見ないと決まらないので上で作って渡す */
+  matchNames: ReadonlyMap<string, string>,
 ): MatchNameRowView[] => {
   const labelSlot = createSlotLabeler(config, entries, participants);
 
   return config.matches.map((match) => ({
     matchId: match.id,
-    matchName: match.matchName,
+    // 展開に失敗する経路は無いが、引けなければテンプレートをそのまま出す。
+    matchName: matchNames.get(match.id) ?? match.matchName,
     label: matchPositionLabel(match, format),
     card: matchCardLabel(match, labelSlot),
   }));

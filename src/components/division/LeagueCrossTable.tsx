@@ -9,7 +9,9 @@ const cellText = (cell: CrossTableCell): string => {
     case "self":
       return "—";
     case "match":
-      return `第${cell.matchName}試合`;
+      // 通し番号の展開は toCrossTableView 側で済んでいるので、ここでは
+      // 「第◯試合」の飾りは付けずマスの値をそのまま出す。
+      return cell.matchName;
     case "none":
       return "";
   }

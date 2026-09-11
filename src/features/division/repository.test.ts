@@ -1,8 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { overallSeqKey } from "@/lib/division/overall-order";
 
 const findMany = vi.fn();
 const findFirst = vi.fn();
 const participantFindMany = vi.fn();
+const scheduleItemFindMany = vi.fn();
 
 vi.mock("@/shared/db/prisma", () => ({
   prisma: {
@@ -13,12 +15,16 @@ vi.mock("@/shared/db/prisma", () => ({
     participant: {
       findMany: (args: unknown) => participantFindMany(args),
     },
+    scheduleItem: {
+      findMany: (args: unknown) => scheduleItemFindMany(args),
+    },
   },
 }));
 
 const {
   findDivisionInTournament,
   listDivisionsInTournament,
+  listOverallOrderSources,
   listParticipantsInTournament,
 } = await import("./repository");
 
@@ -26,6 +32,7 @@ beforeEach(() => {
   findMany.mockReset();
   findFirst.mockReset();
   participantFindMany.mockReset();
+  scheduleItemFindMany.mockReset();
 });
 
 describe("listDivisionsInTournament", () => {
@@ -118,5 +125,114 @@ describe("listParticipantsInTournament", () => {
         team: undefined,
       },
     ]);
+  });
+});
+
+describe("listOverallOrderSources", () => {
+  it("大会 id だけで部門と進行順を読み、通し番号の対照表を返す", async () => {
+    findMany.mockResolvedValue([
+      {
+        id: "d1",
+        order: 0,
+        matchingConfig: {
+          version: 1,
+          matches: [
+            {
+              id: "m1",
+              bracket: "winners",
+              round: 1,
+              order: 0,
+              sequence: 0,
+              matchName: "1",
+              slots: [{ kind: "bye" }, { kind: "bye" }],
+            },
+          ],
+        },
+      },
+    ]);
+    scheduleItemFindMany.mockResolvedValue([
+      { divisionId: "d1", matchId: "m1" },
+    ]);
+
+    const overallSeq = await listOverallOrderSources("t1");
+
+    // 大会 id だけを where に入れる。所有権の絞り込みは呼び出し側のページが
+    // 既に確立しているため、ここでは持たない。
+    expect(findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { tournamentId: "t1" },
+        orderBy: { order: "asc" },
+      }),
+    );
+    expect(scheduleItemFindMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { tournamentId: "t1", kind: "MATCH" },
+        orderBy: { order: "asc" },
+      }),
+    );
+    expect(overallSeq.get(overallSeqKey("d1", "m1"))).toBe(1);
+  });
+
+  it("matchingConfig が壊れている部門は試合ゼロとして扱い、他の部門は落とさない", async () => {
+    findMany.mockResolvedValue([
+      { id: "d1", order: 0, matchingConfig: "壊れた値" },
+      {
+        id: "d2",
+        order: 1,
+        matchingConfig: {
+          version: 1,
+          matches: [
+            {
+              id: "m1",
+              bracket: "winners",
+              round: 1,
+              order: 0,
+              sequence: 0,
+              matchName: "1",
+              slots: [{ kind: "bye" }, { kind: "bye" }],
+            },
+          ],
+        },
+      },
+    ]);
+    scheduleItemFindMany.mockResolvedValue([]);
+
+    const overallSeq = await listOverallOrderSources("t1");
+
+    expect(overallSeq.get(overallSeqKey("d1", "m1"))).toBeUndefined();
+    expect(overallSeq.get(overallSeqKey("d2", "m1"))).toBe(1);
+  });
+
+  it("divisionId か matchId が null の進行順の行は落とす", async () => {
+    findMany.mockResolvedValue([
+      {
+        id: "d1",
+        order: 0,
+        matchingConfig: {
+          version: 1,
+          matches: [
+            {
+              id: "m1",
+              bracket: "winners",
+              round: 1,
+              order: 0,
+              sequence: 0,
+              matchName: "1",
+              slots: [{ kind: "bye" }, { kind: "bye" }],
+            },
+          ],
+        },
+      },
+    ]);
+    // DIVIDER 行はこの select には出てこないはずだが、防御的に null も混ぜる。
+    scheduleItemFindMany.mockResolvedValue([
+      { divisionId: null, matchId: null },
+    ]);
+
+    const overallSeq = await listOverallOrderSources("t1");
+
+    // 保存された並びを使わない場合でも、部門内の実施順から末尾に足されるので
+    // 通し番号自体は付く。
+    expect(overallSeq.get(overallSeqKey("d1", "m1"))).toBe(1);
   });
 });
