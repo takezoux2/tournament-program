@@ -4,6 +4,12 @@ import {
   matchCardLabel,
   matchPositionLabel,
 } from "@/lib/division/label";
+import { renderMatchName } from "@/lib/division/match-name";
+import {
+  buildOverallSeq,
+  type OverallOrderDivision,
+  overallSeqKey,
+} from "@/lib/division/overall-order";
 import type {
   ScheduleDivision,
   ScheduleItemRecord,
@@ -39,39 +45,53 @@ const dividerRow = (divider: {
 });
 
 /**
- * 全部門の試合を、部門の order 昇順 → 部門内の実施順で並べた行にする。
- * 行を持たない試合を末尾へ足すときの「決定的な順」がこれで、
- * 保存の有無にかかわらず同じ入力からは同じ並びになる。
+ * 全部門の試合を行にする。並び順は buildOverallSeq が決めた通し番号の昇順で、
+ * この関数は自分では並びを決めない。並びの規則を 2 箇所に書くとずれるため。
  *
- * 部門内は並べ替えない。matchingConfig.matches は parseMatchingConfig が
- * sequence 昇順で返しており、それが部門の編集画面で運営者が決めた実施順そのもの。
+ * 試合名はここで展開する。{{OverallSeq}} は大会全体を見ないと決まらないので、
+ * 部門だけを見ている下流では展開できない。
  */
 const buildMatchRows = (
   divisions: ScheduleDivision[],
   participants: ScheduleParticipant[],
-): ScheduleRowView[] =>
-  [...divisions]
-    .sort((left, right) => left.order - right.order)
-    .flatMap((division) => {
-      const labelSlot = createSlotLabeler(
-        division.matchingConfig,
-        division.entries,
-        participants,
-      );
+  overallSeq: Map<string, number>,
+): ScheduleRowView[] => {
+  const rows: { row: ScheduleRowView; seq: number }[] = [];
 
-      return division.matchingConfig.matches.map(
-        (match): ScheduleRowView => ({
+  for (const division of divisions) {
+    const labelSlot = createSlotLabeler(
+      division.matchingConfig,
+      division.entries,
+      participants,
+    );
+
+    for (const match of division.matchingConfig.matches) {
+      const seq = overallSeq.get(overallSeqKey(division.id, match.id)) ?? 0;
+      rows.push({
+        seq,
+        row: {
           kind: "match",
           key: matchKey(division.id, match.id),
           divisionId: division.id,
           divisionName: division.name,
           matchId: match.id,
-          matchName: match.matchName,
+          matchName: renderMatchName(match.matchName, {
+            OverallSeq: seq,
+            DivisionSeq: match.sequence + 1,
+          }),
           label: matchPositionLabel(match, division.format),
           card: matchCardLabel(match, labelSlot),
-        }),
-      );
-    });
+        },
+      });
+    }
+  }
+
+  // 並びは buildOverallSeq が決めた通し番号そのもの。部門 order による
+  // 並べ替えをここで持たないのは、規則を 1 箇所に閉じ込めるため。
+  return rows
+    .sort((left, right) => left.seq - right.seq)
+    .map((item) => item.row);
+};
 
 /**
  * 保存された並びと実体をマージして一覧の行を作る。
@@ -87,7 +107,23 @@ export const buildScheduleView = (
   participants: ScheduleParticipant[],
   items: ScheduleItemRecord[],
 ): ScheduleRowView[] => {
-  const matchRows = buildMatchRows(divisions, participants);
+  const overallSeq = buildOverallSeq(
+    divisions.map(
+      (division): OverallOrderDivision => ({
+        id: division.id,
+        order: division.order,
+        // parseMatchingConfig が sequence 昇順で返すので配列順がそのまま実施順。
+        matchIds: division.matchingConfig.matches.map((match) => match.id),
+      }),
+    ),
+    items.flatMap((item) =>
+      item.kind === "match"
+        ? [{ divisionId: item.divisionId, matchId: item.matchId }]
+        : [],
+    ),
+  );
+
+  const matchRows = buildMatchRows(divisions, participants, overallSeq);
   const byKey = new Map(matchRows.map((row) => [row.key, row]));
   const placed = new Set<string>();
   const rows: ScheduleRowView[] = [];

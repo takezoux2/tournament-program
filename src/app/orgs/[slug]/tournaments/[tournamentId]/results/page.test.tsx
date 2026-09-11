@@ -75,7 +75,7 @@ describe("TournamentResultsPage", () => {
     expect(requireOrganization).toHaveBeenCalledWith("tennis");
     expect(loadResultRows).toHaveBeenCalledWith("o1", "t1");
     expect(
-      screen.getByRole("button", { name: "男子 第1試合 山田の勝ち" }),
+      screen.getByRole("button", { name: "男子 1 山田の勝ち" }),
     ).toBeInTheDocument();
   });
 

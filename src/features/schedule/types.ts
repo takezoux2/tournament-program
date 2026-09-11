@@ -43,6 +43,11 @@ export type ScheduleRowView =
       divisionId: string;
       divisionName: string;
       matchId: string;
+      /**
+       * 展開済みの表示名。{{OverallSeq}}/{{DivisionSeq}} を含むテンプレートの
+       * ままでは運ばない。{{OverallSeq}} は大会全体の通し番号が要るため、
+       * 展開できるのは全部門を見ている buildScheduleView だけ。
+       */
       matchName: string;
       /** 「1回戦 第1試合」 */
       label: string;

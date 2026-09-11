@@ -66,7 +66,7 @@ describe("PublicScheduleList", () => {
   it("試合名と対戦カードを出す", () => {
     render(<PublicScheduleList rows={rows} />);
 
-    expect(screen.getByText("第1試合")).toBeInTheDocument();
+    expect(screen.getByText("1")).toBeInTheDocument();
     expect(screen.getByText("佐藤 蓮 vs 鈴木 陽菜")).toBeInTheDocument();
   });
 

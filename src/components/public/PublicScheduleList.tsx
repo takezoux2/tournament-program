@@ -40,7 +40,7 @@ export function PublicScheduleList({ rows }: { rows: ScheduleRowView[] }) {
           >
             <p className="flex flex-wrap items-baseline gap-x-2 gap-y-1 text-sm text-slate-800">
               <span className="shrink-0 rounded bg-slate-100 px-2 py-0.5 text-xs font-bold">
-                第{row.matchName}試合
+                {row.matchName}
               </span>
               <span className="min-w-0 wrap-break-word font-medium">
                 {row.card}

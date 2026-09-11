@@ -1,7 +1,38 @@
 import { describe, expect, it } from "vitest";
-import type { MatchingConfig } from "@/lib/division/types";
+import type { BracketMatch, MatchingConfig } from "@/lib/division/types";
 import { buildScheduleView, dividerKey, matchKey, toSaveItems } from "./domain";
 import type { ScheduleDivision, ScheduleItemRecord } from "./types";
+
+/**
+ * 試合名のテスト用の最小構成。round/order/slots はブラケット表示側の関心事で
+ * このテストでは使わないため、既定値で埋めて呼び出し側からは隠す。
+ */
+const makeMatch = (
+  overrides: Partial<BracketMatch> & Pick<BracketMatch, "id">,
+): BracketMatch => ({
+  bracket: "winners",
+  round: 1,
+  order: 0,
+  sequence: 0,
+  matchName: "1",
+  slots: [{ kind: "bye" }, { kind: "bye" }],
+  ...overrides,
+});
+
+/** 試合名のテスト用の最小の部門。entries は使わないので空のまま。 */
+const makeDivision = (overrides: {
+  id: string;
+  order: number;
+  matches: BracketMatch[];
+}): ScheduleDivision => ({
+  id: overrides.id,
+  name: overrides.id,
+  order: overrides.order,
+  format: "SINGLE_ELIMINATION",
+  entries: { version: 1, entries: [] },
+  matchingConfig: { version: 1, matches: overrides.matches },
+  results: { version: 1, matches: [] },
+});
 
 const config = (
   entryIds: [string, string],
@@ -282,5 +313,76 @@ describe("toSaveItems", () => {
       { kind: "match", divisionId: "dA", matchId: "m1-0" },
       { kind: "match", divisionId: "dA", matchId: "m1-1" },
     ]);
+  });
+});
+
+describe("buildScheduleView の試合名", () => {
+  it("テンプレートを展開して行に載せる", () => {
+    const division = makeDivision({
+      id: "d1",
+      order: 0,
+      matches: [
+        makeMatch({ id: "m1", sequence: 0, matchName: "第{{OverallSeq}}試合" }),
+        makeMatch({
+          id: "m2",
+          sequence: 1,
+          matchName: "第{{DivisionSeq}}試合",
+        }),
+      ],
+    });
+
+    const rows = buildScheduleView([division], [], []);
+
+    expect(rows[0]).toMatchObject({ matchId: "m1", matchName: "第1試合" });
+    expect(rows[1]).toMatchObject({ matchId: "m2", matchName: "第2試合" });
+  });
+
+  it("OverallSeq は区切りを数えず、保存された進行順に従う", () => {
+    const division = makeDivision({
+      id: "d1",
+      order: 0,
+      matches: [
+        makeMatch({ id: "m1", sequence: 0, matchName: "{{OverallSeq}}" }),
+        makeMatch({ id: "m2", sequence: 1, matchName: "{{OverallSeq}}" }),
+      ],
+    });
+
+    const rows = buildScheduleView(
+      [division],
+      [],
+      [
+        { kind: "divider", id: "s1", label: "午前の部", startsAt: null },
+        { kind: "match", id: "s2", divisionId: "d1", matchId: "m2" },
+        { kind: "divider", id: "s3", label: "午後の部", startsAt: null },
+        { kind: "match", id: "s4", divisionId: "d1", matchId: "m1" },
+      ],
+    );
+
+    expect(
+      rows.map((row) => (row.kind === "match" ? row.matchName : row.label)),
+    ).toEqual(["午前の部", "1", "午後の部", "2"]);
+  });
+
+  it("OverallSeq は部門をまたいで通しで数える", () => {
+    const first = makeDivision({
+      id: "d1",
+      order: 0,
+      matches: [
+        makeMatch({ id: "m1", sequence: 0, matchName: "{{OverallSeq}}" }),
+      ],
+    });
+    const second = makeDivision({
+      id: "d2",
+      order: 1,
+      matches: [
+        makeMatch({ id: "n1", sequence: 0, matchName: "{{OverallSeq}}" }),
+      ],
+    });
+
+    const rows = buildScheduleView([first, second], [], []);
+
+    expect(
+      rows.map((row) => (row.kind === "match" ? row.matchName : "")),
+    ).toEqual(["1", "2"]);
   });
 });

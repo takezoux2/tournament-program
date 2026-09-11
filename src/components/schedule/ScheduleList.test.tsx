@@ -105,7 +105,7 @@ describe("ScheduleList", () => {
   it("試合行に試合名・対戦カード・部門名を出す", () => {
     renderList();
 
-    expect(screen.getByText("第1試合")).toBeInTheDocument();
+    expect(screen.getByText("1")).toBeInTheDocument();
     expect(screen.getByText("山田 vs 佐藤")).toBeInTheDocument();
     expect(
       screen.getByText("男子シングルス / 1回戦 第1試合"),
