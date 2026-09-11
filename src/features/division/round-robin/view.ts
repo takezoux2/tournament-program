@@ -21,7 +21,7 @@ const labeledEntries = (
 /** 星取表の 1 マス。 */
 export type CrossTableCell =
   | { kind: "self" }
-  | { kind: "match"; matchNumber: string }
+  | { kind: "match"; matchName: string }
   | { kind: "none" };
 
 /** 星取表の全体。headers と各 rows[].cells は同じ並び・同じ長さ。 */
@@ -31,7 +31,7 @@ export type CrossTableView = {
 };
 
 /**
- * 誰と誰が当たるかを一目で見せる表。マスには試合番号を入れる。
+ * 誰と誰が当たるかを一目で見せる表。マスには試合名を入れる。
  * 対戦の向き（どちらがスロット 0 か）は表示上の意味を持たないので、
  * 表は左右対称になる。
  */
@@ -42,17 +42,14 @@ export const toCrossTableView = (
 ): CrossTableView => {
   const headers = labeledEntries(entries, participants);
 
-  // 「エントリー 2 つの組 → 試合番号」の対照表。キーは順序を持たせない。
+  // 「エントリー 2 つの組 → 試合名」の対照表。キーは順序を持たせない。
   const pairKey = (left: string, right: string): string =>
     left < right ? `${left} ${right}` : `${right} ${left}`;
-  const numberByPair = new Map<string, string>();
+  const nameByPair = new Map<string, string>();
   for (const match of config.matches) {
     const [first, second] = match.slots;
     if (first.kind === "entry" && second.kind === "entry") {
-      numberByPair.set(
-        pairKey(first.entryId, second.entryId),
-        match.matchNumber,
-      );
+      nameByPair.set(pairKey(first.entryId, second.entryId), match.matchName);
     }
   }
 
@@ -65,12 +62,10 @@ export const toCrossTableView = (
         if (row.entryId === column.entryId) {
           return { kind: "self" };
         }
-        const matchNumber = numberByPair.get(
-          pairKey(row.entryId, column.entryId),
-        );
-        return matchNumber === undefined
+        const matchName = nameByPair.get(pairKey(row.entryId, column.entryId));
+        return matchName === undefined
           ? { kind: "none" }
-          : { kind: "match", matchNumber };
+          : { kind: "match", matchName };
       }),
     })),
   };

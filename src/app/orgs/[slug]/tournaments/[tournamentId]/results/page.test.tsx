@@ -55,7 +55,7 @@ beforeEach(() => {
       divisionId: "d1",
       divisionName: "男子",
       matchId: "m1-0",
-      matchNumber: "1",
+      matchName: "1",
       label: "1回戦 第1試合",
       slots: [
         { label: "山田", entryId: "e1" },

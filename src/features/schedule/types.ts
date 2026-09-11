@@ -43,7 +43,7 @@ export type ScheduleRowView =
       divisionId: string;
       divisionName: string;
       matchId: string;
-      matchNumber: string;
+      matchName: string;
       /** 「1回戦 第1試合」 */
       label: string;
       /** 「山田 vs 第3試合の勝者」 */

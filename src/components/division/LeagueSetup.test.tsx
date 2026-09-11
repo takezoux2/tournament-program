@@ -12,7 +12,7 @@ const actions = {
   reorderEntry: vi.fn(async () => ({ error: null })),
   generateMatching: vi.fn(async () => ({ error: null })),
   reorderMatches: vi.fn(async () => ({ error: null })),
-  setMatchNumber: vi.fn(async () => ({ error: null })),
+  setMatchName: vi.fn(async () => ({ error: null })),
   setPlayerNumber: vi.fn(async () => ({ error: null })),
 };
 
@@ -67,9 +67,9 @@ describe("LeagueSetup", () => {
     // 本物の toCrossTableView / toMatchOrderView が描かれたことの証明にならない。
     // 星取表は「第1試合」を左右対称な 2 マスに出すため、その文字列だけでは
     // 星取表のみが描かれた場合と実施順の一覧まで描かれた場合を区別できない。
-    // 実施順の一覧にしか無い試合番号の入力欄（MatchNumberRow の aria-label）を
+    // 実施順の一覧にしか無い試合名の入力欄（MatchNameRow の aria-label）を
     // 見て、本物の toMatchOrderView / MatchOrderList が描かれたことを確かめる。
-    expect(screen.getByLabelText("第1試合の試合番号")).toHaveValue("1");
+    expect(screen.getByLabelText("第1試合の試合名")).toHaveValue("1");
   });
 
   it("リーグ以外の形式は案内だけを出す", () => {
@@ -124,7 +124,7 @@ describe("LeagueSetup", () => {
                 bracket: "winners",
                 round: 2,
                 order: 0,
-                matchNumber: "3",
+                matchName: "3",
                 slots: [
                   { kind: "winnerOf", matchId: "m1-0" },
                   { kind: "winnerOf", matchId: "m1-1" },

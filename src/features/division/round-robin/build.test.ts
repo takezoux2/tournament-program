@@ -117,7 +117,7 @@ describe("buildRoundRobin", () => {
       "r1-4",
       "r1-5",
     ]);
-    expect(config.matches.map((match) => match.matchNumber)).toEqual([
+    expect(config.matches.map((match) => match.matchName)).toEqual([
       "1",
       "2",
       "3",
@@ -141,9 +141,9 @@ describe("buildRoundRobin", () => {
     ).toEqual(["e1-e4", "e2-e3", "e1-e3", "e4-e2", "e1-e2", "e3-e4"]);
   });
 
-  it("matchNumber は実施順の通し番号", () => {
+  it("matchName は実施順の通し番号", () => {
     expect(
-      buildRoundRobin(entriesOf(4)).matches.map((match) => match.matchNumber),
+      buildRoundRobin(entriesOf(4)).matches.map((match) => match.matchName),
     ).toEqual(["1", "2", "3", "4", "5", "6"]);
   });
 
@@ -213,7 +213,7 @@ describe("isRoundRobinShape", () => {
             round: 2,
             order: 0,
             sequence: 0,
-            matchNumber: "3",
+            matchName: "3",
             slots: [
               { kind: "winnerOf", matchId: "m1-0" },
               { kind: "winnerOf", matchId: "m1-1" },
@@ -235,7 +235,7 @@ describe("isRoundRobinShape", () => {
             round: 1,
             order: 0,
             sequence: 0,
-            matchNumber: "1",
+            matchName: "1",
             slots: [{ kind: "entry", entryId: "e1" }, { kind: "bye" }],
           },
         ],

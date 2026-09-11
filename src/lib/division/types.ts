@@ -41,8 +41,8 @@ export type BracketMatch = {
    * 動かすと対戦表の形が崩れるため、「何番目にやるか」は別の項に持つ。
    */
   sequence: number;
-  /** 表示用の試合番号。部門内で一意。デフォルトは round/order 順の連番 */
-  matchNumber: string;
+  /** 表示用の試合名。部門内で一意。デフォルトは round/order 順の連番 */
+  matchName: string;
   slots: [SlotSource, SlotSource];
 };
 

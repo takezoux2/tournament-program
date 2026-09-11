@@ -34,7 +34,7 @@ export type ResultRowView =
       divisionId: string;
       divisionName: string;
       matchId: string;
-      matchNumber: string;
+      matchName: string;
       /** 「1回戦 第1試合」 */
       label: string;
       slots: [ResultSlotView, ResultSlotView];
@@ -141,7 +141,7 @@ export const buildResultRows = (
         divisionId: row.divisionId,
         divisionName: row.divisionName,
         matchId: row.matchId,
-        matchNumber: row.matchNumber,
+        matchName: row.matchName,
         label: row.label,
         slots: [slotView(0), slotView(1)],
         winnerEntryId: resolved.winnerEntryId,

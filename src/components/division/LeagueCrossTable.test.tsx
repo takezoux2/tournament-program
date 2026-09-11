@@ -15,7 +15,7 @@ const table: CrossTableView = {
       label: "山田",
       cells: [
         { kind: "self" },
-        { kind: "match", matchNumber: "1" },
+        { kind: "match", matchName: "1" },
         { kind: "none" },
       ],
     },
@@ -23,9 +23,9 @@ const table: CrossTableView = {
       entryId: "e2",
       label: "佐藤",
       cells: [
-        { kind: "match", matchNumber: "1" },
+        { kind: "match", matchName: "1" },
         { kind: "self" },
-        { kind: "match", matchNumber: "2" },
+        { kind: "match", matchName: "2" },
       ],
     },
     {
@@ -33,7 +33,7 @@ const table: CrossTableView = {
       label: "鈴木",
       cells: [
         { kind: "none" },
-        { kind: "match", matchNumber: "2" },
+        { kind: "match", matchName: "2" },
         { kind: "self" },
       ],
     },
@@ -48,7 +48,7 @@ describe("LeagueCrossTable", () => {
     expect(screen.getAllByText("鈴木")).toHaveLength(2);
   });
 
-  it("対戦があるマスに試合番号を出す", () => {
+  it("対戦があるマスに試合名を出す", () => {
     render(<LeagueCrossTable table={table} />);
     // 見出し行にも「山田」が出るので、行の名前ではなく位置で選ぶ。
     const row = screen.getAllByRole("row")[1];

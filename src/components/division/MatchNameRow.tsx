@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
-import type { MatchNumberRowView } from "@/features/division/match-number-view";
+import type { MatchNameRowView } from "@/features/division/match-name-view";
 import {
   type DivisionFormAction,
   INITIAL_DIVISION_FORM_STATE,
@@ -9,21 +9,21 @@ import {
 
 /**
  * 1 行の中身。1 行 1 フォームで、useActionState を行ごとに持たせ、
- * エラーをその行の隣に出す。試合番号は組み合わせの構造を変えないため、
+ * エラーをその行の隣に出す。試合名は組み合わせの構造を変えないため、
  * 勝敗記録後も編集できる（disabled を受け取らないのは意図）。
  *
  * <li> を返さないのは、一覧側（MatchOrderList）が行の枠とドラッグハンドルを
  * 持つため。行の見た目と掴む場所を一覧に集めておくと、この部品は
- * 「試合番号を直す口」だけに集中できる。
+ * 「試合名を直す口」だけに集中できる。
  */
-export function MatchNumberRow({
+export function MatchNameRow({
   row,
   slug,
   tournamentId,
   divisionId,
   action,
 }: {
-  row: MatchNumberRowView;
+  row: MatchNameRowView;
   slug: string;
   tournamentId: string;
   divisionId: string;
@@ -48,9 +48,9 @@ export function MatchNumberRow({
         <input type="hidden" name="matchId" value={row.matchId} />
         <input
           type="text"
-          name="matchNumber"
-          defaultValue={row.matchNumber}
-          aria-label={`${row.label}の試合番号`}
+          name="matchName"
+          defaultValue={row.matchName}
+          aria-label={`${row.label}の試合名`}
           className="w-20 rounded border border-slate-300 px-2 py-1 text-sm"
         />
         <button

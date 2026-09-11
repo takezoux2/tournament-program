@@ -1,5 +1,5 @@
 import { DIVISION_FORMAT_LABELS } from "@/features/division/format";
-import { toMatchOrderView } from "@/features/division/match-number-view";
+import { toMatchOrderView } from "@/features/division/match-name-view";
 import type {
   DivisionDetail,
   DivisionParticipant,
@@ -30,7 +30,7 @@ export type LeagueSetupActions = {
   reorderEntry: DivisionFormAction;
   generateMatching: DivisionFormAction;
   reorderMatches: DivisionFormAction;
-  setMatchNumber: DivisionFormAction;
+  setMatchName: DivisionFormAction;
   setPlayerNumber: DivisionFormAction;
 };
 
@@ -169,7 +169,7 @@ export function LeagueSetup({
             tournamentId={tournamentId}
             divisionId={division.id}
             reorderAction={actions.reorderMatches}
-            setMatchNumberAction={actions.setMatchNumber}
+            setMatchNameAction={actions.setMatchName}
             emptyMessage="まだ対戦表がありません"
           />
         )}

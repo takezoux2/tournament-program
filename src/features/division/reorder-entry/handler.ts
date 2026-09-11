@@ -69,7 +69,7 @@ export const reorderEntryAction = async (
     return { error: null };
   }
 
-  // 手で変えた試合番号が消える、または組み合わせが取り消されるのは
+  // 手で変えた試合名が消える、または組み合わせが取り消されるのは
   // 驚きになりうるので、起きたことを明示する。
   const notice = REORDERED_NOTICE[exit.value.value.matching];
   return notice === null ? { error: null } : { error: null, notice };

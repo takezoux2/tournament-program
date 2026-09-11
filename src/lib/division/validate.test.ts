@@ -99,7 +99,7 @@ describe("validateMatchingConfig", () => {
           round: 1,
           order: 0,
           sequence: 0,
-          matchNumber: "1",
+          matchName: "1",
           slots: [{ kind: "entry", entryId: "e1" }, { kind: "bye" }],
         },
         {
@@ -108,7 +108,7 @@ describe("validateMatchingConfig", () => {
           round: 1,
           order: 1,
           sequence: 1,
-          matchNumber: "2",
+          matchName: "2",
           slots: [
             { kind: "entry", entryId: "e2" },
             { kind: "entry", entryId: "e3" },
@@ -120,7 +120,7 @@ describe("validateMatchingConfig", () => {
           round: 2,
           order: 0,
           sequence: 2,
-          matchNumber: "3",
+          matchName: "3",
           slots: [
             { kind: "winnerOf", matchId: "m1" },
             { kind: "winnerOf", matchId: "m2" },
@@ -142,7 +142,7 @@ describe("validateMatchingConfig", () => {
           round: 1,
           order: 0,
           sequence: 0,
-          matchNumber: "1",
+          matchName: "1",
           slots: [{ kind: "entry", entryId: "e1" }, { kind: "bye" }],
         },
         {
@@ -151,7 +151,7 @@ describe("validateMatchingConfig", () => {
           round: 1,
           order: 1,
           sequence: 1,
-          matchNumber: "2",
+          matchName: "2",
           slots: [{ kind: "entry", entryId: "e2" }, { kind: "bye" }],
         },
       ),
@@ -170,7 +170,7 @@ describe("validateMatchingConfig", () => {
         round: 1,
         order: 0,
         sequence: 0,
-        matchNumber: "1",
+        matchName: "1",
         slots: [{ kind: "entry", entryId: "ghost" }, { kind: "bye" }],
       }),
       roster,
@@ -188,7 +188,7 @@ describe("validateMatchingConfig", () => {
         round: 2,
         order: 0,
         sequence: 0,
-        matchNumber: "1",
+        matchName: "1",
         slots: [{ kind: "winnerOf", matchId: "ghost" }, { kind: "bye" }],
       }),
       roster,
@@ -207,7 +207,7 @@ describe("validateMatchingConfig", () => {
           round: 1,
           order: 0,
           sequence: 0,
-          matchNumber: "1",
+          matchName: "1",
           slots: [{ kind: "entry", entryId: "e1" }, { kind: "bye" }],
         },
         {
@@ -216,7 +216,7 @@ describe("validateMatchingConfig", () => {
           round: 1,
           order: 1,
           sequence: 1,
-          matchNumber: "2",
+          matchName: "2",
           slots: [{ kind: "winnerOf", matchId: "m1" }, { kind: "bye" }],
         },
       ),
@@ -236,7 +236,7 @@ describe("validateMatchingConfig", () => {
           round: 2,
           order: 0,
           sequence: 0,
-          matchNumber: "1",
+          matchName: "1",
           slots: [{ kind: "entry", entryId: "e1" }, { kind: "bye" }],
         },
         {
@@ -245,7 +245,7 @@ describe("validateMatchingConfig", () => {
           round: 1,
           order: 0,
           sequence: 1,
-          matchNumber: "2",
+          matchName: "2",
           slots: [{ kind: "loserOf", matchId: "m1" }, { kind: "bye" }],
         },
       ),
@@ -260,8 +260,8 @@ describe("validateMatchingConfig", () => {
     expect(validateMatchingConfig(config(), roster)).toEqual([]);
   });
 
-  it("matchNumber が重複していたらエラー", () => {
-    // 既存テストの match fixture ヘルパーを使い、2 試合に同じ matchNumber "1" を与える
+  it("matchName が重複していたらエラー", () => {
+    // 既存テストの match fixture ヘルパーを使い、2 試合に同じ matchName "1" を与える
     const errors = validateMatchingConfig(
       {
         version: 1,
@@ -272,7 +272,7 @@ describe("validateMatchingConfig", () => {
             round: 1,
             order: 0,
             sequence: 0,
-            matchNumber: "1",
+            matchName: "1",
             slots: [{ kind: "bye" }, { kind: "bye" }],
           },
           {
@@ -281,7 +281,7 @@ describe("validateMatchingConfig", () => {
             round: 1,
             order: 1,
             sequence: 1,
-            matchNumber: "1",
+            matchName: "1",
             slots: [{ kind: "bye" }, { kind: "bye" }],
           },
         ],
@@ -289,11 +289,11 @@ describe("validateMatchingConfig", () => {
       { version: 1, entries: [] },
     );
     expect(errors).toContain(
-      "matchingConfig.matches[].matchNumber が重複しています: 1",
+      "matchingConfig.matches[].matchName が重複しています: 1",
     );
   });
 
-  it("matchNumber が空文字ならエラー", () => {
+  it("matchName が空文字ならエラー", () => {
     const errors = validateMatchingConfig(
       {
         version: 1,
@@ -304,14 +304,14 @@ describe("validateMatchingConfig", () => {
             round: 1,
             order: 0,
             sequence: 0,
-            matchNumber: "",
+            matchName: "",
             slots: [{ kind: "bye" }, { kind: "bye" }],
           },
         ],
       },
       { version: 1, entries: [] },
     );
-    expect(errors).toContain("m1-0: matchNumber が空です");
+    expect(errors).toContain("m1-0: matchName が空です");
   });
 
   it("sequence が 0 からの連番なら通る", () => {
@@ -324,7 +324,7 @@ describe("validateMatchingConfig", () => {
           round: 1,
           order: 0,
           sequence: 0,
-          matchNumber: "1",
+          matchName: "1",
           slots: [{ kind: "bye" }, { kind: "bye" }],
         },
         {
@@ -333,7 +333,7 @@ describe("validateMatchingConfig", () => {
           round: 1,
           order: 1,
           sequence: 1,
-          matchNumber: "2",
+          matchName: "2",
           slots: [{ kind: "bye" }, { kind: "bye" }],
         },
       ],
@@ -354,7 +354,7 @@ describe("validateMatchingConfig", () => {
           round: 1,
           order: 0,
           sequence: 0,
-          matchNumber: "1",
+          matchName: "1",
           slots: [{ kind: "bye" }, { kind: "bye" }],
         },
         {
@@ -363,7 +363,7 @@ describe("validateMatchingConfig", () => {
           round: 1,
           order: 1,
           sequence: 0,
-          matchNumber: "2",
+          matchName: "2",
           slots: [{ kind: "bye" }, { kind: "bye" }],
         },
       ],
@@ -384,7 +384,7 @@ describe("validateMatchingConfig", () => {
           round: 1,
           order: 0,
           sequence: 0,
-          matchNumber: "1",
+          matchName: "1",
           slots: [{ kind: "bye" }, { kind: "bye" }],
         },
         {
@@ -393,7 +393,7 @@ describe("validateMatchingConfig", () => {
           round: 1,
           order: 1,
           sequence: 2,
-          matchNumber: "2",
+          matchName: "2",
           slots: [{ kind: "bye" }, { kind: "bye" }],
         },
       ],
@@ -413,7 +413,7 @@ const bracket = config(
     round: 1,
     order: 0,
     sequence: 0,
-    matchNumber: "1",
+    matchName: "1",
     slots: [
       { kind: "entry", entryId: "e1" },
       { kind: "entry", entryId: "e2" },
@@ -425,7 +425,7 @@ const bracket = config(
     round: 1,
     order: 1,
     sequence: 1,
-    matchNumber: "2",
+    matchName: "2",
     slots: [
       { kind: "entry", entryId: "e3" },
       { kind: "entry", entryId: "e4" },
@@ -437,7 +437,7 @@ const bracket = config(
     round: 2,
     order: 0,
     sequence: 2,
-    matchNumber: "3",
+    matchName: "3",
     slots: [
       { kind: "winnerOf", matchId: "m1" },
       { kind: "winnerOf", matchId: "m2" },
@@ -469,7 +469,7 @@ describe("reachableEntryIds", () => {
         round: 1,
         order: 0,
         sequence: 0,
-        matchNumber: "1",
+        matchName: "1",
         slots: [
           { kind: "entry", entryId: "e1" },
           { kind: "entry", entryId: "e2" },
@@ -481,7 +481,7 @@ describe("reachableEntryIds", () => {
         round: 2,
         order: 0,
         sequence: 1,
-        matchNumber: "2",
+        matchName: "2",
         slots: [{ kind: "loserOf", matchId: "w1" }, { kind: "bye" }],
       },
     );

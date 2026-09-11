@@ -56,7 +56,7 @@ describe("parseDivisionEntries", () => {
 });
 
 describe("parseMatchingConfig", () => {
-  it("matchNumber を持つ試合はそのまま読む", () => {
+  it("matchName を持つ試合はそのまま読む", () => {
     const config = parseMatchingConfig({
       version: 1,
       matches: [
@@ -65,15 +65,15 @@ describe("parseMatchingConfig", () => {
           bracket: "winners",
           round: 1,
           order: 0,
-          matchNumber: "A",
+          matchName: "A",
           slots: [{ kind: "bye" }, { kind: "bye" }],
         },
       ],
     });
-    expect(config.matches[0].matchNumber).toBe("A");
+    expect(config.matches[0].matchName).toBe("A");
   });
 
-  it("matchNumber の無い試合には round/order 順で未使用の連番を補完する", () => {
+  it("matchName の無い試合には round/order 順で未使用の連番を補完する", () => {
     const match = (id: string, round: number, order: number) => ({
       id,
       bracket: "winners",
@@ -86,7 +86,7 @@ describe("parseMatchingConfig", () => {
       // 配列順は round 順と逆に置き、round/order 順で補完されることを確かめる
       matches: [match("m2-0", 2, 0), match("m1-0", 1, 0), match("m1-1", 1, 1)],
     });
-    const byId = new Map(config.matches.map((m) => [m.id, m.matchNumber]));
+    const byId = new Map(config.matches.map((m) => [m.id, m.matchName]));
     expect(byId.get("m1-0")).toBe("1");
     expect(byId.get("m1-1")).toBe("2");
     expect(byId.get("m2-0")).toBe("3");
@@ -101,7 +101,7 @@ describe("parseMatchingConfig", () => {
           bracket: "winners",
           round: 1,
           order: 0,
-          matchNumber: "1",
+          matchName: "1",
           slots: [{ kind: "bye" }, { kind: "bye" }],
         },
         {
@@ -113,11 +113,11 @@ describe("parseMatchingConfig", () => {
         },
       ],
     });
-    const byId = new Map(config.matches.map((m) => [m.id, m.matchNumber]));
+    const byId = new Map(config.matches.map((m) => [m.id, m.matchName]));
     expect(byId.get("m1-1")).toBe("2");
   });
 
-  it("matchNumber が文字列以外なら DivisionJsonError", () => {
+  it("matchName が文字列以外なら DivisionJsonError", () => {
     expect(() =>
       parseMatchingConfig({
         version: 1,
@@ -127,7 +127,7 @@ describe("parseMatchingConfig", () => {
             bracket: "winners",
             round: 1,
             order: 0,
-            matchNumber: 1,
+            matchName: 1,
             slots: [{ kind: "bye" }, { kind: "bye" }],
           },
         ],
@@ -145,7 +145,7 @@ describe("parseMatchingConfig", () => {
           round: 1,
           order: 0,
           sequence: 0,
-          matchNumber: "1",
+          matchName: "1",
           slots: [{ kind: "entry", entryId: "e1" }, { kind: "bye" }],
         },
         {
@@ -154,7 +154,7 @@ describe("parseMatchingConfig", () => {
           round: 2,
           order: 0,
           sequence: 1,
-          matchNumber: "2",
+          matchName: "2",
           slots: [
             { kind: "winnerOf", matchId: "m1" },
             { kind: "loserOf", matchId: "m1" },
@@ -226,7 +226,7 @@ describe("parseMatchingConfig", () => {
       bracket: "winners",
       round,
       order,
-      matchNumber: id,
+      matchName: id,
       slots: [{ kind: "bye" }, { kind: "bye" }],
     });
     const config = parseMatchingConfig({
@@ -251,7 +251,7 @@ describe("parseMatchingConfig", () => {
       round: 1,
       order,
       sequence,
-      matchNumber: id,
+      matchName: id,
       slots: [{ kind: "bye" }, { kind: "bye" }],
     });
     const config = parseMatchingConfig({
@@ -276,7 +276,7 @@ describe("parseMatchingConfig", () => {
           round: 1,
           order: 1,
           sequence: 0,
-          matchNumber: "2",
+          matchName: "2",
           slots: [{ kind: "bye" }, { kind: "bye" }],
         },
         {
@@ -284,7 +284,7 @@ describe("parseMatchingConfig", () => {
           bracket: "winners",
           round: 1,
           order: 0,
-          matchNumber: "1",
+          matchName: "1",
           slots: [{ kind: "bye" }, { kind: "bye" }],
         },
       ],
@@ -305,7 +305,7 @@ describe("parseMatchingConfig", () => {
             round: 1,
             order: 0,
             sequence: "1",
-            matchNumber: "1",
+            matchName: "1",
             slots: [{ kind: "bye" }, { kind: "bye" }],
           },
         ],

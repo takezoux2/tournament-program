@@ -18,7 +18,7 @@ const rows: ScheduleRowView[] = [
     divisionId: "d1",
     divisionName: "男子シングルス",
     matchId: "m1-0",
-    matchNumber: "1",
+    matchName: "1",
     label: "1回戦 第1試合",
     card: "佐藤 蓮 vs 鈴木 陽菜",
   },
@@ -36,7 +36,7 @@ const rows: ScheduleRowView[] = [
     divisionId: "d1",
     divisionName: "男子シングルス",
     matchId: "m2-0",
-    matchNumber: "2",
+    matchName: "2",
     label: "2回戦 第1試合",
     card: "高橋 葵 vs 第1試合の勝者",
   },
@@ -63,7 +63,7 @@ describe("PublicScheduleList", () => {
     expect(screen.queryByText("未設定")).not.toBeInTheDocument();
   });
 
-  it("試合番号と対戦カードを出す", () => {
+  it("試合名と対戦カードを出す", () => {
     render(<PublicScheduleList rows={rows} />);
 
     expect(screen.getByText("第1試合")).toBeInTheDocument();

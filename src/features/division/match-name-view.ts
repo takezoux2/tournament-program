@@ -7,15 +7,15 @@ import {
 import type { DivisionEntries, MatchingConfig } from "@/lib/division/types";
 
 /**
- * 試合番号の編集行 1 つぶんの表示内容。
+ * 試合名の編集行 1 つぶんの表示内容。
  *
  * トーナメントとリーグは表示する行の形も並べ方も同じになったため、
  * どちらの祖先でもあるカテゴリ直下に 1 つだけ置いて共有する。
  */
-export type MatchNumberRowView = {
+export type MatchNameRowView = {
   /** BracketMatch.id。保存時にこの id を送る */
   matchId: string;
-  matchNumber: string;
+  matchName: string;
   /** 「1回戦 第1試合」（リーグは「第1試合」）のような構造上の位置 */
   label: string;
   /** 「山田 vs 佐藤」のような対戦の表示 */
@@ -37,12 +37,12 @@ export const toMatchOrderView = (
   entries: DivisionEntries,
   participants: { id: string; name: string }[],
   format: DivisionFormat,
-): MatchNumberRowView[] => {
+): MatchNameRowView[] => {
   const labelSlot = createSlotLabeler(config, entries, participants);
 
   return config.matches.map((match) => ({
     matchId: match.id,
-    matchNumber: match.matchNumber,
+    matchName: match.matchName,
     label: matchPositionLabel(match, format),
     card: matchCardLabel(match, labelSlot),
   }));

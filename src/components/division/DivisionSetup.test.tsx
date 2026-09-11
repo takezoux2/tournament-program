@@ -18,7 +18,7 @@ const actions = {
   generateMatching: vi.fn(async () => ({ error: null })),
   swapSlots: vi.fn(async () => ({ error: null })),
   reorderMatches: vi.fn(async () => ({ error: null })),
-  setMatchNumber: vi.fn(async () => ({ error: null })),
+  setMatchName: vi.fn(async () => ({ error: null })),
   setPlayerNumber: vi.fn(async () => ({ error: null })),
 };
 
@@ -110,7 +110,7 @@ describe("DivisionSetup", () => {
                 bracket: "winners",
                 round: 2,
                 order: 0,
-                matchNumber: "2",
+                matchName: "2",
                 slots: [
                   { kind: "entry", entryId: "e1" },
                   { kind: "entry", entryId: "e3" },
@@ -208,8 +208,8 @@ describe("DivisionSetup", () => {
       );
       expect(matchingSectionProps?.swapAction).toBe(actions.swapSlots);
       expect(matchOrderListProps?.reorderAction).toBe(actions.reorderMatches);
-      expect(matchOrderListProps?.setMatchNumberAction).toBe(
-        actions.setMatchNumber,
+      expect(matchOrderListProps?.setMatchNameAction).toBe(
+        actions.setMatchName,
       );
       expect(entryListProps?.disabled).toBe(false);
 
@@ -230,7 +230,7 @@ describe("DivisionSetup", () => {
       expect(entryListProps?.disabled).toBe(true);
       expect(addEntryFormProps?.disabled).toBe(true);
       expect(matchingSectionProps?.disabled).toBe(true);
-      // 実施順と試合番号は構造を変えないため、locked でも編集できる。
+      // 実施順と試合名は構造を変えないため、locked でも編集できる。
       // MatchOrderList は disabled を受け取らない prop 契約なので、
       // 渡されていないこと自体がその仕様を型より外でも固定する。
       expect(matchOrderListProps?.disabled).toBeUndefined();

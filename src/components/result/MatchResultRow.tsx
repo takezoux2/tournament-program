@@ -38,7 +38,7 @@ function WinnerButton({
       type="submit"
       name="winnerEntryId"
       value={slot.entryId ?? ""}
-      aria-label={`${row.divisionName} 第${row.matchNumber}試合 ${slot.label}の勝ち`}
+      aria-label={`${row.divisionName} 第${row.matchName}試合 ${slot.label}の勝ち`}
       aria-pressed={isWinner}
       disabled={disabled || slot.entryId === null}
       onClick={onClick}
@@ -115,7 +115,7 @@ export function MatchResultRow({
         <div className="min-w-0">
           <p className="flex items-center gap-2 text-sm text-slate-800">
             <span className="shrink-0 rounded bg-slate-100 px-2 py-0.5 text-xs font-bold">
-              第{row.matchNumber}試合
+              第{row.matchName}試合
             </span>
             <span className="truncate text-xs text-slate-500">
               {row.divisionName} / {row.label}
@@ -148,7 +148,7 @@ export function MatchResultRow({
               type="submit"
               name="winnerEntryId"
               value=""
-              aria-label={`${row.divisionName} 第${row.matchNumber}試合の結果を取り消す`}
+              aria-label={`${row.divisionName} 第${row.matchName}試合の結果を取り消す`}
               disabled={pending}
               onClick={confirmIfNeeded(null)}
               className="rounded border border-slate-300 px-2 py-1 text-xs text-slate-600 disabled:opacity-40"

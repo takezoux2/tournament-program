@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { DivisionEntries } from "@/lib/division/types";
-import { toMatchOrderView } from "./match-number-view";
+import { toMatchOrderView } from "./match-name-view";
 import { buildFromSlots } from "./single-elimination/build";
 
 const entries: DivisionEntries = {
@@ -45,9 +45,9 @@ describe("toMatchOrderView", () => {
     const reordered = {
       version: 1 as const,
       matches: [
-        { ...config.matches[2], sequence: 0, matchNumber: "1" },
-        { ...config.matches[0], sequence: 1, matchNumber: "2" },
-        { ...config.matches[1], sequence: 2, matchNumber: "3" },
+        { ...config.matches[2], sequence: 0, matchName: "1" },
+        { ...config.matches[0], sequence: 1, matchName: "2" },
+        { ...config.matches[1], sequence: 2, matchName: "3" },
       ],
     };
 
@@ -71,7 +71,7 @@ describe("toMatchOrderView", () => {
 
     expect(row).toEqual({
       matchId: "m1-0",
-      matchNumber: "1",
+      matchName: "1",
       label: "1回戦 第1試合",
       card: "山田 vs 佐藤",
     });

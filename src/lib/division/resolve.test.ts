@@ -14,7 +14,7 @@ const match = (
   round,
   order,
   sequence,
-  matchNumber: id,
+  matchName: id,
   slots,
 });
 

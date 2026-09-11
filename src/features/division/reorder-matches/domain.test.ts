@@ -11,7 +11,7 @@ const config: MatchingConfig = {
       round: 1,
       order: 0,
       sequence: 0,
-      matchNumber: "1",
+      matchName: "1",
       slots: [
         { kind: "entry", entryId: "e1" },
         { kind: "entry", entryId: "e2" },
@@ -23,7 +23,7 @@ const config: MatchingConfig = {
       round: 1,
       order: 1,
       sequence: 1,
-      matchNumber: "2",
+      matchName: "2",
       slots: [
         { kind: "entry", entryId: "e3" },
         { kind: "entry", entryId: "e4" },
@@ -35,7 +35,7 @@ const config: MatchingConfig = {
       round: 2,
       order: 0,
       sequence: 2,
-      matchNumber: "3",
+      matchName: "3",
       slots: [
         { kind: "winnerOf", matchId: "m1-0" },
         { kind: "winnerOf", matchId: "m1-1" },
@@ -56,10 +56,10 @@ describe("reorderMatches", () => {
     expect(next?.matches.map((match) => match.sequence)).toEqual([0, 1, 2]);
   });
 
-  it("試合番号を先頭から振り直す", () => {
+  it("試合名を先頭から振り直す", () => {
     const next = reorderMatches(config, ["m2-0", "m1-0", "m1-1"]);
 
-    expect(next?.matches.map((match) => match.matchNumber)).toEqual([
+    expect(next?.matches.map((match) => match.matchName)).toEqual([
       "1",
       "2",
       "3",
@@ -68,7 +68,7 @@ describe("reorderMatches", () => {
 
   it("id・ブラケット上の位置・対戦カードは変えない", () => {
     // ここが変わるとブラケットの絵が崩れ、results と ScheduleItem の
-    // 参照も外れる。並べ替えが触ってよいのは実施順と試合番号だけ。
+    // 参照も外れる。並べ替えが触ってよいのは実施順と試合名だけ。
     const next = reorderMatches(config, ["m2-0", "m1-0", "m1-1"]);
     const moved = next?.matches[0];
 

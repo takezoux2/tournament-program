@@ -1,9 +1,9 @@
 import type { BracketMatch, MatchingConfig } from "@/lib/division/types";
 
 /**
- * 指定の並びで実施順と試合番号を振り直す。
+ * 指定の並びで実施順と試合名を振り直す。
  *
- * 書き換えるのは sequence と matchNumber だけで、id / round / order / slots は
+ * 書き換えるのは sequence と matchName だけで、id / round / order / slots は
  * そのまま写す。id を保つので、results（matchId で試合を指す）と
  * ScheduleItem（(divisionId, matchId) で指す）の参照は壊れない。
  * round / order を保つので、トーナメントのブラケットの絵も動かない。
@@ -32,7 +32,7 @@ export const reorderMatches = (
     if (match === undefined) {
       return null;
     }
-    matches.push({ ...match, sequence, matchNumber: String(sequence + 1) });
+    matches.push({ ...match, sequence, matchName: String(sequence + 1) });
   }
 
   return { version: 1, matches };

@@ -23,11 +23,11 @@ export type ReorderMatchesPort = (
 ) => Effect.Effect<DivisionSetupOutcome<null>, DivisionError>;
 
 /**
- * 実施順と試合番号だけを書き換える。試合の id も対戦カードも変えないため、
+ * 実施順と試合名だけを書き換える。試合の id も対戦カードも変えないため、
  * results（matchId で試合を指す）と ScheduleItem（(divisionId, matchId) で
  * 指す）の参照は壊れない。だから勝敗記録後でも並べ替えられる。
  * runDivisionSetup は results が 1 件でもあると拒否する読み出しなので、
- * ここでは使わず専用のトランザクションを書く（set-match-number と同じ理由）。
+ * ここでは使わず専用のトランザクションを書く（set-match-name と同じ理由）。
  */
 export const reorderMatchesInDb: ReorderMatchesPort = (ids, input) =>
   Effect.tryPromise({

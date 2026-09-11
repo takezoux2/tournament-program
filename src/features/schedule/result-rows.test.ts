@@ -12,7 +12,7 @@ const match = (
   round: number,
   order: number,
   sequence: number,
-  matchNumber: string,
+  matchName: string,
   slots: BracketMatch["slots"],
 ): BracketMatch => ({
   id,
@@ -20,7 +20,7 @@ const match = (
   round,
   order,
   sequence,
-  matchNumber,
+  matchName,
   slots,
 });
 
@@ -67,14 +67,14 @@ const division = (
   results,
 });
 
-const matchRow = (matchId: string, matchNumber: string): ScheduleRowView => ({
+const matchRow = (matchId: string, matchName: string): ScheduleRowView => ({
   kind: "match",
   key: `match:dA:${matchId}`,
   divisionId: "dA",
   divisionName: "男子",
   matchId,
-  matchNumber,
-  label: `${matchNumber}回戦 第${matchNumber}試合`,
+  matchName,
+  label: `${matchName}回戦 第${matchName}試合`,
   card: "山田 vs 佐藤",
 });
 

@@ -11,7 +11,7 @@ const config: MatchingConfig = {
       round: 1,
       order: 0,
       sequence: 0,
-      matchNumber: "3",
+      matchName: "3",
       slots: [{ kind: "entry", entryId: "e1" }, { kind: "bye" }],
     },
     {
@@ -20,7 +20,7 @@ const config: MatchingConfig = {
       round: 2,
       order: 0,
       sequence: 1,
-      matchNumber: "9",
+      matchName: "9",
       slots: [
         { kind: "winnerOf", matchId: "m1-0" },
         { kind: "loserOf", matchId: "m1-0" },
@@ -50,7 +50,7 @@ describe("createSlotLabeler", () => {
     expect(label({ kind: "entry", entryId: "e9" })).toBe("（不明な参加者）");
   });
 
-  it("勝者・敗者参照は相手の試合番号で表す", () => {
+  it("勝者・敗者参照は相手の試合名で表す", () => {
     const label = createSlotLabeler(config, entries, participants);
     expect(label({ kind: "winnerOf", matchId: "m1-0" })).toBe("第3試合の勝者");
     expect(label({ kind: "loserOf", matchId: "m1-0" })).toBe("第3試合の敗者");
@@ -90,7 +90,7 @@ describe("matchPositionLabel", () => {
       round: 2,
       order: 1,
       sequence: 1,
-      matchNumber: "5",
+      matchName: "5",
       slots: [
         { kind: "entry", entryId: "e1" },
         { kind: "entry", entryId: "e2" },

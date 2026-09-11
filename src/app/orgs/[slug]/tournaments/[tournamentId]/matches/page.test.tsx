@@ -70,7 +70,7 @@ beforeEach(() => {
       divisionId: "dA",
       divisionName: "男子シングルス",
       matchId: "m1-0",
-      matchNumber: "1",
+      matchName: "1",
       label: "1回戦 第1試合",
       card: "山田 vs 佐藤",
     },

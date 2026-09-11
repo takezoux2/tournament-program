@@ -81,7 +81,7 @@ export const buildRoundRobin = (entries: DivisionEntry[]): MatchingConfig => {
         round: 1,
         order,
         sequence: order,
-        matchNumber: String(order + 1),
+        matchName: String(order + 1),
         slots: [
           { kind: "entry", entryId: sorted[left].id },
           { kind: "entry", entryId: sorted[right].id },

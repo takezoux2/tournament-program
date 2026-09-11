@@ -60,8 +60,8 @@ vi.mock("@/features/division/generate-matching/handler", () => ({
 vi.mock("@/features/division/reorder-matches/handler", () => ({
   reorderMatchesAction: vi.fn(),
 }));
-vi.mock("@/features/division/set-match-number/handler", () => ({
-  setMatchNumberAction: vi.fn(),
+vi.mock("@/features/division/set-match-name/handler", () => ({
+  setMatchNameAction: vi.fn(),
 }));
 vi.mock("@/features/division/set-player-number/handler", () => ({
   setPlayerNumberAction: vi.fn(),
@@ -91,8 +91,8 @@ const { generateMatchingAction } = await import(
 const { reorderMatchesAction } = await import(
   "@/features/division/reorder-matches/handler"
 );
-const { setMatchNumberAction } = await import(
-  "@/features/division/set-match-number/handler"
+const { setMatchNameAction } = await import(
+  "@/features/division/set-match-name/handler"
 );
 const { setPlayerNumberAction } = await import(
   "@/features/division/set-player-number/handler"
@@ -199,7 +199,7 @@ describe("LeagueSetupPage", () => {
     expect(actions.reorderEntry).toBe(reorderEntryAction);
     expect(actions.generateMatching).toBe(generateMatchingAction);
     expect(actions.reorderMatches).toBe(reorderMatchesAction);
-    expect(actions.setMatchNumber).toBe(setMatchNumberAction);
+    expect(actions.setMatchName).toBe(setMatchNameAction);
     expect(actions.setPlayerNumber).toBe(setPlayerNumberAction);
   });
 });

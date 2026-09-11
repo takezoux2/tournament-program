@@ -68,16 +68,14 @@ export const validateMatchingConfig = (
     errors.push(`matchingConfig.matches[].id が重複しています: ${id}`);
   }
 
-  for (const matchNumber of duplicates(
-    matches.map((match) => match.matchNumber),
-  )) {
+  for (const matchName of duplicates(matches.map((match) => match.matchName))) {
     errors.push(
-      `matchingConfig.matches[].matchNumber が重複しています: ${matchNumber}`,
+      `matchingConfig.matches[].matchName が重複しています: ${matchName}`,
     );
   }
   for (const match of matches) {
-    if (match.matchNumber === "") {
-      errors.push(`${match.id}: matchNumber が空です`);
+    if (match.matchName === "") {
+      errors.push(`${match.id}: matchName が空です`);
     }
   }
 

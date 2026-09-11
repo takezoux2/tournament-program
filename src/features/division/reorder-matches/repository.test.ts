@@ -50,7 +50,7 @@ beforeEach(() => {
 });
 
 describe("reorderMatchesInDb", () => {
-  it("送られた順で実施順と試合番号を書き直す", async () => {
+  it("送られた順で実施順と試合名を書き直す", async () => {
     const outcome = await Effect.runPromise(
       reorderMatchesInDb(ids, { matchIds: ["m2-0", "m1-0", "m1-1"] }),
     );
@@ -66,9 +66,7 @@ describe("reorderMatchesInDb", () => {
       written.matches.map((match: { sequence: number }) => match.sequence),
     ).toEqual([0, 1, 2]);
     expect(
-      written.matches.map(
-        (match: { matchNumber: string }) => match.matchNumber,
-      ),
+      written.matches.map((match: { matchName: string }) => match.matchName),
     ).toEqual(["1", "2", "3"]);
   });
 

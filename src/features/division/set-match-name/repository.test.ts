@@ -17,11 +17,11 @@ vi.mock("@/shared/db/prisma", () => ({
   },
 }));
 
-const { setMatchNumberInDb } = await import("./repository");
+const { setMatchNameInDb } = await import("./repository");
 
 const ids = { organizationId: "o1", tournamentId: "t1", divisionId: "d1" };
 
-// e1 vs e2 の 1 試合だけの組み合わせ（matchNumber "1"）
+// e1 vs e2 の 1 試合だけの組み合わせ（matchName "1"）
 const config = buildFromSlots([
   { kind: "entry", entryId: "e1" },
   { kind: "entry", entryId: "e2" },
@@ -45,21 +45,21 @@ beforeEach(() => {
   divisionUpdateMany.mockResolvedValue({ count: 1 });
 });
 
-describe("setMatchNumberInDb", () => {
+describe("setMatchNameInDb", () => {
   it("指定した試合の番号だけを書き換える", async () => {
     const outcome = await Effect.runPromise(
-      setMatchNumberInDb(ids, { matchId: "m1-0", matchNumber: "A" }),
+      setMatchNameInDb(ids, { matchId: "m1-0", matchName: "A" }),
     );
 
     expect(outcome).toEqual({ found: true, value: null });
     const written = divisionUpdateMany.mock.calls[0][0].data.matchingConfig;
-    expect(written.matches[0].matchNumber).toBe("A");
+    expect(written.matches[0].matchName).toBe("A");
     expect(written.matches[0].slots).toEqual(config.matches[0].slots);
   });
 
   it("所有権を where に入れて読む", async () => {
     await Effect.runPromise(
-      setMatchNumberInDb(ids, { matchId: "m1-0", matchNumber: "A" }),
+      setMatchNameInDb(ids, { matchId: "m1-0", matchName: "A" }),
     );
     expect(divisionFindFirst).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -74,7 +74,7 @@ describe("setMatchNumberInDb", () => {
   it("部門が見つからなければ found: false", async () => {
     divisionFindFirst.mockResolvedValue(null);
     const outcome = await Effect.runPromise(
-      setMatchNumberInDb(ids, { matchId: "m1-0", matchNumber: "A" }),
+      setMatchNameInDb(ids, { matchId: "m1-0", matchName: "A" }),
     );
     expect(outcome).toEqual({ found: false });
     expect(divisionUpdateMany).not.toHaveBeenCalled();
@@ -82,7 +82,7 @@ describe("setMatchNumberInDb", () => {
 
   it("存在しない試合なら DivisionMatchNotFoundError", async () => {
     const exit = await Effect.runPromiseExit(
-      setMatchNumberInDb(ids, { matchId: "m9-9", matchNumber: "A" }),
+      setMatchNameInDb(ids, { matchId: "m9-9", matchName: "A" }),
     );
     expect(exit._tag).toBe("Failure");
     if (Exit.isFailure(exit)) {
@@ -109,7 +109,7 @@ describe("setMatchNumberInDb", () => {
     });
 
     const exit = await Effect.runPromiseExit(
-      setMatchNumberInDb(ids, { matchId: "m1-0", matchNumber: "2" }),
+      setMatchNameInDb(ids, { matchId: "m1-0", matchName: "2" }),
     );
     expect(exit._tag).toBe("Failure");
     if (Exit.isFailure(exit)) {
@@ -124,12 +124,12 @@ describe("setMatchNumberInDb", () => {
 
   it("同じ試合への同じ番号の再設定は重複にならない", async () => {
     const outcome = await Effect.runPromise(
-      setMatchNumberInDb(ids, { matchId: "m1-0", matchNumber: "1" }),
+      setMatchNameInDb(ids, { matchId: "m1-0", matchName: "1" }),
     );
     expect(outcome).toEqual({ found: true, value: null });
   });
 
-  it("リーグの部門でも試合番号を変えられる", async () => {
+  it("リーグの部門でも試合名を変えられる", async () => {
     divisionFindFirst.mockResolvedValue({
       format: "ROUND_ROBIN",
       entries: {
@@ -147,7 +147,7 @@ describe("setMatchNumberInDb", () => {
             bracket: "winners",
             round: 1,
             order: 0,
-            matchNumber: "1",
+            matchName: "1",
             slots: [
               { kind: "entry", entryId: "e1" },
               { kind: "entry", entryId: "e2" },
@@ -158,7 +158,7 @@ describe("setMatchNumberInDb", () => {
     });
 
     const result = await Effect.runPromise(
-      setMatchNumberInDb(ids, { matchId: "r1-0", matchNumber: "A-1" }),
+      setMatchNameInDb(ids, { matchId: "r1-0", matchName: "A-1" }),
     );
 
     expect(result).toEqual({ found: true, value: null });
@@ -173,7 +173,7 @@ describe("setMatchNumberInDb", () => {
     });
 
     const result = await Effect.runPromise(
-      setMatchNumberInDb(ids, { matchId: "m1-0", matchNumber: "2" }),
+      setMatchNameInDb(ids, { matchId: "m1-0", matchName: "2" }),
     );
 
     expect(result).toEqual({ found: false });

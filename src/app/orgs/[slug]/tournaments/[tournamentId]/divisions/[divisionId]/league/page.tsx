@@ -10,7 +10,7 @@ import {
   findDivisionInTournament,
   listParticipantsInTournament,
 } from "@/features/division/repository";
-import { setMatchNumberAction } from "@/features/division/set-match-number/handler";
+import { setMatchNameAction } from "@/features/division/set-match-name/handler";
 import { setPlayerNumberAction } from "@/features/division/set-player-number/handler";
 import { listMembersInOrganization } from "@/features/organization/repository";
 import { findTournamentInOrganization } from "@/features/tournament/repository";
@@ -76,7 +76,7 @@ export default async function LeagueSetupPage({
             reorderEntry: reorderEntryAction,
             generateMatching: generateMatchingAction,
             reorderMatches: reorderMatchesAction,
-            setMatchNumber: setMatchNumberAction,
+            setMatchName: setMatchNameAction,
             setPlayerNumber: setPlayerNumberAction,
           }}
         />

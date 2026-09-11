@@ -70,7 +70,7 @@ export const buildFromSlots = (slots: SlotSource[]): MatchingConfig => {
       order,
       // 生成直後の実施順は round/order 順。生成を押した時点の並びを既定にする。
       sequence: matches.length,
-      matchNumber: String(matches.length + 1),
+      matchName: String(matches.length + 1),
       slots: [paddedSlots[order * 2], paddedSlots[order * 2 + 1]],
     });
   }
@@ -86,7 +86,7 @@ export const buildFromSlots = (slots: SlotSource[]): MatchingConfig => {
         round,
         order,
         sequence: matches.length,
-        matchNumber: String(matches.length + 1),
+        matchName: String(matches.length + 1),
         slots: [
           { kind: "winnerOf", matchId: matchId(round - 1, order * 2) },
           { kind: "winnerOf", matchId: matchId(round - 1, order * 2 + 1) },

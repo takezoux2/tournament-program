@@ -6,11 +6,11 @@ import { requireOrganization } from "@/shared/middleware/require-organization";
 import { divisionErrorFormState } from "../effect-to-form-state";
 import { revalidateDivisionSetup } from "../revalidate";
 import type { DivisionFormState } from "../state";
-import { setMatchNumberInDb } from "./repository";
-import { setMatchNumberSchema } from "./schema";
-import { setMatchNumberForDivision } from "./usecase";
+import { setMatchNameInDb } from "./repository";
+import { setMatchNameSchema } from "./schema";
+import { setMatchNameForDivision } from "./usecase";
 
-export const setMatchNumberAction = async (
+export const setMatchNameAction = async (
   _prevState: DivisionFormState,
   formData: FormData,
 ): Promise<DivisionFormState> => {
@@ -20,17 +20,17 @@ export const setMatchNumberAction = async (
   // Server Action はページを経由せず直接叩ける別の入口なので、ここで独立に確かめる。
   const { organization } = await requireOrganization(slug);
 
-  const parsed = setMatchNumberSchema.safeParse({
+  const parsed = setMatchNameSchema.safeParse({
     matchId: String(formData.get("matchId") ?? ""),
-    matchNumber: String(formData.get("matchNumber") ?? ""),
+    matchName: String(formData.get("matchName") ?? ""),
   });
   if (!parsed.success) {
     return { error: parsed.error.issues[0].message };
   }
 
   const exit = await Effect.runPromiseExit(
-    setMatchNumberForDivision(
-      setMatchNumberInDb,
+    setMatchNameForDivision(
+      setMatchNameInDb,
       { organizationId: organization.id, tournamentId, divisionId },
       parsed.data,
     ),

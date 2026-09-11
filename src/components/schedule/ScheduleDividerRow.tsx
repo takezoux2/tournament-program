@@ -12,7 +12,7 @@ type DividerRow = Extract<ScheduleRowView, { kind: "divider" }>;
 /**
  * 区切りの見出しと開始予定時刻をその場で編集する。1 行 1 フォームにして
  * useActionState を行ごとに持たせ、エラーをその行の隣に出す
- * （components/division/MatchNumberRow.tsx と同じ形）。
+ * （components/division/MatchNameRow.tsx と同じ形）。
  */
 export function ScheduleDividerRow({
   row,

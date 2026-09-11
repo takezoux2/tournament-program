@@ -64,7 +64,7 @@ const rows: ScheduleRowView[] = [
     divisionId: "dA",
     divisionName: "男子シングルス",
     matchId: "m1-0",
-    matchNumber: "1",
+    matchName: "1",
     label: "1回戦 第1試合",
     card: "山田 vs 佐藤",
   },
@@ -102,7 +102,7 @@ const recordingAction =
   };
 
 describe("ScheduleList", () => {
-  it("試合行に試合番号・対戦カード・部門名を出す", () => {
+  it("試合行に試合名・対戦カード・部門名を出す", () => {
     renderList();
 
     expect(screen.getByText("第1試合")).toBeInTheDocument();

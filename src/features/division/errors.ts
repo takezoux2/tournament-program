@@ -74,7 +74,7 @@ export class DivisionMatchNotFoundError extends Data.TaggedError(
 export class DivisionMatchNumberConflictError extends Data.TaggedError(
   "DivisionMatchNumberConflictError",
 )<{
-  readonly matchNumber: string;
+  readonly matchName: string;
 }> {}
 
 /** 送られてきた並び順が現在の組み合わせと一致しないことを表す。 */

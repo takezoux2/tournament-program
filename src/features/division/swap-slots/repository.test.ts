@@ -128,7 +128,7 @@ describe("swapSlotsInDb", () => {
             bracket: "winners",
             round: 1,
             order: 0,
-            matchNumber: "1",
+            matchName: "1",
             slots: [entry("e1"), entry("e2")],
           },
           {
@@ -136,7 +136,7 @@ describe("swapSlotsInDb", () => {
             bracket: "winners",
             round: 2,
             order: 0,
-            matchNumber: "2",
+            matchName: "2",
             slots: [entry("e1"), entry("e3")],
           },
         ],

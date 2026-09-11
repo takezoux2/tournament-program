@@ -38,7 +38,7 @@ const doneMatch: ResolvedMatch = {
   score: "3-1",
   status: "done",
   sourceMatchIds: ["r1-m1", "r1-m2"],
-  matchNumber: null,
+  matchName: null,
 };
 
 describe("MatchCard", () => {
@@ -119,17 +119,17 @@ describe("MatchCard", () => {
     expect(screen.queryByText("3-1")).not.toBeInTheDocument();
   });
 
-  it("試合番号があればバッジで表示する", () => {
-    render(<MatchCard match={{ ...doneMatch, matchNumber: "7" }} />);
-    expect(
-      screen.getByTestId(`match-number-${doneMatch.id}`),
-    ).toHaveTextContent("7");
+  it("試合名があればバッジで表示する", () => {
+    render(<MatchCard match={{ ...doneMatch, matchName: "7" }} />);
+    expect(screen.getByTestId(`match-name-${doneMatch.id}`)).toHaveTextContent(
+      "7",
+    );
   });
 
-  it("試合番号が null ならバッジを出さない", () => {
-    render(<MatchCard match={{ ...doneMatch, matchNumber: null }} />);
+  it("試合名が null ならバッジを出さない", () => {
+    render(<MatchCard match={{ ...doneMatch, matchName: null }} />);
     expect(
-      screen.queryByTestId(`match-number-${doneMatch.id}`),
+      screen.queryByTestId(`match-name-${doneMatch.id}`),
     ).not.toBeInTheDocument();
   });
 });

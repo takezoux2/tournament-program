@@ -15,7 +15,7 @@ const config = (
       round: 1,
       order: 0,
       sequence: 0,
-      matchNumber: numbers[0],
+      matchName: numbers[0],
       slots: [
         { kind: "entry", entryId: entryIds[0] },
         { kind: "entry", entryId: entryIds[1] },
@@ -27,7 +27,7 @@ const config = (
       round: 1,
       order: 1,
       sequence: 1,
-      matchNumber: numbers[1],
+      matchName: numbers[1],
       slots: [{ kind: "entry", entryId: entryIds[0] }, { kind: "bye" }],
     },
   ],
@@ -99,7 +99,7 @@ const outOfOrderDivision: ScheduleDivision = {
         round: 2,
         order: 0,
         sequence: 0,
-        matchNumber: "1",
+        matchName: "1",
         slots: [
           { kind: "winnerOf", matchId: "m1-0" },
           { kind: "winnerOf", matchId: "m1-1" },
@@ -111,7 +111,7 @@ const outOfOrderDivision: ScheduleDivision = {
         round: 1,
         order: 0,
         sequence: 1,
-        matchNumber: "2",
+        matchName: "2",
         slots: [
           { kind: "entry", entryId: "e1" },
           { kind: "entry", entryId: "e2" },
@@ -123,7 +123,7 @@ const outOfOrderDivision: ScheduleDivision = {
         round: 1,
         order: 1,
         sequence: 2,
-        matchNumber: "3",
+        matchName: "3",
         slots: [{ kind: "entry", entryId: "e1" }, { kind: "bye" }],
       },
     ],
@@ -153,7 +153,7 @@ describe("buildScheduleView", () => {
     ]);
   });
 
-  it("試合行に部門名・試合番号・位置・対戦カードを載せる", () => {
+  it("試合行に部門名・試合名・位置・対戦カードを載せる", () => {
     const [row] = buildScheduleView([divisionA], participants, []);
 
     expect(row).toEqual({
@@ -162,7 +162,7 @@ describe("buildScheduleView", () => {
       divisionId: "dA",
       divisionName: "男子",
       matchId: "m1-0",
-      matchNumber: "1",
+      matchName: "1",
       label: "1回戦 第1試合",
       card: "山田 vs 佐藤",
     });
@@ -252,7 +252,7 @@ describe("buildScheduleView", () => {
             round: 1,
             order: 0,
             sequence: 0,
-            matchNumber: "1",
+            matchName: "1",
             slots: [
               { kind: "entry", entryId: "g1" },
               { kind: "entry", entryId: "g2" },

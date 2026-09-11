@@ -16,17 +16,17 @@ import {
 } from "@dnd-kit/sortable";
 import type { ReactNode } from "react";
 import { useActionState, useTransition } from "react";
-import type { MatchNumberRowView } from "@/features/division/match-number-view";
+import type { MatchNameRowView } from "@/features/division/match-name-view";
 import {
   type DivisionFormAction,
   INITIAL_DIVISION_FORM_STATE,
 } from "@/features/division/state";
 import { resolveDragReorder } from "@/lib/dnd/reorder";
-import { MatchNumberRow } from "./MatchNumberRow";
+import { MatchNameRow } from "./MatchNameRow";
 
 /**
  * 1 行ぶんの並べ替え可能な枠。掴む場所をハンドルのボタンに限るのは、
- * 行の中に試合番号の入力欄と保存ボタンがあり、行全体を掴めるようにすると
+ * 行の中に試合名の入力欄と保存ボタンがあり、行全体を掴めるようにすると
  * 文字を選択できなくなるため（components/schedule/ScheduleList.tsx と同じ形）。
  *
  * transform を translate3d に自前で直しているのは、@dnd-kit/utilities を
@@ -78,10 +78,10 @@ function SortableRow({
 
 /**
  * 部門の試合を実施順に並べた一覧。行はドラッグで入れ替えられ、
- * 同じ行が試合番号の編集フォームを兼ねる。
+ * 同じ行が試合名の編集フォームを兼ねる。
  *
  * トーナメントとリーグで同じ部品を使う。並べ替えが変えるのは実施順と
- * 試合番号だけで、ブラケット上の位置（round/order）は動かさないため、
+ * 試合名だけで、ブラケット上の位置（round/order）は動かさないため、
  * 形式によって挙動を分ける必要が無い。
  */
 export function MatchOrderList({
@@ -90,16 +90,16 @@ export function MatchOrderList({
   tournamentId,
   divisionId,
   reorderAction,
-  setMatchNumberAction,
+  setMatchNameAction,
   emptyMessage,
 }: {
   /** 実施順に並べて渡す。この並びがそのまま画面の並びになる。 */
-  rows: MatchNumberRowView[];
+  rows: MatchNameRowView[];
   slug: string;
   tournamentId: string;
   divisionId: string;
   reorderAction: DivisionFormAction;
-  setMatchNumberAction: DivisionFormAction;
+  setMatchNameAction: DivisionFormAction;
   /** 行が 1 つも無いときの文言。画面ごとに言い方が違う。 */
   emptyMessage: string;
 }) {
@@ -151,8 +151,8 @@ export function MatchOrderList({
         文言が戻るたびに、状態ではなくこの説明文がまるごと読み上げられる。
       */}
       <p className="text-xs text-slate-500">
-        左端をドラッグすると実施順を入れ替えられます。並べ替えると試合番号は先頭から振り直されます。対戦表を作り直したときと、トーナメントで
-        1 回戦の組み合わせを入れ替えたときは、実施順と試合番号が既定に戻ります
+        左端をドラッグすると実施順を入れ替えられます。並べ替えると試合名は先頭から振り直されます。対戦表を作り直したときと、トーナメントで
+        1 回戦の組み合わせを入れ替えたときは、実施順と試合名が既定に戻ります
       </p>
 
       {/*
@@ -179,12 +179,12 @@ export function MatchOrderList({
                 name={`${index + 1}行目 ${row.label}`}
                 disabled={reordering}
               >
-                <MatchNumberRow
+                <MatchNameRow
                   row={row}
                   slug={slug}
                   tournamentId={tournamentId}
                   divisionId={divisionId}
-                  action={setMatchNumberAction}
+                  action={setMatchNameAction}
                 />
               </SortableRow>
             ))}

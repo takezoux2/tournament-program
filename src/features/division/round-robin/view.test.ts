@@ -44,11 +44,11 @@ describe("toCrossTableView", () => {
     expect(table.rows[2].cells[2]).toEqual({ kind: "self" });
   });
 
-  it("対戦がある組には試合番号が入り、左右対称になる", () => {
+  it("対戦がある組には試合名が入り、左右対称になる", () => {
     const table = toCrossTableView(config, entries, participants);
     // e1 vs e4 は第1試合 = 通し番号 1。
-    expect(table.rows[0].cells[3]).toEqual({ kind: "match", matchNumber: "1" });
-    expect(table.rows[3].cells[0]).toEqual({ kind: "match", matchNumber: "1" });
+    expect(table.rows[0].cells[3]).toEqual({ kind: "match", matchName: "1" });
+    expect(table.rows[3].cells[0]).toEqual({ kind: "match", matchName: "1" });
   });
 
   it("対戦が無い組は none", () => {

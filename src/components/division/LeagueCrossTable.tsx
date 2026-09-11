@@ -9,14 +9,14 @@ const cellText = (cell: CrossTableCell): string => {
     case "self":
       return "—";
     case "match":
-      return `第${cell.matchNumber}試合`;
+      return `第${cell.matchName}試合`;
     case "none":
       return "";
   }
 };
 
 /**
- * 誰と誰が当たるかを一目で見せる星取表。マスには試合番号を入れる。
+ * 誰と誰が当たるかを一目で見せる星取表。マスには試合名を入れる。
  * 人数が増えると横に広がるので、横スクロールできる箱に入れる。
  */
 export function LeagueCrossTable({ table }: { table: CrossTableView }) {

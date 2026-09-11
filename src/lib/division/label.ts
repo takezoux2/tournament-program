@@ -12,7 +12,7 @@ export type SlotLabeler = (slot: SlotSource) => string;
 /**
  * スロットの表示文字列を作る関数を返す。
  *
- * 部門の試合番号一覧（features/division）と大会の試合一覧（features/schedule）が
+ * 部門の試合名一覧（features/division）と大会の試合一覧（features/schedule）が
  * 同じ文言を出す必要がある。features は同列どうし依存できないため、
  * 両方から参照できる下位共通層のここへ置く。
  *
@@ -34,8 +34,8 @@ export const createSlotLabeler = (
       participantById.get(entry.participantId) ?? null,
     ]),
   );
-  const numberByMatchId = new Map(
-    config.matches.map((match) => [match.id, match.matchNumber]),
+  const nameByMatchId = new Map(
+    config.matches.map((match) => [match.id, match.matchName]),
   );
 
   return (slot) => {
@@ -43,9 +43,9 @@ export const createSlotLabeler = (
       case "entry":
         return nameByEntryId.get(slot.entryId) ?? "（不明な参加者）";
       case "winnerOf":
-        return `第${numberByMatchId.get(slot.matchId) ?? "?"}試合の勝者`;
+        return `第${nameByMatchId.get(slot.matchId) ?? "?"}試合の勝者`;
       case "loserOf":
-        return `第${numberByMatchId.get(slot.matchId) ?? "?"}試合の敗者`;
+        return `第${nameByMatchId.get(slot.matchId) ?? "?"}試合の敗者`;
       case "bye":
         return "BYE";
     }
