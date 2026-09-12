@@ -50,20 +50,11 @@ vi.mock("@/features/division/repository", () => ({
 
 // DivisionMatchingView は組み合わせの組み立てまで踏み込むため、ページのテストでは
 // division / participants をそのまま受け取っているかだけを見たいのでダミーへ差し替える。
-// needsParticipants は本物を使う（参加者を引く条件がページの責務だから）。
-vi.mock(
-  "@/components/division/DivisionMatchingView",
-  async (importOriginal) => {
-    const actual =
-      await importOriginal<
-        typeof import("@/components/division/DivisionMatchingView")
-      >();
-    return {
-      needsParticipants: actual.needsParticipants,
-      DivisionMatchingView: () => <div>matching</div>,
-    };
-  },
-);
+// needsParticipants は @/features/division/format 側にあり、ここではモックしない
+// （参加者を引く条件がページの責務であり、本物の判定を通して確かめたいため）。
+vi.mock("@/components/division/DivisionMatchingView", () => ({
+  DivisionMatchingView: () => <div>matching</div>,
+}));
 
 const { default: DivisionPage } = await import("./page");
 

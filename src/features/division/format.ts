@@ -16,3 +16,19 @@ export const DIVISION_FORMAT_LABELS: Record<DivisionFormat, string> = {
  * enum 定義そのもの（スキーマの宣言順）から並び順を取る。
  */
 export const DIVISION_FORMATS = Object.values(DivisionFormat);
+
+/**
+ * 形式ごとに、組み合わせビューアが参加者名を描画に使うか。使わない形式で
+ * 詳細ページ・公開ページが毎回参加者一覧のクエリを投げずに済むよう、
+ * ページ側がこれを見て読み出しを省く。Record で持つのは、形式を増やした
+ * ときに書き忘れがコンパイルエラーになるようにするため。
+ */
+const USES_PARTICIPANTS: Record<DivisionFormat, boolean> = {
+  SINGLE_ELIMINATION: true,
+  ROUND_ROBIN: true,
+  DOUBLE_ELIMINATION_GRAND_FINAL: false,
+  DOUBLE_ELIMINATION_THIRD_PLACE: false,
+};
+
+export const needsParticipants = (format: DivisionFormat): boolean =>
+  USES_PARTICIPANTS[format];

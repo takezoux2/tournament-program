@@ -5,7 +5,6 @@ import type {
 } from "@/features/division/repository";
 import { isRoundRobinShape } from "@/features/division/round-robin/build";
 import { toLeagueTableView } from "@/features/division/round-robin/standings";
-import type { DivisionFormat } from "@/generated/prisma/enums";
 import {
   parseDivisionEntries,
   parseDivisionResults,
@@ -14,21 +13,6 @@ import {
 import { DivisionBracket } from "./DivisionBracket";
 import { LeagueResultTable } from "./LeagueResultTable";
 import { Notice } from "./Notice";
-
-/**
- * 形式ごとに参加者一覧を使うか。使わない形式で毎回クエリを投げないよう、
- * ページ側がこれを見て読み出しを省く。Record で持つのは、形式を増やした
- * ときに書き忘れがコンパイルエラーになるようにするため。
- */
-const USES_PARTICIPANTS: Record<DivisionFormat, boolean> = {
-  SINGLE_ELIMINATION: true,
-  ROUND_ROBIN: true,
-  DOUBLE_ELIMINATION_GRAND_FINAL: false,
-  DOUBLE_ELIMINATION_THIRD_PLACE: false,
-};
-
-export const needsParticipants = (format: DivisionFormat): boolean =>
-  USES_PARTICIPANTS[format];
 
 /** リーグの結果表。Json のパースと形の検査をこの区画で受け止める。 */
 const LeagueSection = ({
@@ -111,5 +95,10 @@ export function DivisionMatchingView({
           」のブラケット表示はまだ対応していません
         </Notice>
       );
+    default: {
+      // 形式を増やしたときに、何も描かないまま通るのではなくコンパイルエラーにする
+      const exhaustive: never = division.format;
+      return exhaustive;
+    }
   }
 }

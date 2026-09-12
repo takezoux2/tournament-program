@@ -34,6 +34,9 @@ export type LeagueTableView = {
 /** 勝点。勝 3・分 1・負 0。 */
 const POINTS: Record<LeagueOutcome, number> = { win: 3, draw: 1, loss: 0 };
 
+// 文言は lib/division/label.ts と揃える
+const UNKNOWN_PARTICIPANT_LABEL = "（不明な参加者）";
+
 /** 対戦を「左の側から見た結果」に読み替えたもの。outcome null は未実施。 */
 type PlayedMatch = {
   matchNumber: string;
@@ -231,8 +234,7 @@ export const toLeagueTableView = (
   const labelByEntryId = new Map(
     sortedBySeed.map((entry) => [
       entry.id,
-      // 文言は lib/division/label.ts と揃える
-      nameById.get(entry.participantId) ?? "（不明な参加者）",
+      nameById.get(entry.participantId) ?? UNKNOWN_PARTICIPANT_LABEL,
     ]),
   );
 
@@ -251,14 +253,14 @@ export const toLeagueTableView = (
 
   const headers = standings.map((standing) => ({
     entryId: standing.entryId,
-    label: labelByEntryId.get(standing.entryId) ?? "（不明な参加者）",
+    label: labelByEntryId.get(standing.entryId) ?? UNKNOWN_PARTICIPANT_LABEL,
   }));
 
   return {
     headers,
     rows: standings.map((standing) => ({
       entryId: standing.entryId,
-      label: labelByEntryId.get(standing.entryId) ?? "（不明な参加者）",
+      label: labelByEntryId.get(standing.entryId) ?? UNKNOWN_PARTICIPANT_LABEL,
       rank: standing.rank,
       wins: standing.tally.wins,
       draws: standing.tally.draws,

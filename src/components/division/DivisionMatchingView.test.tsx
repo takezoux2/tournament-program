@@ -10,9 +10,7 @@ vi.mock("./DivisionBracket", () => ({
   ),
 }));
 
-const { DivisionMatchingView, needsParticipants } = await import(
-  "./DivisionMatchingView"
-);
+const { DivisionMatchingView } = await import("./DivisionMatchingView");
 
 const participants = [
   { id: "p1", name: "佐藤 蓮", nameKana: "サトウ レン", playerNumber: "1" },
@@ -158,12 +156,5 @@ describe("DivisionMatchingView", () => {
         "「ダブルエリミネーション（優勝決定戦あり）」のブラケット表示はまだ対応していません",
       ),
     ).toBeInTheDocument();
-  });
-
-  it("参加者一覧が要るのはブラケットと結果表を描く 2 形式", () => {
-    expect(needsParticipants("SINGLE_ELIMINATION")).toBe(true);
-    expect(needsParticipants("ROUND_ROBIN")).toBe(true);
-    expect(needsParticipants("DOUBLE_ELIMINATION_GRAND_FINAL")).toBe(false);
-    expect(needsParticipants("DOUBLE_ELIMINATION_THIRD_PLACE")).toBe(false);
   });
 });

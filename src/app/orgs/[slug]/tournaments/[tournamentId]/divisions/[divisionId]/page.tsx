@@ -1,11 +1,9 @@
 import { notFound } from "next/navigation";
 import { TrackCreated } from "@/components/analytics/TrackCreated";
 import { DivisionDetailView } from "@/components/division/DivisionDetail";
-import {
-  DivisionMatchingView,
-  needsParticipants,
-} from "@/components/division/DivisionMatchingView";
+import { DivisionMatchingView } from "@/components/division/DivisionMatchingView";
 import { AppHeader } from "@/components/layout/AppHeader";
+import { needsParticipants } from "@/features/division/format";
 import {
   findDivisionInTournament,
   listParticipantsInTournament,

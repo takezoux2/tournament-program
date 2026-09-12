@@ -114,4 +114,43 @@ describe("LeagueResultTable", () => {
 
     expect(screen.getByText("まだエントリーがありません")).toBeInTheDocument();
   });
+
+  it("kind: none のマスは何も描かない（対戦が組まれていない組み合わせ）", () => {
+    const noneTable: LeagueTableView = {
+      headers: [
+        { entryId: "e1", label: "山田" },
+        { entryId: "e2", label: "佐藤" },
+      ],
+      rows: [
+        {
+          entryId: "e1",
+          label: "山田",
+          rank: 1,
+          wins: 0,
+          draws: 0,
+          losses: 0,
+          points: 0,
+          cells: [{ kind: "self" }, { kind: "none" }],
+        },
+        {
+          entryId: "e2",
+          label: "佐藤",
+          rank: 1,
+          wins: 0,
+          draws: 0,
+          losses: 0,
+          points: 0,
+          cells: [{ kind: "none" }, { kind: "self" }],
+        },
+      ],
+    };
+    render(<LeagueResultTable table={noneTable} />);
+
+    // row[0] は thead、row[1] が山田の行。cell[0] が順位、cell[1] が
+    // 自分自身（self）の列、cell[2] が佐藤との対戦（none）の列。
+    const row = screen.getAllByRole("row")[1];
+    const cell = within(row).getAllByRole("cell")[2];
+    expect(cell).toBeEmptyDOMElement();
+    expect(within(cell).queryByRole("img")).toBeNull();
+  });
 });

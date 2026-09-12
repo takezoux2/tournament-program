@@ -1,11 +1,9 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import {
-  DivisionMatchingView,
-  needsParticipants,
-} from "@/components/division/DivisionMatchingView";
+import { DivisionMatchingView } from "@/components/division/DivisionMatchingView";
 import { PublicHeader } from "@/components/public/PublicHeader";
 import { PublicPreviewNotice } from "@/components/public/PublicPreviewNotice";
+import { needsParticipants } from "@/features/division/format";
 import {
   findDivisionInTournament,
   listParticipantsInTournament,
