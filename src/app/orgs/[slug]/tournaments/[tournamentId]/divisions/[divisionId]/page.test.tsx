@@ -48,11 +48,22 @@ vi.mock("@/features/division/repository", () => ({
   ) => listParticipantsInTournament(organizationId, tournamentId),
 }));
 
-// DivisionBracket はブラケット組み立てまで踏み込むため、ページのテストでは
+// DivisionMatchingView は組み合わせの組み立てまで踏み込むため、ページのテストでは
 // division / participants をそのまま受け取っているかだけを見たいのでダミーへ差し替える。
-vi.mock("@/components/division/DivisionBracket", () => ({
-  DivisionBracket: () => <div>bracket</div>,
-}));
+// needsParticipants は本物を使う（参加者を引く条件がページの責務だから）。
+vi.mock(
+  "@/components/division/DivisionMatchingView",
+  async (importOriginal) => {
+    const actual =
+      await importOriginal<
+        typeof import("@/components/division/DivisionMatchingView")
+      >();
+    return {
+      needsParticipants: actual.needsParticipants,
+      DivisionMatchingView: () => <div>matching</div>,
+    };
+  },
+);
 
 const { default: DivisionPage } = await import("./page");
 
@@ -164,10 +175,21 @@ describe("DivisionPage", () => {
     expect(listParticipantsInTournament).toHaveBeenCalledWith("o1", "t1");
   });
 
-  it("SINGLE_ELIMINATION 以外の部門では参加者一覧を取得しない", async () => {
+  it("ROUND_ROBIN の部門でも参加者一覧を取得する（結果表に名前が要る）", async () => {
     findDivisionInTournament.mockResolvedValue({
       ...division,
       format: "ROUND_ROBIN",
+    });
+
+    await DivisionPage(pageProps("tennis", "t1", "d1"));
+
+    expect(listParticipantsInTournament).toHaveBeenCalledWith("o1", "t1");
+  });
+
+  it("描画に参加者を使わない形式では参加者一覧を取得しない", async () => {
+    findDivisionInTournament.mockResolvedValue({
+      ...division,
+      format: "DOUBLE_ELIMINATION_GRAND_FINAL",
     });
 
     await DivisionPage(pageProps("tennis", "t1", "d1"));
