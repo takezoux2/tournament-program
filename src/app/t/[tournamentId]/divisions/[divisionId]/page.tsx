@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { DivisionBracket } from "@/components/division/DivisionBracket";
+import {
+  DivisionMatchingView,
+  needsParticipants,
+} from "@/components/division/DivisionMatchingView";
 import { PublicHeader } from "@/components/public/PublicHeader";
 import { PublicPreviewNotice } from "@/components/public/PublicPreviewNotice";
 import {
@@ -70,15 +73,14 @@ export default async function PublicDivisionPage({
     notFound();
   }
 
-  // DivisionBracket は SINGLE_ELIMINATION 以外では participants を一切使わず
-  // 未対応の案内を出すだけ。管理画面と同じく、使う形式のときだけ引く。
-  const participants =
-    division.format === "SINGLE_ELIMINATION"
-      ? await listParticipantsInTournament(
-          tournament.organizationId,
-          tournament.id,
-        )
-      : [];
+  // 描画に参加者名を使わない形式では参加者一覧を引かない。
+  // 管理画面の部門詳細と同じ条件を needsParticipants で共有する。
+  const participants = needsParticipants(division.format)
+    ? await listParticipantsInTournament(
+        tournament.organizationId,
+        tournament.id,
+      )
+    : [];
 
   return (
     <main className="min-h-screen bg-slate-50">
@@ -95,11 +97,12 @@ export default async function PublicDivisionPage({
         <h1 className="text-lg font-bold text-slate-800">{division.name}</h1>
 
         {/*
-          ブラケット専用の画面なので、枠に画面の大半を使う。dvh にするのは
+          ブラケットのときは枠に画面の大半を使う。dvh にするのは
           モバイルブラウザのアドレスバーの出入りで vh がずれるため。
           任意値クラスは Tailwind が走査できるよう文字列リテラルで渡す。
+          リーグの結果表は内容の高さに従い、この値を使わない。
         */}
-        <DivisionBracket
+        <DivisionMatchingView
           division={division}
           participants={participants}
           heightClassName="h-[calc(100dvh-11rem)]"
