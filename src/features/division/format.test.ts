@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { DivisionFormat } from "@/generated/prisma/enums";
-import { DIVISION_FORMAT_LABELS, DIVISION_FORMATS } from "./format";
+import {
+  DIVISION_FORMAT_LABELS,
+  DIVISION_FORMATS,
+  needsParticipants,
+} from "./format";
 
 describe("DIVISION_FORMAT_LABELS", () => {
   it("DivisionFormat のすべての値に日本語ラベルを持つ", () => {
@@ -25,5 +29,14 @@ describe("DIVISION_FORMAT_LABELS", () => {
       "DOUBLE_ELIMINATION_THIRD_PLACE",
       "ROUND_ROBIN",
     ]);
+  });
+});
+
+describe("needsParticipants", () => {
+  it("参加者一覧が要るのはブラケットと結果表を描く 2 形式", () => {
+    expect(needsParticipants("SINGLE_ELIMINATION")).toBe(true);
+    expect(needsParticipants("ROUND_ROBIN")).toBe(true);
+    expect(needsParticipants("DOUBLE_ELIMINATION_GRAND_FINAL")).toBe(false);
+    expect(needsParticipants("DOUBLE_ELIMINATION_THIRD_PLACE")).toBe(false);
   });
 });
