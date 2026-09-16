@@ -4,7 +4,7 @@ import {
   matchCardLabel,
   matchPositionLabel,
 } from "@/lib/division/label";
-import { renderMatchName } from "@/lib/division/match-name";
+import { resolveMatchNames } from "@/lib/division/match-name";
 import {
   buildOverallSeq,
   type OverallOrderDivision,
@@ -59,8 +59,14 @@ const buildMatchRows = (
   const rows: { row: ScheduleRowView; seq: number }[] = [];
 
   for (const division of divisions) {
-    const labelSlot = createSlotLabeler(
+    // 行の試合名とカードの「◯◯の勝者」が同じ展開結果を使うよう、部門ごとに 1 回だけ作る。
+    const matchNames = resolveMatchNames(
       division.matchingConfig,
+      division.id,
+      overallSeq,
+    );
+    const labelSlot = createSlotLabeler(
+      matchNames,
       division.entries,
       participants,
     );
@@ -75,7 +81,7 @@ const buildMatchRows = (
           divisionId: division.id,
           divisionName: division.name,
           matchId: match.id,
-          matchName: renderMatchName(match.matchName, { OverallSeq: seq }),
+          matchName: matchNames.get(match.id) ?? match.matchName,
           label: matchPositionLabel(match, division.format),
           card: matchCardLabel(match, labelSlot),
         },

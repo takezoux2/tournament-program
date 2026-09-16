@@ -1,10 +1,5 @@
 import type { DivisionFormat } from "@/generated/prisma/enums";
-import type {
-  BracketMatch,
-  DivisionEntries,
-  MatchingConfig,
-  SlotSource,
-} from "./types";
+import type { BracketMatch, DivisionEntries, SlotSource } from "./types";
 
 /** スロット 1 つの表示文字列を作る関数。 */
 export type SlotLabeler = (slot: SlotSource) => string;
@@ -16,12 +11,17 @@ export type SlotLabeler = (slot: SlotSource) => string;
  * 同じ文言を出す必要がある。features は同列どうし依存できないため、
  * 両方から参照できる下位共通層のここへ置く。
  *
+ * 第 1 引数が展開済みの試合名の表なのは、{{OverallSeq}} が大会全体を
+ * 見ないと決まらないため。この関数は部門しか知らないので自分では展開できない。
+ * 「第◯試合」の飾りを付けないのも同じ理由で、名前の形は試合名そのものが
+ * 決める（既定値なら「第1試合の勝者」になる）。
+ *
  * 名前を引けなかった entry は「（不明な参加者）」にして落とさない。
  * 参加者一覧が古いだけでも一覧は読めた方がよい。bye と書き分けるのは、
  * 引けないだけのスロットを「不戦勝」と出すとブラケットの読み違いになるため。
  */
 export const createSlotLabeler = (
-  config: MatchingConfig,
+  matchNames: ReadonlyMap<string, string>,
   entries: DivisionEntries,
   participants: { id: string; name: string }[],
 ): SlotLabeler => {
@@ -34,18 +34,15 @@ export const createSlotLabeler = (
       participantById.get(entry.participantId) ?? null,
     ]),
   );
-  const nameByMatchId = new Map(
-    config.matches.map((match) => [match.id, match.matchName]),
-  );
 
   return (slot) => {
     switch (slot.kind) {
       case "entry":
         return nameByEntryId.get(slot.entryId) ?? "（不明な参加者）";
       case "winnerOf":
-        return `第${nameByMatchId.get(slot.matchId) ?? "?"}試合の勝者`;
+        return `${matchNames.get(slot.matchId) ?? "?"}の勝者`;
       case "loserOf":
-        return `第${nameByMatchId.get(slot.matchId) ?? "?"}試合の敗者`;
+        return `${matchNames.get(slot.matchId) ?? "?"}の敗者`;
       case "bye":
         return "BYE";
     }

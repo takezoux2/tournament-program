@@ -2,6 +2,7 @@ import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import type { DivisionDetail } from "@/features/division/repository";
 import { buildRoundRobin } from "@/features/division/round-robin/build";
+import { overallSeqKey } from "@/lib/division/overall-order";
 import { LeagueSetup } from "./LeagueSetup";
 
 // 6 つとも別の vi.fn にする。同じ参照を使い回すと、配線で prop を
@@ -48,7 +49,7 @@ const props = {
   ],
   members: [],
   actions,
-  overallSeq: new Map<string, number>(),
+  overallSeq: new Map([[overallSeqKey("d1", "r1-0"), 1]]),
 };
 
 describe("LeagueSetup", () => {
@@ -67,7 +68,9 @@ describe("LeagueSetup", () => {
     // 星取表のみが描かれた場合と試合名の一覧まで描かれた場合を区別できない。
     // 試合名の一覧にしか無い試合名の入力欄（MatchNameRow の aria-label）を
     // 見て、本物の toMatchOrderView / MatchOrderList が描かれたことを確かめる。
-    expect(screen.getByLabelText("山田 vs 田中の試合名")).toHaveValue("1");
+    expect(screen.getByLabelText("山田 vs 田中の試合名")).toHaveValue(
+      "第1試合",
+    );
   });
 
   it("リーグ以外の形式は案内だけを出す", () => {

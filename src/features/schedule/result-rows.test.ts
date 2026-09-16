@@ -70,14 +70,14 @@ const matchRow = (matchId: string, matchName: string): ScheduleRowView => ({
   divisionName: "男子",
   matchId,
   matchName,
-  label: `${matchName}回戦 第${matchName}試合`,
+  label: "1回戦 (1)",
   card: "山田 vs 佐藤",
 });
 
 const rows: ScheduleRowView[] = [
-  matchRow("m1-0", "1"),
-  matchRow("m1-1", "2"),
-  matchRow("m2-0", "3"),
+  matchRow("m1-0", "第1試合"),
+  matchRow("m1-1", "第2試合"),
+  matchRow("m2-0", "第3試合"),
 ];
 
 const asMatch = (row: ReturnType<typeof buildResultRows>[number]) => {
@@ -197,5 +197,24 @@ describe("buildResultRows", () => {
     const result = buildResultRows(rows, [], participants);
 
     expect(result).toEqual([]);
+  });
+
+  it("未確定のスロットは、行が持つ展開済みの試合名で「◯◯の勝者」と書く", () => {
+    const named: ScheduleRowView[] = [
+      matchRow("m1-0", "準決勝A"),
+      matchRow("m1-1", "準決勝B"),
+      matchRow("m2-0", "決勝"),
+    ];
+
+    const result = buildResultRows(
+      named,
+      [division({ version: 1, matches: [] })],
+      participants,
+    );
+
+    expect(asMatch(result[2]).slots[0]).toEqual({
+      label: "準決勝Aの勝者",
+      entryId: null,
+    });
   });
 });

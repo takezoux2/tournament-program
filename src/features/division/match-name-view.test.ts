@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { DEFAULT_MATCH_NAME } from "@/lib/division/match-name";
 import type { DivisionEntries } from "@/lib/division/types";
 import { toMatchOrderView } from "./match-name-view";
 import { buildFromSlots } from "./single-elimination/build";
@@ -53,7 +54,7 @@ describe("toMatchOrderView", () => {
 
     expect(row).toEqual({
       matchId: "m1-0",
-      matchName: "1",
+      matchName: DEFAULT_MATCH_NAME,
       label: "1回戦 (1)",
       card: "山田 vs 佐藤",
     });

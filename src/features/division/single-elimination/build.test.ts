@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { DEFAULT_MATCH_NAME } from "@/lib/division/match-name";
 import type { MatchingConfig, SlotSource } from "@/lib/division/types";
 import {
   buildFromSlots,
@@ -40,7 +41,7 @@ describe("buildFromSlots", () => {
         bracket: "winners",
         round: 1,
         order: 0,
-        matchName: "1",
+        matchName: DEFAULT_MATCH_NAME,
         slots: [entry("a"), entry("b")],
       },
     ]);
@@ -120,30 +121,18 @@ describe("buildFromSlots", () => {
     }
   });
 
-  it("試合名を round 昇順 → order 昇順で 1 始まりの連番で振る", () => {
-    const config = buildFromSlots([
-      entry("e1"),
-      entry("e2"),
-      entry("e3"),
-      entry("e4"),
-    ]);
-
-    const numbers = config.matches
-      .sort((a, b) => a.round - b.round || a.order - b.order)
-      .map((match) => match.matchName);
-    expect(numbers).toEqual(["1", "2", "3"]);
-  });
-
-  it("bye 試合にも試合名を振る", () => {
+  it("bye の試合を含む全試合に既定の試合名テンプレートを入れる", () => {
     const config = buildFromSlots([
       { kind: "entry", entryId: "e1" },
       { kind: "entry", entryId: "e2" },
       { kind: "entry", entryId: "e3" },
     ]);
 
-    for (const match of config.matches) {
-      expect(match.matchName).toMatch(/^\d+$/);
-    }
+    expect(config.matches.map((match) => match.matchName)).toEqual([
+      DEFAULT_MATCH_NAME,
+      DEFAULT_MATCH_NAME,
+      DEFAULT_MATCH_NAME,
+    ]);
   });
 
   it("試合に実施順（sequence）を持たせない", () => {

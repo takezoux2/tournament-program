@@ -42,37 +42,48 @@ const entries: DivisionEntries = {
 
 const participants = [{ id: "p1", name: "山田" }];
 
+/** 展開済みの試合名。createSlotLabeler は自分では展開しない。 */
+const names = new Map([
+  ["m1-0", "第3試合"],
+  ["m2-0", "決勝"],
+]);
+
 describe("createSlotLabeler", () => {
   it("entry は参加者名にする", () => {
-    const label = createSlotLabeler(config, entries, participants);
+    const label = createSlotLabeler(names, entries, participants);
     expect(label({ kind: "entry", entryId: "e1" })).toBe("山田");
   });
 
   it("参加者を引けない entry は「（不明な参加者）」にする", () => {
-    const label = createSlotLabeler(config, entries, participants);
+    const label = createSlotLabeler(names, entries, participants);
     expect(label({ kind: "entry", entryId: "e9" })).toBe("（不明な参加者）");
   });
 
-  it("勝者・敗者参照は相手の試合名で表す", () => {
-    const label = createSlotLabeler(config, entries, participants);
+  it("勝者・敗者参照は展開済みの試合名に「の勝者」「の敗者」を付ける", () => {
+    const label = createSlotLabeler(names, entries, participants);
     expect(label({ kind: "winnerOf", matchId: "m1-0" })).toBe("第3試合の勝者");
     expect(label({ kind: "loserOf", matchId: "m1-0" })).toBe("第3試合の敗者");
   });
 
-  it("知らない試合を指す参照は「?」にする", () => {
-    const label = createSlotLabeler(config, entries, participants);
-    expect(label({ kind: "winnerOf", matchId: "zzz" })).toBe("第?試合の勝者");
+  it("試合名に「第◯試合」の飾りを足さない", () => {
+    const label = createSlotLabeler(names, entries, participants);
+    expect(label({ kind: "winnerOf", matchId: "m2-0" })).toBe("決勝の勝者");
+  });
+
+  it("名前を引けない試合を指す参照は「?」にする", () => {
+    const label = createSlotLabeler(names, entries, participants);
+    expect(label({ kind: "winnerOf", matchId: "zzz" })).toBe("?の勝者");
   });
 
   it("bye は BYE にする", () => {
-    const label = createSlotLabeler(config, entries, participants);
+    const label = createSlotLabeler(names, entries, participants);
     expect(label({ kind: "bye" })).toBe("BYE");
   });
 });
 
 describe("matchCardLabel", () => {
   it("両スロットを vs でつなぐ", () => {
-    const label = createSlotLabeler(config, entries, participants);
+    const label = createSlotLabeler(names, entries, participants);
     expect(matchCardLabel(config.matches[0], label)).toBe("山田 vs BYE");
   });
 });

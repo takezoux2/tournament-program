@@ -1,3 +1,4 @@
+import { DEFAULT_MATCH_NAME } from "./match-name";
 import type {
   BracketMatch,
   BracketSide,
@@ -121,40 +122,18 @@ const parseBracketMatch = (
 };
 
 /**
- * matchName の無い試合（列追加前に保存された旧データ）へ番号を補完する。
- * round/order 順に、既存の番号と衝突しない最小の正整数を文字列で割り当てる。
+ * matchName の無い試合（改名前に保存された旧データ）へ既定のテンプレートを入れる。
+ *
+ * 旧 matchNumber の値は読み継がない。リテラルの番号を残すと、その部門だけが
+ * 進行順の並べ替えに追従しなくなり、新しく作った部門と挙動が分かれるため。
  * データ移行を行わない代わりに、読み出しが必ず完全な形へ正規化する。
  */
-const fillMatchNames = (matches: ParsedBracketMatch[]): BracketMatch[] => {
-  const used = new Set(
-    matches.flatMap((match) =>
-      match.matchName === undefined ? [] : [match.matchName],
-    ),
-  );
-  let candidate = 1;
-  const nextNumber = (): string => {
-    while (used.has(String(candidate))) {
-      candidate += 1;
-    }
-    used.add(String(candidate));
-    return String(candidate);
-  };
-
-  const assigned = new Map<string, string>();
-  for (const match of [...matches].sort(
-    (left, right) => left.round - right.round || left.order - right.order,
-  )) {
-    if (match.matchName === undefined) {
-      assigned.set(match.id, nextNumber());
-    }
-  }
-
-  return matches.map((match) =>
+const fillMatchNames = (matches: ParsedBracketMatch[]): BracketMatch[] =>
+  matches.map((match) =>
     match.matchName === undefined
-      ? { ...match, matchName: assigned.get(match.id) as string }
+      ? { ...match, matchName: DEFAULT_MATCH_NAME }
       : (match as BracketMatch),
   );
-};
 
 /**
  * round → order の順に並べる。

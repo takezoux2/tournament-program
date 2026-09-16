@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { DEFAULT_MATCH_NAME } from "./match-name";
 import {
   DivisionJsonError,
   parseDivisionEntries,
@@ -73,26 +74,7 @@ describe("parseMatchingConfig", () => {
     expect(config.matches[0].matchName).toBe("A");
   });
 
-  it("matchName の無い試合には round/order 順で未使用の連番を補完する", () => {
-    const match = (id: string, round: number, order: number) => ({
-      id,
-      bracket: "winners",
-      round,
-      order,
-      slots: [{ kind: "bye" }, { kind: "bye" }],
-    });
-    const config = parseMatchingConfig({
-      version: 1,
-      // 配列順は round 順と逆に置き、round/order 順で補完されることを確かめる
-      matches: [match("m2-0", 2, 0), match("m1-0", 1, 0), match("m1-1", 1, 1)],
-    });
-    const byId = new Map(config.matches.map((m) => [m.id, m.matchName]));
-    expect(byId.get("m1-0")).toBe("1");
-    expect(byId.get("m1-1")).toBe("2");
-    expect(byId.get("m2-0")).toBe("3");
-  });
-
-  it("補完する連番は既に使われている番号を飛ばす", () => {
+  it("matchName の無い試合には既定のテンプレートを入れる", () => {
     const config = parseMatchingConfig({
       version: 1,
       matches: [
@@ -101,7 +83,7 @@ describe("parseMatchingConfig", () => {
           bracket: "winners",
           round: 1,
           order: 0,
-          matchName: "1",
+          matchName: "決勝",
           slots: [{ kind: "bye" }, { kind: "bye" }],
         },
         {
@@ -113,8 +95,30 @@ describe("parseMatchingConfig", () => {
         },
       ],
     });
-    const byId = new Map(config.matches.map((m) => [m.id, m.matchName]));
-    expect(byId.get("m1-1")).toBe("2");
+
+    expect(config.matches.map((match) => match.matchName)).toEqual([
+      "決勝",
+      DEFAULT_MATCH_NAME,
+    ]);
+  });
+
+  it("旧データの matchNumber は読み継がない", () => {
+    const config = parseMatchingConfig({
+      version: 1,
+      matches: [
+        {
+          id: "m1-0",
+          bracket: "winners",
+          round: 1,
+          order: 0,
+          matchNumber: "7",
+          slots: [{ kind: "bye" }, { kind: "bye" }],
+        },
+      ],
+    });
+
+    expect(config.matches[0].matchName).toBe(DEFAULT_MATCH_NAME);
+    expect(config.matches[0]).not.toHaveProperty("matchNumber");
   });
 
   it("matchName が文字列以外なら DivisionJsonError", () => {

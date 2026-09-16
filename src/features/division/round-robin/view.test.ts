@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { DEFAULT_MATCH_NAME } from "@/lib/division/match-name";
 import type { DivisionEntries, DivisionEntry } from "@/lib/division/types";
 import { buildRoundRobin } from "./build";
 import { toCrossTableView } from "./view";
@@ -47,9 +48,15 @@ describe("toCrossTableView", () => {
 
   it("対戦がある組には試合名が入り、左右対称になる", () => {
     const table = toCrossTableView(config, entries, participants, noNames);
-    // e1 vs e4 は第1試合 = 通し番号 1。
-    expect(table.rows[0].cells[3]).toEqual({ kind: "match", matchName: "1" });
-    expect(table.rows[3].cells[0]).toEqual({ kind: "match", matchName: "1" });
+    // 展開済みの名前を渡していないので、保存されているテンプレートのまま。
+    expect(table.rows[0].cells[3]).toEqual({
+      kind: "match",
+      matchName: DEFAULT_MATCH_NAME,
+    });
+    expect(table.rows[3].cells[0]).toEqual({
+      kind: "match",
+      matchName: DEFAULT_MATCH_NAME,
+    });
   });
 
   it("対戦が無い組は none", () => {

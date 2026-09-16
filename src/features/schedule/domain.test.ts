@@ -387,4 +387,31 @@ describe("buildScheduleView の試合名", () => {
       rows.map((row) => (row.kind === "match" ? row.matchName : "")),
     ).toEqual(["1", "2"]);
   });
+
+  it("対戦カードの勝者・敗者の参照は展開済みの試合名で書く", () => {
+    const division = makeDivision({
+      id: "d1",
+      order: 0,
+      matches: [
+        makeMatch({ id: "m1", matchName: "準決勝" }),
+        makeMatch({ id: "m2", order: 1, matchName: "第{{OverallSeq}}試合" }),
+        makeMatch({
+          id: "m3",
+          round: 2,
+          matchName: "決勝",
+          slots: [
+            { kind: "winnerOf", matchId: "m1" },
+            { kind: "loserOf", matchId: "m2" },
+          ],
+        }),
+      ],
+    });
+
+    const rows = buildScheduleView([division], [], []);
+
+    expect(rows[2]).toMatchObject({
+      matchId: "m3",
+      card: "準決勝の勝者 vs 第2試合の敗者",
+    });
+  });
 });

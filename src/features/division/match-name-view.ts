@@ -39,7 +39,7 @@ export const toMatchOrderView = (
   /** 展開済みの試合名。{{OverallSeq}} は大会全体を見ないと決まらないので上で作って渡す */
   matchNames: ReadonlyMap<string, string>,
 ): MatchNameRowView[] => {
-  const labelSlot = createSlotLabeler(config, entries, participants);
+  const labelSlot = createSlotLabeler(matchNames, entries, participants);
 
   return config.matches.map((match) => ({
     matchId: match.id,

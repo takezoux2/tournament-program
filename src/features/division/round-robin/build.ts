@@ -1,3 +1,4 @@
+import { DEFAULT_MATCH_NAME } from "@/lib/division/match-name";
 import type {
   BracketMatch,
   DivisionEntry,
@@ -80,7 +81,7 @@ export const buildRoundRobin = (entries: DivisionEntry[]): MatchingConfig => {
         bracket: "winners",
         round: 1,
         order,
-        matchName: String(order + 1),
+        matchName: DEFAULT_MATCH_NAME,
         slots: [
           { kind: "entry", entryId: sorted[left].id },
           { kind: "entry", entryId: sorted[right].id },

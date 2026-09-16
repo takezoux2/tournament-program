@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { DEFAULT_MATCH_NAME } from "@/lib/division/match-name";
 import type { DivisionEntry } from "@/lib/division/types";
 import { buildRoundRobin, circleRounds, isRoundRobinShape } from "./build";
 
@@ -114,14 +115,6 @@ describe("buildRoundRobin", () => {
       "r1-4",
       "r1-5",
     ]);
-    expect(config.matches.map((match) => match.matchName)).toEqual([
-      "1",
-      "2",
-      "3",
-      "4",
-      "5",
-      "6",
-    ]);
   });
 
   it("並びは円卓法の節を上から連結した順のまま", () => {
@@ -138,10 +131,10 @@ describe("buildRoundRobin", () => {
     ).toEqual(["e1-e4", "e2-e3", "e1-e3", "e4-e2", "e1-e2", "e3-e4"]);
   });
 
-  it("matchName は実施順の通し番号", () => {
+  it("全試合に既定の試合名テンプレートを入れる", () => {
     expect(
       buildRoundRobin(entriesOf(4)).matches.map((match) => match.matchName),
-    ).toEqual(["1", "2", "3", "4", "5", "6"]);
+    ).toEqual(Array.from({ length: 6 }, () => DEFAULT_MATCH_NAME));
   });
 
   it("スロットは両方とも entry で、bracket は winners 固定", () => {

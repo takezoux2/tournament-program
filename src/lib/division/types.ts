@@ -39,7 +39,10 @@ export type BracketMatch = {
    * 実施順は持たない。試合の順番は大会の進行順（ScheduleItem）だけが決める。
    */
   order: number;
-  /** 表示用の試合名。部門内で重複してよい */
+  /**
+   * 表示用の試合名のテンプレート。{{OverallSeq}}（大会の進行順の通し番号）を使える。
+   * 部門内で重複してよい（既定値は全試合で同じ文字列になる）
+   */
   matchName: string;
   slots: [SlotSource, SlotSource];
 };

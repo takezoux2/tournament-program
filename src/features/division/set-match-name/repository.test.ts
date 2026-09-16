@@ -21,7 +21,7 @@ const { setMatchNameInDb } = await import("./repository");
 
 const ids = { organizationId: "o1", tournamentId: "t1", divisionId: "d1" };
 
-// e1 vs e2 の 1 試合だけの組み合わせ（matchName "1"）
+// e1 vs e2 の 1 試合だけの組み合わせ（matchName は既定のテンプレート）
 const config = buildFromSlots([
   { kind: "entry", entryId: "e1" },
   { kind: "entry", entryId: "e2" },

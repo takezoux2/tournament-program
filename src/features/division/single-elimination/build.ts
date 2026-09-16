@@ -1,3 +1,4 @@
+import { DEFAULT_MATCH_NAME } from "@/lib/division/match-name";
 import type {
   BracketMatch,
   MatchingConfig,
@@ -68,7 +69,7 @@ export const buildFromSlots = (slots: SlotSource[]): MatchingConfig => {
       bracket: "winners",
       round: 1,
       order,
-      matchName: String(matches.length + 1),
+      matchName: DEFAULT_MATCH_NAME,
       slots: [paddedSlots[order * 2], paddedSlots[order * 2 + 1]],
     });
   }
@@ -83,7 +84,7 @@ export const buildFromSlots = (slots: SlotSource[]): MatchingConfig => {
         bracket: "winners",
         round,
         order,
-        matchName: String(matches.length + 1),
+        matchName: DEFAULT_MATCH_NAME,
         slots: [
           { kind: "winnerOf", matchId: matchId(round - 1, order * 2) },
           { kind: "winnerOf", matchId: matchId(round - 1, order * 2 + 1) },
