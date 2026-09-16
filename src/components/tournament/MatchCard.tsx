@@ -18,11 +18,14 @@ function SlotRow({
   slot,
   index,
   winReason,
+  reserveTopRight = false,
 }: {
   matchId: string;
   slot: ResolvedSlot;
   index: 0 | 1;
   winReason?: string | null;
+  /** 右上に重ねるメモボタンのぶん、右端を空けるか */
+  reserveTopRight?: boolean;
 }) {
   return (
     <div
@@ -31,7 +34,7 @@ function SlotRow({
       data-winner={slot.isWinner ? "true" : "false"}
       className={`flex h-1/2 items-center gap-2 px-2 text-sm ${
         index === 0 ? "border-b border-slate-200" : ""
-      } ${slotTone(slot)}`}
+      } ${reserveTopRight ? "pr-7" : ""} ${slotTone(slot)}`}
     >
       <span className="w-5 shrink-0 text-right text-xs text-slate-400">
         {slot.participant ? slot.participant.seed : ""}
@@ -58,6 +61,7 @@ export function MatchCard({ match }: { match: ResolvedMatch }) {
   // スロットに 1 つでもスコアがあれば旧来の右上バッジと重なるため、
   // そちらは出さない。
   const hasSlotScore = match.slots.some((slot) => slot.score !== null);
+  const hasNote = match.note !== null && match.note !== "";
 
   return (
     <div
@@ -71,6 +75,7 @@ export function MatchCard({ match }: { match: ResolvedMatch }) {
         slot={match.slots[0]}
         index={0}
         winReason={match.winReason}
+        reserveTopRight={hasNote}
       />
       <SlotRow
         matchId={match.id}
@@ -79,7 +84,11 @@ export function MatchCard({ match }: { match: ResolvedMatch }) {
         winReason={match.winReason}
       />
       {match.score && !hasSlotScore ? (
-        <span className="absolute right-1 top-1 rounded bg-slate-100 px-1 text-[10px] leading-4 text-slate-500">
+        <span
+          className={`absolute top-1 rounded bg-slate-100 px-1 text-[10px] leading-4 text-slate-500 ${
+            hasNote ? "right-7" : "right-1"
+          }`}
+        >
           {match.score}
         </span>
       ) : null}
@@ -91,7 +100,13 @@ export function MatchCard({ match }: { match: ResolvedMatch }) {
           {match.matchNumber}
         </span>
       ) : null}
-      <span className="absolute left-8 top-0 leading-4">
+      {/*
+        左上は試合番号・シード・1 人目の名前で埋まっているので右上に置く。
+        1 行目は reserveTopRight で右端を空け、旧来のスコアバッジはその左へずらす。
+        nodrag / nopan は、このボタン上の操作を React Flow のドラッグ・パンに
+        取られず、クリックでポップオーバーを開けるようにするため。
+      */}
+      <span className="nodrag nopan absolute right-1 top-0 leading-4">
         <MatchNoteButton
           note={match.note}
           label={
