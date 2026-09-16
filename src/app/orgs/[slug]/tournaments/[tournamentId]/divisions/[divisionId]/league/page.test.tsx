@@ -47,7 +47,7 @@ vi.mock("@/features/organization/repository", () => ({
     listMembersInOrganization(organizationId),
 }));
 
-// 7 つの Server Action は "use server" を持つので、テストでは差し替える。
+// 6 つの Server Action は "use server" を持つので、テストでは差し替える。
 vi.mock("@/features/division/add-entry/handler", () => ({
   addEntryAction: vi.fn(),
 }));
@@ -59,9 +59,6 @@ vi.mock("@/features/division/reorder-entry/handler", () => ({
 }));
 vi.mock("@/features/division/generate-matching/handler", () => ({
   generateMatchingAction: vi.fn(),
-}));
-vi.mock("@/features/division/reorder-matches/handler", () => ({
-  reorderMatchesAction: vi.fn(),
 }));
 vi.mock("@/features/division/set-match-name/handler", () => ({
   setMatchNameAction: vi.fn(),
@@ -90,9 +87,6 @@ const { reorderEntryAction } = await import(
 );
 const { generateMatchingAction } = await import(
   "@/features/division/generate-matching/handler"
-);
-const { reorderMatchesAction } = await import(
-  "@/features/division/reorder-matches/handler"
 );
 const { setMatchNameAction } = await import(
   "@/features/division/set-match-name/handler"
@@ -203,8 +197,8 @@ describe("LeagueSetupPage", () => {
     expect(passed).toBe(overallSeq);
   });
 
-  it("7 つの Server Action をそれぞれ対応する actions のプロパティに渡す", async () => {
-    // 7 つとも別モジュールの vi.fn() なので参照が異なる。Object.keys().sort()
+  it("6 つの Server Action をそれぞれ対応する actions のプロパティに渡す", async () => {
+    // 6 つとも別モジュールの vi.fn() なので参照が異なる。Object.keys().sort()
     // だけの比較では 2 つの action を取り違えて渡しても通ってしまうため、
     // setup/page.test.tsx と同じく 1 つずつ toBe で参照を確かめる。
     render(await LeagueSetupPage(pageProps()));
@@ -217,8 +211,8 @@ describe("LeagueSetupPage", () => {
     expect(actions.removeEntry).toBe(removeEntryAction);
     expect(actions.reorderEntry).toBe(reorderEntryAction);
     expect(actions.generateMatching).toBe(generateMatchingAction);
-    expect(actions.reorderMatches).toBe(reorderMatchesAction);
     expect(actions.setMatchName).toBe(setMatchNameAction);
     expect(actions.setPlayerNumber).toBe(setPlayerNumberAction);
+    expect(actions).not.toHaveProperty("reorderMatches");
   });
 });

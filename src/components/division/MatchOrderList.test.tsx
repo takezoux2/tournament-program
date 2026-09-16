@@ -29,7 +29,6 @@ const renderList = (list: MatchNameRowView[]) =>
       slug="acme"
       tournamentId="t1"
       divisionId="d1"
-      reorderAction={noop}
       setMatchNameAction={noop}
       emptyMessage="まだ組み合わせがありません"
     />,
@@ -67,7 +66,6 @@ describe("MatchOrderList", () => {
         slug="acme"
         tournamentId="t1"
         divisionId="d1"
-        reorderAction={noop}
         setMatchNameAction={setMatchNameAction}
         emptyMessage="まだ組み合わせがありません"
       />,
@@ -86,21 +84,13 @@ describe("MatchOrderList", () => {
     expect(sent.get("divisionId")).toBe("d1");
   });
 
-  it("行ごとに区別できる名前のドラッグハンドルを出す", () => {
-    // 一覧には似た行が並ぶので、ハンドルの名前に行の中身を混ぜる。
-    // 固定文言だと支援技術には同じ名前のボタンが並んで見える。
+  it("並べ替えの操作を出さない", () => {
+    // 試合の順番は大会の進行順（/matches）だけが決める。部門の中で
+    // 並べ替える操作を残すと、番号が変わると誤解させる。
     renderList(rows);
 
-    expect(
-      screen.getByRole("button", {
-        name: "1行目 1回戦 第1試合をドラッグして並べ替え",
-      }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", {
-        name: "2行目 1回戦 第2試合をドラッグして並べ替え",
-      }),
-    ).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /並べ替え/ })).toBeNull();
+    expect(screen.queryByText(/ドラッグ/)).toBeNull();
   });
 
   it("行が無ければ渡された文言を出す", () => {

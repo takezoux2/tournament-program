@@ -30,7 +30,6 @@ export type LeagueSetupActions = {
   removeEntry: DivisionFormAction;
   reorderEntry: DivisionFormAction;
   generateMatching: DivisionFormAction;
-  reorderMatches: DivisionFormAction;
   setMatchName: DivisionFormAction;
   setPlayerNumber: DivisionFormAction;
 };
@@ -100,7 +99,7 @@ export function LeagueSetup({
   // 描くと嘘になるため、作り直しを促すだけにする。
   const mismatched = !isRoundRobinShape(parsed.matchingConfig);
 
-  // 星取表と実施順の一覧の両方が同じ展開結果を使う。呼び出しごとに作ると
+  // 星取表と試合名の一覧の両方が同じ展開結果を使う。呼び出しごとに作ると
   // 同じ試合の名前が食い違って出かねないので、1 回だけ作って両方に渡す。
   const matchNames = resolveMatchNames(
     parsed.matchingConfig,
@@ -166,8 +165,8 @@ export function LeagueSetup({
       </section>
 
       <section className="space-y-3">
-        <h2 className="text-sm font-bold text-slate-700">試合の実施順</h2>
-        {/* 実施順と番号の変更は構造を変えないため、locked でも編集できる */}
+        <h2 className="text-sm font-bold text-slate-700">試合名</h2>
+        {/* 試合名の変更は構造を変えないため、locked でも編集できる */}
         {mismatched ? (
           <Notice>対戦表を作り直すと、ここに試合が出ます</Notice>
         ) : (
@@ -182,7 +181,6 @@ export function LeagueSetup({
             slug={slug}
             tournamentId={tournamentId}
             divisionId={division.id}
-            reorderAction={actions.reorderMatches}
             setMatchNameAction={actions.setMatchName}
             emptyMessage="まだ対戦表がありません"
           />

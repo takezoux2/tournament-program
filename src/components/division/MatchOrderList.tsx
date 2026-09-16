@@ -1,196 +1,67 @@
 "use client";
 
-import {
-  DndContext,
-  type DragEndEvent,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
-} from "@dnd-kit/core";
-import {
-  SortableContext,
-  sortableKeyboardCoordinates,
-  useSortable,
-  verticalListSortingStrategy,
-} from "@dnd-kit/sortable";
-import type { ReactNode } from "react";
-import { useActionState, useTransition } from "react";
 import type { MatchNameRowView } from "@/features/division/match-name-view";
-import {
-  type DivisionFormAction,
-  INITIAL_DIVISION_FORM_STATE,
-} from "@/features/division/state";
-import { resolveDragReorder } from "@/lib/dnd/reorder";
+import type { DivisionFormAction } from "@/features/division/state";
 import { MatchNameRow } from "./MatchNameRow";
 
 /**
- * 1 行ぶんの並べ替え可能な枠。掴む場所をハンドルのボタンに限るのは、
- * 行の中に試合名の入力欄と保存ボタンがあり、行全体を掴めるようにすると
- * 文字を選択できなくなるため（components/schedule/ScheduleList.tsx と同じ形）。
+ * 部門の試合を並べた、試合名の編集一覧。1 行が 1 つの編集フォーム。
  *
- * transform を translate3d に自前で直しているのは、@dnd-kit/utilities を
- * 依存に足さないため。縦一列の並べ替えなので y だけ見れば足りる。
- */
-function SortableRow({
-  id,
-  name,
-  disabled,
-  children,
-}: {
-  id: string;
-  name: string;
-  /** 並べ替えの保存中。掴めてしまうと古い並びから計算して先の保存を打ち消す。 */
-  disabled: boolean;
-  children: ReactNode;
-}) {
-  const sortable = useSortable({ id, disabled });
-
-  return (
-    <li
-      ref={sortable.setNodeRef}
-      style={{
-        transform: sortable.transform
-          ? `translate3d(0, ${sortable.transform.y}px, 0)`
-          : undefined,
-        transition: sortable.transition,
-      }}
-      className={
-        sortable.isDragging
-          ? "flex items-center gap-3 rounded border border-slate-800 bg-slate-50 px-4 py-3"
-          : "flex items-center gap-3 rounded border border-slate-200 bg-white px-4 py-3"
-      }
-    >
-      <button
-        type="button"
-        disabled={disabled}
-        aria-label={`${name}をドラッグして並べ替え`}
-        className="cursor-grab rounded px-1 text-slate-400 disabled:cursor-default disabled:opacity-30"
-        {...sortable.listeners}
-        {...sortable.attributes}
-      >
-        ⠿
-      </button>
-      {children}
-    </li>
-  );
-}
-
-/**
- * 部門の試合を実施順に並べた一覧。行はドラッグで入れ替えられ、
- * 同じ行が試合名の編集フォームを兼ねる。
+ * 並べ替えの操作は持たない。試合番号は大会の進行順（/matches）の通し番号
+ * {{OverallSeq}} だけで決まり、部門の中で順番を持つ意味が無くなったため。
+ * 行の並びは渡された配列の順（parseMatchingConfig が揃えた順）のまま。
  *
- * トーナメントとリーグで同じ部品を使う。並べ替えが変えるのは実施順と
- * 試合名だけで、ブラケット上の位置（round/order）は動かさないため、
- * 形式によって挙動を分ける必要が無い。
+ * トーナメントとリーグで同じ部品を使う。違いは行の中身（位置の文言）だけで、
+ * それは toMatchOrderView が format を見て吸収する。
+ *
+ * フックを持たないが "use client" を残すのは、Server Component（DivisionSetup /
+ * LeagueSetup）とクライアント部品（MatchNameRow）の境界をこれまでと同じ位置に
+ * 保つため。
  */
 export function MatchOrderList({
   rows,
   slug,
   tournamentId,
   divisionId,
-  reorderAction,
   setMatchNameAction,
   emptyMessage,
 }: {
-  /** 実施順に並べて渡す。この並びがそのまま画面の並びになる。 */
+  /** この並びがそのまま画面の並びになる。 */
   rows: MatchNameRowView[];
   slug: string;
   tournamentId: string;
   divisionId: string;
-  reorderAction: DivisionFormAction;
   setMatchNameAction: DivisionFormAction;
   /** 行が 1 つも無いときの文言。画面ごとに言い方が違う。 */
   emptyMessage: string;
 }) {
-  const [reorderState, reorder, reordering] = useActionState(
-    reorderAction,
-    INITIAL_DIVISION_FORM_STATE,
-  );
-  const [, startTransition] = useTransition();
-
-  const sensors = useSensors(
-    useSensor(PointerSensor),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    }),
-  );
-
-  const keys = rows.map((row) => row.matchId);
-
-  const handleDragEnd = (event: DragEndEvent): void => {
-    const next = resolveDragReorder(
-      keys,
-      String(event.active.id),
-      event.over === null ? null : String(event.over.id),
-    );
-    if (next === null) {
-      return;
-    }
-
-    // フォーム要素を経由せずに送るため、FormData をここで組み立てる。
-    // 行ごとの hidden input にすると、ドラッグ中の並びと送信内容がずれる。
-    const data = new FormData();
-    data.set("slug", slug);
-    data.set("tournamentId", tournamentId);
-    data.set("divisionId", divisionId);
-    for (const matchId of next) {
-      data.append("matchId", matchId);
-    }
-    startTransition(() => reorder(data));
-  };
-
   if (rows.length === 0) {
     return <p className="text-sm text-slate-600">{emptyMessage}</p>;
   }
 
   return (
     <div className="space-y-2">
-      {/*
-        操作の説明は aria-live の外に置く。中に入れると、保存が終わって
-        文言が戻るたびに、状態ではなくこの説明文がまるごと読み上げられる。
-      */}
       <p className="text-xs text-slate-500">
-        左端をドラッグすると実施順を入れ替えられます。並べ替えると試合名は先頭から振り直されます。対戦表を作り直したときと、トーナメントで
-        1 回戦の組み合わせを入れ替えたときは、実施順と試合名が既定に戻ります
+        組み合わせを作り直したときと、トーナメントで 1
+        回戦の組み合わせを入れ替えたときは、試合名が既定に戻ります
       </p>
 
-      {/*
-        読み上げるのは保存の状態だけ。空でも要素を残すのは、live
-        region は中身が変わる前から DOM に居ないと通知されないため。
-      */}
-      <p aria-live="polite" className="text-xs text-slate-500">
-        {reordering ? "並べ替えを保存中..." : ""}
-      </p>
-
-      {reorderState.error !== null && (
-        <p role="alert" className="text-sm text-red-600">
-          {reorderState.error}
-        </p>
-      )}
-
-      <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
-        <SortableContext items={keys} strategy={verticalListSortingStrategy}>
-          <ul className="space-y-2">
-            {rows.map((row, index) => (
-              <SortableRow
-                key={row.matchId}
-                id={row.matchId}
-                name={`${index + 1}行目 ${row.label}`}
-                disabled={reordering}
-              >
-                <MatchNameRow
-                  row={row}
-                  slug={slug}
-                  tournamentId={tournamentId}
-                  divisionId={divisionId}
-                  action={setMatchNameAction}
-                />
-              </SortableRow>
-            ))}
-          </ul>
-        </SortableContext>
-      </DndContext>
+      <ul className="space-y-2">
+        {rows.map((row) => (
+          <li
+            key={row.matchId}
+            className="flex items-center gap-3 rounded border border-slate-200 bg-white px-4 py-3"
+          >
+            <MatchNameRow
+              row={row}
+              slug={slug}
+              tournamentId={tournamentId}
+              divisionId={divisionId}
+              action={setMatchNameAction}
+            />
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

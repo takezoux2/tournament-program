@@ -4,14 +4,13 @@ import type { DivisionDetail } from "@/features/division/repository";
 import { buildRoundRobin } from "@/features/division/round-robin/build";
 import { LeagueSetup } from "./LeagueSetup";
 
-// 7 つとも別の vi.fn にする。同じ参照を使い回すと、配線で prop を
+// 6 つとも別の vi.fn にする。同じ参照を使い回すと、配線で prop を
 // 取り違えても（例: reorderEntry と removeEntry の入れ替え）検知できない。
 const actions = {
   addEntry: vi.fn(async () => ({ error: null })),
   removeEntry: vi.fn(async () => ({ error: null })),
   reorderEntry: vi.fn(async () => ({ error: null })),
   generateMatching: vi.fn(async () => ({ error: null })),
-  reorderMatches: vi.fn(async () => ({ error: null })),
   setMatchName: vi.fn(async () => ({ error: null })),
   setPlayerNumber: vi.fn(async () => ({ error: null })),
 };
@@ -53,22 +52,20 @@ const props = {
 };
 
 describe("LeagueSetup", () => {
-  it("エントリー・対戦表・試合の実施順の 3 区画を出す", () => {
+  it("エントリー・対戦表・試合名の 3 区画を出す", () => {
     render(<LeagueSetup {...props} division={division()} />);
 
     expect(
       screen.getByRole("heading", { name: "エントリー" }),
     ).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "対戦表" })).toBeInTheDocument();
-    expect(
-      screen.getByRole("heading", { name: "試合の実施順" }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "試合名" })).toBeInTheDocument();
 
     // 見出しの有無だけでは mismatched 分岐の両側で真になってしまい、
     // 本物の toCrossTableView / toMatchOrderView が描かれたことの証明にならない。
     // 星取表は「第1試合」を左右対称な 2 マスに出すため、その文字列だけでは
-    // 星取表のみが描かれた場合と実施順の一覧まで描かれた場合を区別できない。
-    // 実施順の一覧にしか無い試合名の入力欄（MatchNameRow の aria-label）を
+    // 星取表のみが描かれた場合と試合名の一覧まで描かれた場合を区別できない。
+    // 試合名の一覧にしか無い試合名の入力欄（MatchNameRow の aria-label）を
     // 見て、本物の toMatchOrderView / MatchOrderList が描かれたことを確かめる。
     expect(screen.getByLabelText("第1試合の試合名")).toHaveValue("1");
   });

@@ -42,29 +42,6 @@ describe("toMatchOrderView", () => {
     expect(rows.map((row) => row.matchId)).toEqual(["m1-0", "m1-1", "m2-0"]);
   });
 
-  it("並べ替え済みの配列は並べ直さずにそのまま返す", () => {
-    // 実施順を入れ替えたあとの config。round/order で並べ直す実装だと
-    // 元の順に戻ってしまうので、このテストが効く。
-    const reordered = {
-      version: 1 as const,
-      matches: [
-        { ...config.matches[2], sequence: 0, matchName: "1" },
-        { ...config.matches[0], sequence: 1, matchName: "2" },
-        { ...config.matches[1], sequence: 2, matchName: "3" },
-      ],
-    };
-
-    const rows = toMatchOrderView(
-      reordered,
-      entries,
-      participants,
-      "SINGLE_ELIMINATION",
-      noNames,
-    );
-
-    expect(rows.map((row) => row.matchId)).toEqual(["m2-0", "m1-0", "m1-1"]);
-  });
-
   it("位置の文言と対戦カードを載せる", () => {
     const [row] = toMatchOrderView(
       config,

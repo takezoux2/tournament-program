@@ -28,7 +28,6 @@ export type DivisionSetupActions = {
   reorderEntry: DivisionFormAction;
   generateMatching: DivisionFormAction;
   swapSlots: DivisionFormAction;
-  reorderMatches: DivisionFormAction;
   setMatchName: DivisionFormAction;
   setPlayerNumber: DivisionFormAction;
 };
@@ -160,10 +159,10 @@ export function DivisionSetup({
       </section>
 
       <section className="space-y-3">
-        <h2 className="text-sm font-bold text-slate-700">試合の実施順</h2>
-        {/* 実施順と番号の変更は構造を変えないため、locked でも編集できる */}
+        <h2 className="text-sm font-bold text-slate-700">試合名</h2>
+        {/* 試合名の変更は構造を変えないため、locked でも編集できる */}
         {mismatched ? (
-          <Notice>組み合わせを作り直すと、ここに試合の実施順が出ます</Notice>
+          <Notice>組み合わせを作り直すと、ここに試合が出ます</Notice>
         ) : (
           <MatchOrderList
             rows={toMatchOrderView(
@@ -176,7 +175,6 @@ export function DivisionSetup({
             slug={slug}
             tournamentId={tournamentId}
             divisionId={division.id}
-            reorderAction={actions.reorderMatches}
             setMatchNameAction={actions.setMatchName}
             emptyMessage="まだ組み合わせがありません"
           />
