@@ -58,7 +58,7 @@ describe("MatchResultRow の詳細", () => {
 
     expect(screen.getByText(/一本勝ち/)).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: "第1試合のメモ" }),
+      screen.getByRole("button", { name: "男子 第1試合のメモ" }),
     ).toBeInTheDocument();
   });
 
@@ -75,7 +75,7 @@ describe("MatchResultRow の詳細", () => {
     );
 
     expect(
-      screen.queryByRole("button", { name: "第1試合のメモ" }),
+      screen.queryByRole("button", { name: "男子 第1試合のメモ" }),
     ).not.toBeInTheDocument();
   });
 

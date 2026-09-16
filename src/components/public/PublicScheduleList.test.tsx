@@ -151,7 +151,7 @@ describe("PublicScheduleList", () => {
     expect(screen.getByText(/一本勝ち/)).toBeInTheDocument();
     expect(screen.getByText(/21 - 20/)).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: "第1試合のメモ" }),
+      screen.getByRole("button", { name: "男子シングルス 第1試合のメモ" }),
     ).toBeInTheDocument();
   });
 

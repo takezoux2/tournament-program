@@ -94,7 +94,7 @@ export function PublicScheduleList({ rows }: { rows: ResultRowView[] }) {
                 {row.resultConfig.note.enabled && (
                   <MatchNoteButton
                     note={row.note}
-                    label={`第${row.matchNumber}試合のメモ`}
+                    label={`${row.divisionName} 第${row.matchNumber}試合のメモ`}
                   />
                 )}
               </p>

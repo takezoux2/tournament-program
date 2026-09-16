@@ -212,7 +212,7 @@ export function MatchResultRow({
             {config.note.enabled && (
               <MatchNoteButton
                 note={row.note}
-                label={`第${row.matchNumber}試合のメモ`}
+                label={`${row.divisionName} 第${row.matchNumber}試合のメモ`}
               />
             )}
           </p>
