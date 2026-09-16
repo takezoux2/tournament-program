@@ -4,8 +4,8 @@ import { tournamentErrorMessage } from "./messages";
 import type { TournamentFormState } from "./state";
 
 /**
- * create スライスが使う Exit-failure → 日本語文言の変換。今後 update スライスからも
- * 同様に使う想定だが、スライス同士は依存できないため、共有先として features/tournament
+ * Exit-failure → 日本語文言の変換。create/update/delete/publish/unpublish の
+ * 各スライスが使う。スライス同士は依存できないため、共有先として features/tournament
  * 直下に置く。
  */
 export const tournamentErrorFormState = (

@@ -55,6 +55,11 @@ DB への読み書きが責務であり、描画には関わらない。
 
 粒度も更新頻度も違うため、同じカテゴリに置かない。
 
+大会の公開/非公開は `Tournament.status` で表す（公開 = DRAFT→IN_PROGRESS、
+非公開 = 非DRAFT→DRAFT）。遷移前の status を `updateMany` の where に入れて
+おくことで、二重送信や古い画面からの操作を弾く。更新 0 件になったとき、
+組織に大会自体が無ければ 404、あれば「すでに〜」のエラーを返す。
+
 `features/bracket/from-division.ts` は `lib/division` の永続化型を描画型へ変換する
 アダプタ。`features/division` 側に置くと同列スライスへの依存になるため、
 `features/bracket` から下位共通層の `lib/division` を参照する向きにしてある。
