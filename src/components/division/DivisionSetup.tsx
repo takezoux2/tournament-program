@@ -58,7 +58,7 @@ export function DivisionSetup({
   if (!isSlotBracketFormat(format)) {
     return (
       <Notice>
-        「{DIVISION_FORMAT_LABELS[division.format]}
+        「{DIVISION_FORMAT_LABELS[format]}
         」はこの画面では編集できません
       </Notice>
     );
@@ -170,7 +170,7 @@ export function DivisionSetup({
               parsed.matchingConfig,
               parsed.entries,
               participants,
-              division.format,
+              format,
             )}
             slug={slug}
             tournamentId={tournamentId}

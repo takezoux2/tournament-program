@@ -13,18 +13,21 @@ import { removeEntry } from "./usecase";
 /**
  * 削除できたときだけ出す文言。組み合わせに何が起きたかで言い分ける。
  * Record にしておくと matching に候補が増えたときコンパイルが止まる。
+ * "cleared" だけは形式ごとの下限（minimum）を文中に差し込む必要があるため、
+ * ここでは扱わず removeEntryAction 側で個別に組み立てる。
  */
 const REMOVED_NOTICE: Record<
-  Extract<RemoveEntryResult, { removed: true }>["matching"],
+  Exclude<
+    Extract<RemoveEntryResult, { removed: true }>["matching"],
+    "cleared"
+  >,
   string
 > = {
   unchanged: "エントリーを削除しました",
   regenerated: "エントリーを削除し、組み合わせを再生成しました",
-  cleared:
-    "エントリーを削除し、残りが 2 人未満になったため組み合わせを取り消しました",
   // /edit でトーナメントから切り替わったリーグが上限（16 人）を超えた
   // エントリーを残したままだと、regenerateMatching が上限超過を理由に
-  // 空を返す。「2 人未満」と同じ文言にすると原因が事実と違って伝わるため、
+  // 空を返す。「◯人未満」と同じ文言にすると原因が事実と違って伝わるため、
   // ここだけ別の文言にする。
   clearedOverCap:
     "エントリーを削除しましたが、リーグの上限を超えたままのため組み合わせは取り消したままです。上限以下になるまで削除してから生成し直してください",
@@ -73,5 +76,12 @@ export const removeEntryAction = async (
   }
 
   // 手動で入れ替えた配置が消えるのは驚きになりうるので、起きたことを明示する。
-  return { error: null, notice: REMOVED_NOTICE[result.matching] };
+  // "cleared" は形式ごとに下限が違う（トーナメント/リーグは 2 人、
+  // ダブルエリミは 3 人）ため、固定文言ではなく result.minimum を差し込む。
+  const notice =
+    result.matching === "cleared"
+      ? `エントリーを削除し、残りが${result.minimum}人未満になったため組み合わせを取り消しました`
+      : REMOVED_NOTICE[result.matching];
+
+  return { error: null, notice };
 };

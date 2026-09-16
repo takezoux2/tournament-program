@@ -99,12 +99,13 @@ describe("removeEntryAction", () => {
   });
 
   it("組み合わせが消えたときは再生成したとは言わない", async () => {
-    // 残りが 2 人未満だと木は作れず空になる。ここで「再生成しました」と
-    // 出すと、消えた組み合わせが残っているかのように読める。
+    // 残りが形式の下限（トーナメントは 2 人）を下回ると木は作れず空になる。
+    // ここで「再生成しました」と出すと、消えた組み合わせが残っているかの
+    // ように読める。
     removeEntryInDb.mockReturnValue(
       Effect.succeed({
         found: true,
-        value: { removed: true, matching: "cleared" },
+        value: { removed: true, matching: "cleared", minimum: 2 },
       }),
     );
 
@@ -114,7 +115,27 @@ describe("removeEntryAction", () => {
     );
 
     expect(state.notice).toBe(
-      "エントリーを削除し、残りが 2 人未満になったため組み合わせを取り消しました",
+      "エントリーを削除し、残りが2人未満になったため組み合わせを取り消しました",
+    );
+  });
+
+  it("ダブルエリミネーションでは形式の下限（3人）で文言を出す", async () => {
+    // ダブルエリミは 3 人が下限。3 → 2 人でも「2 人未満」は事実に反する
+    // （2 人はまだ残っている）ので、result.minimum をそのまま文言に使う。
+    removeEntryInDb.mockReturnValue(
+      Effect.succeed({
+        found: true,
+        value: { removed: true, matching: "cleared", minimum: 3 },
+      }),
+    );
+
+    const state = await removeEntryAction(
+      INITIAL_DIVISION_FORM_STATE,
+      formData("e1"),
+    );
+
+    expect(state.notice).toBe(
+      "エントリーを削除し、残りが3人未満になったため組み合わせを取り消しました",
     );
   });
 

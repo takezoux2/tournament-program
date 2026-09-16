@@ -2,7 +2,11 @@ import "server-only";
 import type { Effect } from "effect";
 import type { DivisionEntries } from "@/lib/division/types";
 import type { DivisionError } from "../errors";
-import { maxEntries, regenerateMatching } from "../matching-strategy";
+import {
+  maxEntries,
+  minEntries,
+  regenerateMatching,
+} from "../matching-strategy";
 import {
   type DivisionIds,
   type DivisionSetupOutcome,
@@ -15,7 +19,9 @@ import type { RemoveEntryInput } from "./schema";
  * 組み合わせに何が起きたかを分けて返す。
  * - unchanged: 組み合わせが未作成なので触っていない
  * - regenerated: 残りのシード順から作り直した
- * - cleared: 残りが 2 人未満になり、木が作れず空になった
+ * - cleared: 残りが形式の下限（minEntries）を下回り、木が作れず空になった。
+ *   下限は形式ごとに違う（トーナメント/リーグは 2 人、ダブルエリミは 3 人）ため、
+ *   通知文言に使う minimum を一緒に返す。
  * - clearedOverCap: リーグの上限（maxEntries("ROUND_ROBIN")）を残りエントリーが
  *   超えたままで、regenerateMatching が上限超過を理由に空を返した。
  *   /edit でトーナメントからリーグへ切り替えた直後の部門でだけ起こりうる
@@ -26,8 +32,9 @@ export type RemoveEntryResult =
   | { removed: false }
   | {
       removed: true;
-      matching: "unchanged" | "regenerated" | "cleared" | "clearedOverCap";
-    };
+      matching: "unchanged" | "regenerated" | "clearedOverCap";
+    }
+  | { removed: true; matching: "cleared"; minimum: number };
 
 export type RemoveEntryPort = (
   ids: DivisionIds,
@@ -61,10 +68,10 @@ export const removeEntryInDb: RemoveEntryPort = (ids, input) =>
       ? regenerateMatching(current.format, entries.entries)
       : current.matchingConfig;
 
-    // 判定は除去「後」の結果で行う。残りが 2 人未満だと組み合わせは作れず
-    // 空になるため、除去前だけを見て「再生成しました」と伝えると
+    // 判定は除去「後」の結果で行う。残りが形式の下限を下回ると組み合わせは
+    // 作れず空になるため、除去前だけを見て「再生成しました」と伝えると
     // 画面の文言が事実とずれる。
-    // 空になった理由も 2 人未満か上限超過かで分ける。regenerateMatching は
+    // 空になった理由も下限割れか上限超過かで分ける。regenerateMatching は
     // リーグで上限を超えているときも空を返すため、同じ「空になった」でも
     // 原因が違えば運営者への伝え方を変える必要がある。
     const overCap = entries.entries.length > maxEntries(current.format);
@@ -76,8 +83,13 @@ export const removeEntryInDb: RemoveEntryPort = (ids, input) =>
           : "cleared"
         : "regenerated";
 
+    const value: RemoveEntryResult =
+      matching === "cleared"
+        ? { removed: true, matching, minimum: minEntries(current.format) }
+        : { removed: true, matching };
+
     return {
       next: { format: current.format, entries, matchingConfig },
-      value: { removed: true, matching },
+      value,
     };
   });
