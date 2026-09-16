@@ -3,11 +3,15 @@ import type {
   BracketSide,
   DivisionEntries,
   DivisionEntry,
+  DivisionResultConfig,
   DivisionResults,
   MatchingConfig,
   MatchResultRecord,
+  MatchScoreEntry,
+  ScoreAggregation,
   SlotSource,
 } from "./types";
+import { MAX_SCORE_COUNT, MAX_SCORE_VALUE } from "./types";
 
 /** Json が想定の形をしていないことを表す。呼び出し元は入力エラーとして扱う。 */
 export class DivisionJsonError extends Error {
@@ -43,6 +47,46 @@ const asArray = (value: unknown, path: string): unknown[] =>
 
 const asVersion1 = (value: unknown, path: string): 1 =>
   value === 1 ? 1 : fail(path, "version 1");
+
+const asBoolean = (value: unknown, path: string): boolean =>
+  typeof value === "boolean" ? value : fail(path, "真偽値");
+
+/**
+ * スコア 1 つぶん。未入力の null は呼び出し側で先に弾く。
+ * 範囲をここで見るのは、壊れた値が集計や画面に流れ込むのを入口で止めるため。
+ */
+const asScoreValue = (value: unknown, path: string): number => {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    return fail(path, "数値または null");
+  }
+  if (value < 0 || value > MAX_SCORE_VALUE) {
+    return fail(path, `0 以上 ${MAX_SCORE_VALUE} 以下の数値`);
+  }
+  return value;
+};
+
+const asScoreAggregation = (
+  value: unknown,
+  path: string,
+): ScoreAggregation => {
+  const raw = asString(value, path);
+  return raw === "sum" || raw === "average"
+    ? raw
+    : fail(path, '"sum" または "average"');
+};
+
+const parseMatchScoreEntry = (
+  value: unknown,
+  path: string,
+): MatchScoreEntry => {
+  const record = asRecord(value, path);
+  return {
+    entryId: asString(record.entryId, `${path}.entryId`),
+    values: asArray(record.values, `${path}.values`).map((item, index) =>
+      item === null ? null : asScoreValue(item, `${path}.values[${index}]`),
+    ),
+  };
+};
 
 const parseDivisionEntry = (value: unknown, path: string): DivisionEntry => {
   const record = asRecord(value, path);
@@ -221,6 +265,17 @@ const parseMatchResultRecord = (
   if (record.finishedAt !== undefined) {
     parsed.finishedAt = asString(record.finishedAt, `${path}.finishedAt`);
   }
+  if (record.winReason !== undefined) {
+    parsed.winReason = asString(record.winReason, `${path}.winReason`);
+  }
+  if (record.scores !== undefined) {
+    parsed.scores = asArray(record.scores, `${path}.scores`).map(
+      (item, index) => parseMatchScoreEntry(item, `${path}.scores[${index}]`),
+    );
+  }
+  if (record.note !== undefined) {
+    parsed.note = asString(record.note, `${path}.note`);
+  }
   return parsed;
 };
 
@@ -258,5 +313,42 @@ export const parseDivisionResults = (value: unknown): DivisionResults => {
     matches: asArray(record.matches, "results.matches").map((item, index) =>
       parseMatchResultRecord(item, `results.matches[${index}]`),
     ),
+  };
+};
+
+/** Division.resultConfig の Json を検証して返す。不正なら DivisionJsonError。 */
+export const parseDivisionResultConfig = (
+  value: unknown,
+): DivisionResultConfig => {
+  const record = asRecord(value, "resultConfig");
+  const winReason = asRecord(record.winReason, "resultConfig.winReason");
+  const score = asRecord(record.score, "resultConfig.score");
+  const note = asRecord(record.note, "resultConfig.note");
+
+  const count = asInt(score.count, "resultConfig.score.count");
+  if (count < 1 || count > MAX_SCORE_COUNT) {
+    fail("resultConfig.score.count", `1 以上 ${MAX_SCORE_COUNT} 以下の整数`);
+  }
+
+  return {
+    version: asVersion1(record.version, "resultConfig.version"),
+    winReason: {
+      enabled: asBoolean(winReason.enabled, "resultConfig.winReason.enabled"),
+      options: asArray(
+        winReason.options,
+        "resultConfig.winReason.options",
+      ).map((item, index) =>
+        asString(item, `resultConfig.winReason.options[${index}]`),
+      ),
+    },
+    score: {
+      enabled: asBoolean(score.enabled, "resultConfig.score.enabled"),
+      count,
+      aggregation: asScoreAggregation(
+        score.aggregation,
+        "resultConfig.score.aggregation",
+      ),
+    },
+    note: { enabled: asBoolean(note.enabled, "resultConfig.note.enabled") },
   };
 };

@@ -52,16 +52,64 @@ export type MatchingConfig = {
   matches: BracketMatch[];
 };
 
+/** スコア欄の数の上限。1 以上この値以下。 */
+export const MAX_SCORE_COUNT = 8;
+/** 勝因の選択肢の件数の上限。 */
+export const MAX_WIN_REASON_OPTIONS = 20;
+/** 勝因ラベル 1 件の文字数の上限。 */
+export const MAX_WIN_REASON_LENGTH = 30;
+/** メモの文字数の上限。 */
+export const MAX_NOTE_LENGTH = 1000;
+/** スコアの値の上限。下限は 0。 */
+export const MAX_SCORE_VALUE = 999.99;
+
+/** 集計方法。スコアを 1 つの数にまとめる方法。 */
+export type ScoreAggregation = "sum" | "average";
+
+/**
+ * Division.resultConfig の全体。結果入力で何を記録できるかの設定。
+ *
+ * ここは「表示と入力のフィルタ」でしかない。enabled を false にしても
+ * results に入っている記録は消さないし、書き換えもしない。大会の最中に
+ * 設定を足したり誤って外したりしても入力済みの値が失われないようにするため。
+ */
+export type DivisionResultConfig = {
+  version: 1;
+  winReason: { enabled: boolean; options: string[] };
+  /** count は 1〜MAX_SCORE_COUNT。片者あたりのスコア欄の数 */
+  score: { enabled: boolean; count: number; aggregation: ScoreAggregation };
+  note: { enabled: boolean };
+};
+
+/** 1 人ぶんの採点。 */
+export type MatchScoreEntry = {
+  /**
+   * DivisionEntry.id。スロット番号（0/1）で持たないのは、swap-slots で
+   * スロットを入れ替えたときに採点が別人に付け替わってしまうため。
+   */
+  entryId: string;
+  /** 未入力は null。長さは保存時の resultConfig.score.count */
+  values: (number | null)[];
+};
+
 /** Division.results の 1 要素。 */
 export type MatchResultRecord = {
   /** BracketMatch.id */
   matchId: string;
   /** DivisionEntry.id。null = 引き分け（ROUND_ROBIN でのみ許可） */
   winnerEntryId: string | null;
-  /** "3-1" などの表示用文字列 */
+  /**
+   * 旧・表示用スコア文字列（"3-1" など）。どこからも書き込まれていない。
+   * 構造化した scores を足したので今後も書かない。既存データのために読むだけ。
+   */
   score?: string;
   /** ISO 8601 */
   finishedAt?: string;
+  /** 勝因。現在の resultConfig.winReason.options に無い値も保持する */
+  winReason?: string;
+  /** 両者ぶんの採点。片方だけの記録も許す */
+  scores?: MatchScoreEntry[];
+  note?: string;
 };
 
 /** Division.results の全体。 */
@@ -90,3 +138,32 @@ export const EMPTY_DIVISION_RESULTS: DivisionResults = Object.freeze({
   version: 1,
   matches: EMPTY_MATCH_RESULT_LIST as MatchResultRecord[],
 });
+
+// 空配列リテラルと同じ理由で、一度 readonly に型付けしてからキャストする。
+const DEFAULT_WIN_REASON_OPTIONS: readonly string[] = Object.freeze([
+  "一本勝ち",
+  "判定勝ち",
+  "反則負け",
+  "棄権",
+]);
+
+/**
+ * Division.resultConfig の既定値。列の @default と同じ内容を持つ。
+ *
+ * 3 項目とも無効にしてあるので、既存の部門の見え方と操作は何も変わらない。
+ * 一方 options には語を入れてあるので、チェックを 1 つ入れるだけで使い始められる。
+ */
+export const DEFAULT_DIVISION_RESULT_CONFIG: DivisionResultConfig =
+  Object.freeze({
+    version: 1,
+    winReason: Object.freeze({
+      enabled: false,
+      options: DEFAULT_WIN_REASON_OPTIONS as string[],
+    }),
+    score: Object.freeze({
+      enabled: false,
+      count: 3,
+      aggregation: "sum" as ScoreAggregation,
+    }),
+    note: Object.freeze({ enabled: false }),
+  });

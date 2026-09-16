@@ -162,6 +162,8 @@ model Division {
   matchingConfig Json           @default("{\"version\":1,\"matches\":[]}")
   /// 勝敗記録。DivisionResults 型。
   results        Json           @default("{\"version\":1,\"matches\":[]}")
+  /// 結果入力で何を記録できるか。DivisionResultConfig 型。
+  resultConfig   Json           @default("{\"version\":1,\"winReason\":{\"enabled\":false,\"options\":[\"一本勝ち\",\"判定勝ち\",\"反則負け\",\"棄権\"]},\"score\":{\"enabled\":false,\"count\":3,\"aggregation\":\"sum\"},\"note\":{\"enabled\":false}}")
   /// results の楽観ロック用リビジョン。results を更新するたびに +1 する。
   revision       Int            @default(0)
   createdAt      DateTime       @default(now())

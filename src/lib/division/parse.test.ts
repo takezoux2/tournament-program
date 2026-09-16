@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   DivisionJsonError,
   parseDivisionEntries,
+  parseDivisionResultConfig,
   parseDivisionResults,
   parseMatchingConfig,
 } from "./parse";
@@ -363,5 +364,106 @@ describe("parseDivisionResults", () => {
     expect(() =>
       parseDivisionResults({ version: 1, matches: { m1: "e1" } }),
     ).toThrow(DivisionJsonError);
+  });
+});
+
+describe("parseDivisionResultConfig", () => {
+  const valid = {
+    version: 1,
+    winReason: { enabled: true, options: ["一本勝ち", "判定勝ち"] },
+    score: { enabled: true, count: 3, aggregation: "average" },
+    note: { enabled: false },
+  };
+
+  it("正しい設定をそのまま返す", () => {
+    expect(parseDivisionResultConfig(valid)).toEqual(valid);
+  });
+
+  it("count が範囲外なら弾く", () => {
+    expect(() =>
+      parseDivisionResultConfig({
+        ...valid,
+        score: { ...valid.score, count: 9 },
+      }),
+    ).toThrow(DivisionJsonError);
+    expect(() =>
+      parseDivisionResultConfig({
+        ...valid,
+        score: { ...valid.score, count: 0 },
+      }),
+    ).toThrow(DivisionJsonError);
+  });
+
+  it("aggregation が未知の値なら弾く", () => {
+    expect(() =>
+      parseDivisionResultConfig({
+        ...valid,
+        score: { ...valid.score, aggregation: "median" },
+      }),
+    ).toThrow(DivisionJsonError);
+  });
+
+  it("enabled が真偽値でなければ弾く", () => {
+    expect(() =>
+      parseDivisionResultConfig({ ...valid, note: { enabled: "yes" } }),
+    ).toThrow(DivisionJsonError);
+  });
+});
+
+describe("parseDivisionResults の詳細項目", () => {
+  const base = {
+    version: 1,
+    matches: [
+      {
+        matchId: "m1",
+        winnerEntryId: "e1",
+        winReason: "一本勝ち",
+        scores: [
+          { entryId: "e1", values: [7, 6.8, null] },
+          { entryId: "e2", values: [6.5, 6.9, 6.6] },
+        ],
+        note: "主審の判定に抗議あり",
+      },
+    ],
+  };
+
+  it("勝因・スコア・メモを読む", () => {
+    expect(parseDivisionResults(base)).toEqual(base);
+  });
+
+  it("詳細項目を持たない旧データもそのまま読める", () => {
+    const old = {
+      version: 1,
+      matches: [{ matchId: "m1", winnerEntryId: "e1" }],
+    };
+    expect(parseDivisionResults(old)).toEqual(old);
+  });
+
+  it("スコアが範囲外なら弾く", () => {
+    const over = {
+      version: 1,
+      matches: [
+        {
+          matchId: "m1",
+          winnerEntryId: "e1",
+          scores: [{ entryId: "e1", values: [1000] }],
+        },
+      ],
+    };
+    expect(() => parseDivisionResults(over)).toThrow(DivisionJsonError);
+  });
+
+  it("スコアが数値でも null でもなければ弾く", () => {
+    const bad = {
+      version: 1,
+      matches: [
+        {
+          matchId: "m1",
+          winnerEntryId: "e1",
+          scores: [{ entryId: "e1", values: ["7"] }],
+        },
+      ],
+    };
+    expect(() => parseDivisionResults(bad)).toThrow(DivisionJsonError);
   });
 });
