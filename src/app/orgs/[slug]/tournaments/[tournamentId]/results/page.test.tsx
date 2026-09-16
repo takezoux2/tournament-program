@@ -29,6 +29,9 @@ vi.mock("@/features/schedule/repository", () => ({
 vi.mock("@/features/division/record-result/handler", () => ({
   recordResultAction: async () => ({ error: null }),
 }));
+vi.mock("@/features/division/update-result-detail/handler", () => ({
+  updateResultDetailAction: async () => ({ error: null }),
+}));
 
 const { default: Page } = await import("./page");
 
@@ -64,6 +67,15 @@ beforeEach(() => {
       winnerEntryId: null,
       state: "ready",
       downstreamRecordedCount: 0,
+      resultConfig: {
+        version: 1,
+        winReason: { enabled: false, options: [] },
+        score: { enabled: false, count: 3, aggregation: "sum" },
+        note: { enabled: false },
+      },
+      winReason: null,
+      scores: [],
+      note: null,
     },
   ]);
 });
