@@ -99,6 +99,13 @@ describe("PublicScheduleList", () => {
     expect(screen.getByText("午後の部")).toBeInTheDocument();
   });
 
+  it("区切りの開始予定時刻を出す", () => {
+    render(<PublicScheduleList rows={rows} />);
+
+    // vitest.config.mts で TZ=Asia/Tokyo に固定してあるため JST で出る。
+    expect(screen.getByText(/9:00/)).toBeInTheDocument();
+  });
+
   it("開始予定時刻が未設定の区切りには「未設定」を出さない", () => {
     render(<PublicScheduleList rows={rows} />);
 
