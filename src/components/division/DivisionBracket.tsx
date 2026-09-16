@@ -10,11 +10,10 @@ import type {
 } from "@/features/division/repository";
 import {
   parseDivisionEntries,
-  parseDivisionResultConfig,
+  parseDivisionResultConfigOrDefault,
   parseDivisionResults,
   parseMatchingConfig,
 } from "@/lib/division/parse";
-import { DEFAULT_DIVISION_RESULT_CONFIG } from "@/lib/division/types";
 import { Notice } from "./Notice";
 
 export function DivisionBracket({
@@ -52,12 +51,9 @@ export function DivisionBracket({
   // resultConfig は表示のフィルタでしかない。壊れていてもブラケットそのものは
   // 描けるはずなので、他の 3 列とは別に受け止めて既定値へ落とす
   // （/edit ページの読み出しと同じ方針）。
-  let resultConfig = DEFAULT_DIVISION_RESULT_CONFIG;
-  try {
-    resultConfig = parseDivisionResultConfig(division.resultConfig);
-  } catch {
-    resultConfig = DEFAULT_DIVISION_RESULT_CONFIG;
-  }
+  const resultConfig = parseDivisionResultConfigOrDefault(
+    division.resultConfig,
+  );
 
   if (parsed.matchingConfig.matches.length === 0) {
     return <Notice>組み合わせが未作成です</Notice>;

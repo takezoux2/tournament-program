@@ -3,10 +3,12 @@ import {
   DivisionJsonError,
   parseDivisionEntries,
   parseDivisionResultConfig,
+  parseDivisionResultConfigOrDefault,
   parseDivisionResults,
   parseMatchingConfig,
 } from "./parse";
 import {
+  DEFAULT_DIVISION_RESULT_CONFIG,
   MAX_NOTE_LENGTH,
   MAX_WIN_REASON_LENGTH,
   MAX_WIN_REASON_OPTIONS,
@@ -369,6 +371,40 @@ describe("parseDivisionResults", () => {
     expect(() =>
       parseDivisionResults({ version: 1, matches: { m1: "e1" } }),
     ).toThrow(DivisionJsonError);
+  });
+});
+
+describe("parseDivisionResultConfigOrDefault", () => {
+  it("正しい設定はそのまま返す", () => {
+    const valid = {
+      version: 1,
+      winReason: { enabled: true, options: ["一本勝ち"] },
+      score: { enabled: true, count: 2, aggregation: "sum" },
+      note: { enabled: true },
+    };
+    expect(parseDivisionResultConfigOrDefault(valid)).toEqual(valid);
+  });
+
+  it("壊れた設定は既定値に落とす", () => {
+    expect(parseDivisionResultConfigOrDefault({ version: 2 })).toBe(
+      DEFAULT_DIVISION_RESULT_CONFIG,
+    );
+    expect(parseDivisionResultConfigOrDefault(null)).toBe(
+      DEFAULT_DIVISION_RESULT_CONFIG,
+    );
+  });
+
+  // Json の形の誤り以外（プログラムの不具合など）まで既定値で覆い隠さない。
+  it("DivisionJsonError 以外の例外はそのまま投げる", () => {
+    const broken = {
+      version: 1,
+      get winReason(): unknown {
+        throw new TypeError("boom");
+      },
+    };
+    expect(() => parseDivisionResultConfigOrDefault(broken)).toThrow(
+      TypeError,
+    );
   });
 });
 

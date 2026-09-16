@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { DEFAULT_DIVISION_RESULT_CONFIG } from "@/lib/division/types";
 
 const divisionFindMany = vi.fn();
 const participantFindMany = vi.fn();
@@ -152,6 +153,28 @@ describe("loadResultRows", () => {
         note: null,
       },
     ]);
+  });
+
+  it("resultConfig が壊れていてもページを落とさず既定値で返す", async () => {
+    divisionFindMany.mockResolvedValue([
+      {
+        id: "dA",
+        name: "男子",
+        order: 0,
+        format: "SINGLE_ELIMINATION",
+        entries,
+        matchingConfig,
+        results: { version: 1, matches: [] },
+        resultConfig: { version: 2 },
+      },
+    ]);
+
+    const rows = await loadResultRows("o1", "t1");
+
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({
+      resultConfig: DEFAULT_DIVISION_RESULT_CONFIG,
+    });
   });
 
   it("部門の読み出しに所有条件を入れる", async () => {

@@ -6,8 +6,7 @@ import { deleteDivisionAction } from "@/features/division/delete/handler";
 import { findDivisionInTournament } from "@/features/division/repository";
 import { updateDivisionAction } from "@/features/division/update/handler";
 import { findTournamentInOrganization } from "@/features/tournament/repository";
-import { parseDivisionResultConfig } from "@/lib/division/parse";
-import { DEFAULT_DIVISION_RESULT_CONFIG } from "@/lib/division/types";
+import { parseDivisionResultConfigOrDefault } from "@/lib/division/parse";
 import { requireOrganization } from "@/shared/middleware/require-organization";
 
 export default async function EditDivisionPage({
@@ -26,12 +25,9 @@ export default async function EditDivisionPage({
 
   // Json は DB の列で、アプリの外から壊れた値が入りうる。編集画面まで落とさず、
   // 読めないときは既定値を出して直せるようにする。
-  let resultConfig = DEFAULT_DIVISION_RESULT_CONFIG;
-  try {
-    resultConfig = parseDivisionResultConfig(division.resultConfig);
-  } catch {
-    resultConfig = DEFAULT_DIVISION_RESULT_CONFIG;
-  }
+  const resultConfig = parseDivisionResultConfigOrDefault(
+    division.resultConfig,
+  );
 
   return (
     <main className="min-h-screen bg-slate-50">

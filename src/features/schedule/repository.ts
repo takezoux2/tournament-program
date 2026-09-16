@@ -2,7 +2,7 @@ import "server-only";
 import type { Prisma } from "@/generated/prisma/client";
 import {
   parseDivisionEntries,
-  parseDivisionResultConfig,
+  parseDivisionResultConfigOrDefault,
   parseDivisionResults,
   parseMatchingConfig,
 } from "@/lib/division/parse";
@@ -51,6 +51,8 @@ const loadDivisions = async (
   });
 
   // Json のパースはここで済ませ、domain は検証済みの形だけを扱う純粋関数に保つ。
+  // resultConfig は詳細の出し分けにしか使わないので、壊れていても
+  // 公開の試合一覧・結果入力・試合一覧のページごと落とさず既定値で描く。
   return rows.map((row) => ({
     id: row.id,
     name: row.name,
@@ -59,7 +61,7 @@ const loadDivisions = async (
     entries: parseDivisionEntries(row.entries),
     matchingConfig: parseMatchingConfig(row.matchingConfig),
     results: parseDivisionResults(row.results),
-    resultConfig: parseDivisionResultConfig(row.resultConfig),
+    resultConfig: parseDivisionResultConfigOrDefault(row.resultConfig),
   }));
 };
 

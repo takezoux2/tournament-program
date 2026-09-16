@@ -12,6 +12,7 @@ import type {
   SlotSource,
 } from "./types";
 import {
+  DEFAULT_DIVISION_RESULT_CONFIG,
   MAX_NOTE_LENGTH,
   MAX_SCORE_COUNT,
   MAX_SCORE_VALUE,
@@ -382,4 +383,26 @@ export const parseDivisionResultConfig = (
     },
     note: { enabled: asBoolean(note.enabled, "resultConfig.note.enabled") },
   };
+};
+
+/**
+ * Division.resultConfig を読み、形が壊れていれば既定値に落とす。
+ *
+ * resultConfig は表示と入力欄の出し分けにしか使わないので、壊れていても
+ * 画面（公開の試合一覧・ブラケット・編集画面）まで落とす理由が無い。
+ * 既定値は 3 項目とも無効なので、設定が無かったころの見え方に戻るだけで済む。
+ * 保存の経路では使わないこと（壊れた設定のまま書き込むのを見逃すため）。
+ * DivisionJsonError 以外の例外は不具合なので、握りつぶさずにそのまま投げる。
+ */
+export const parseDivisionResultConfigOrDefault = (
+  value: unknown,
+): DivisionResultConfig => {
+  try {
+    return parseDivisionResultConfig(value);
+  } catch (error) {
+    if (error instanceof DivisionJsonError) {
+      return DEFAULT_DIVISION_RESULT_CONFIG;
+    }
+    throw error;
+  }
 };
