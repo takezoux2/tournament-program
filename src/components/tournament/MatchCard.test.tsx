@@ -203,14 +203,14 @@ describe("MatchCard", () => {
     ).toBeInTheDocument();
   });
 
-  // React Flow のノード内では、opt-out クラスが無いとボタン上の押下が
-  // ノードのドラッグ・パンに取られる。
+  // React Flow のノード内では、ノードに付く pointer-events: none と
+  // ドラッグ・パンにボタン上の押下を取られる。
   it("メモボタンは React Flow のドラッグ・パンから外す", () => {
     render(<MatchCard match={{ ...doneMatch, note: "抗議あり" }} />);
     const wrapper = screen.getByRole("button", {
       name: "試合のメモ",
     }).parentElement;
-    expect(wrapper).toHaveClass("nodrag", "nopan");
+    expect(wrapper).toHaveClass("nodrag", "nopan", "pointer-events-auto");
   });
 
   it("メモが無ければメモボタンを表示しない", () => {

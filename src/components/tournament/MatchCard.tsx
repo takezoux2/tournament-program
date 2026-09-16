@@ -34,7 +34,7 @@ function SlotRow({
       data-winner={slot.isWinner ? "true" : "false"}
       className={`flex h-1/2 items-center gap-2 px-2 text-sm ${
         index === 0 ? "border-b border-slate-200" : ""
-      } ${reserveTopRight ? "pr-7" : ""} ${slotTone(slot)}`}
+      } ${reserveTopRight ? "pr-8" : ""} ${slotTone(slot)}`}
     >
       <span className="w-5 shrink-0 text-right text-xs text-slate-400">
         {slot.participant ? slot.participant.seed : ""}
@@ -86,7 +86,7 @@ export function MatchCard({ match }: { match: ResolvedMatch }) {
       {match.score && !hasSlotScore ? (
         <span
           className={`absolute top-1 rounded bg-slate-100 px-1 text-[10px] leading-4 text-slate-500 ${
-            hasNote ? "right-7" : "right-1"
+            hasNote ? "right-8" : "right-1"
           }`}
         >
           {match.score}
@@ -103,10 +103,12 @@ export function MatchCard({ match }: { match: ResolvedMatch }) {
       {/*
         左上は試合番号・シード・1 人目の名前で埋まっているので右上に置く。
         1 行目は reserveTopRight で右端を空け、旧来のスコアバッジはその左へずらす。
-        nodrag / nopan は、このボタン上の操作を React Flow のドラッグ・パンに
-        取られず、クリックでポップオーバーを開けるようにするため。
+        ブラケットはノードの選択もドラッグも切っているため、React Flow がノードに
+        pointer-events: none を付け、押下が下のパンに抜けてボタンを押せない。
+        pointer-events-auto でこのボタンだけ受け取れるようにし、nodrag / nopan で
+        その押下をドラッグ・パンとして扱わせない。
       */}
-      <span className="nodrag nopan absolute right-1 top-0 leading-4">
+      <span className="nodrag nopan pointer-events-auto absolute right-1 top-0 leading-4">
         <MatchNoteButton
           note={match.note}
           label={
