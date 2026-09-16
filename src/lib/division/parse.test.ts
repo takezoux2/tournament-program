@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { DEFAULT_MATCH_NAME } from "./match-name";
 import {
   DivisionJsonError,
   parseDivisionEntries,
@@ -56,7 +57,7 @@ describe("parseDivisionEntries", () => {
 });
 
 describe("parseMatchingConfig", () => {
-  it("matchNumber を持つ試合はそのまま読む", () => {
+  it("matchName を持つ試合はそのまま読む", () => {
     const config = parseMatchingConfig({
       version: 1,
       matches: [
@@ -65,34 +66,15 @@ describe("parseMatchingConfig", () => {
           bracket: "winners",
           round: 1,
           order: 0,
-          matchNumber: "A",
+          matchName: "A",
           slots: [{ kind: "bye" }, { kind: "bye" }],
         },
       ],
     });
-    expect(config.matches[0].matchNumber).toBe("A");
+    expect(config.matches[0].matchName).toBe("A");
   });
 
-  it("matchNumber の無い試合には round/order 順で未使用の連番を補完する", () => {
-    const match = (id: string, round: number, order: number) => ({
-      id,
-      bracket: "winners",
-      round,
-      order,
-      slots: [{ kind: "bye" }, { kind: "bye" }],
-    });
-    const config = parseMatchingConfig({
-      version: 1,
-      // 配列順は round 順と逆に置き、round/order 順で補完されることを確かめる
-      matches: [match("m2-0", 2, 0), match("m1-0", 1, 0), match("m1-1", 1, 1)],
-    });
-    const byId = new Map(config.matches.map((m) => [m.id, m.matchNumber]));
-    expect(byId.get("m1-0")).toBe("1");
-    expect(byId.get("m1-1")).toBe("2");
-    expect(byId.get("m2-0")).toBe("3");
-  });
-
-  it("補完する連番は既に使われている番号を飛ばす", () => {
+  it("matchName の無い試合には既定のテンプレートを入れる", () => {
     const config = parseMatchingConfig({
       version: 1,
       matches: [
@@ -101,7 +83,7 @@ describe("parseMatchingConfig", () => {
           bracket: "winners",
           round: 1,
           order: 0,
-          matchNumber: "1",
+          matchName: "決勝",
           slots: [{ kind: "bye" }, { kind: "bye" }],
         },
         {
@@ -113,11 +95,33 @@ describe("parseMatchingConfig", () => {
         },
       ],
     });
-    const byId = new Map(config.matches.map((m) => [m.id, m.matchNumber]));
-    expect(byId.get("m1-1")).toBe("2");
+
+    expect(config.matches.map((match) => match.matchName)).toEqual([
+      "決勝",
+      DEFAULT_MATCH_NAME,
+    ]);
   });
 
-  it("matchNumber が文字列以外なら DivisionJsonError", () => {
+  it("旧データの matchNumber は読み継がない", () => {
+    const config = parseMatchingConfig({
+      version: 1,
+      matches: [
+        {
+          id: "m1-0",
+          bracket: "winners",
+          round: 1,
+          order: 0,
+          matchNumber: "7",
+          slots: [{ kind: "bye" }, { kind: "bye" }],
+        },
+      ],
+    });
+
+    expect(config.matches[0].matchName).toBe(DEFAULT_MATCH_NAME);
+    expect(config.matches[0]).not.toHaveProperty("matchNumber");
+  });
+
+  it("matchName が文字列以外なら DivisionJsonError", () => {
     expect(() =>
       parseMatchingConfig({
         version: 1,
@@ -127,7 +131,7 @@ describe("parseMatchingConfig", () => {
             bracket: "winners",
             round: 1,
             order: 0,
-            matchNumber: 1,
+            matchName: 1,
             slots: [{ kind: "bye" }, { kind: "bye" }],
           },
         ],
@@ -144,8 +148,7 @@ describe("parseMatchingConfig", () => {
           bracket: "winners",
           round: 1,
           order: 0,
-          sequence: 0,
-          matchNumber: "1",
+          matchName: "1",
           slots: [{ kind: "entry", entryId: "e1" }, { kind: "bye" }],
         },
         {
@@ -153,8 +156,7 @@ describe("parseMatchingConfig", () => {
           bracket: "losers",
           round: 2,
           order: 0,
-          sequence: 1,
-          matchNumber: "2",
+          matchName: "2",
           slots: [
             { kind: "winnerOf", matchId: "m1" },
             { kind: "loserOf", matchId: "m1" },
@@ -220,53 +222,31 @@ describe("parseMatchingConfig", () => {
     ).toThrow(DivisionJsonError);
   });
 
-  it("sequence の無い旧データには round/order 順で 0 からの連番を振る", () => {
+  it("matches は round → order の順に並べて返す", () => {
     const match = (id: string, round: number, order: number) => ({
       id,
       bracket: "winners",
       round,
       order,
-      matchNumber: id,
+      matchName: id,
       slots: [{ kind: "bye" }, { kind: "bye" }],
     });
     const config = parseMatchingConfig({
       version: 1,
-      // 配列順を round 順と逆に置き、並べ替えたうえで振ることを確かめる
-      matches: [match("m2-0", 2, 0), match("m1-0", 1, 0), match("m1-1", 1, 1)],
+      // 配列順を round/order 順と食い違わせ、並べ直すことを確かめる
+      matches: [match("m2-0", 2, 0), match("m1-1", 1, 1), match("m1-0", 1, 0)],
     });
 
-    // 返す配列自体が実施順になっている（下流は配列順をそのまま読む）
+    // 返す配列の順が下流（編集一覧・進行順の末尾追加）の並びになる
     expect(config.matches.map((match) => match.id)).toEqual([
       "m1-0",
       "m1-1",
       "m2-0",
     ]);
-    expect(config.matches.map((match) => match.sequence)).toEqual([0, 1, 2]);
   });
 
-  it("sequence があればその昇順に並べ、0 からの連番に詰め直す", () => {
-    const match = (id: string, order: number, sequence: number) => ({
-      id,
-      bracket: "winners",
-      round: 1,
-      order,
-      sequence,
-      matchNumber: id,
-      slots: [{ kind: "bye" }, { kind: "bye" }],
-    });
-    const config = parseMatchingConfig({
-      version: 1,
-      // 3 番目の試合を先頭へ動かしたあとの並び。値も 0 始まりでない。
-      matches: [match("a", 0, 5), match("b", 1, 9), match("c", 2, 1)],
-    });
-
-    expect(config.matches.map((match) => match.id)).toEqual(["c", "a", "b"]);
-    expect(config.matches.map((match) => match.sequence)).toEqual([0, 1, 2]);
-  });
-
-  it("sequence が一部にしか無ければ全件を round/order 順で振り直す", () => {
-    // 途中まで書き込まれた壊れたデータ。中途半端な値を信じると並びが
-    // 飛び飛びになるので、揃っていないときは既定の順に戻す。
+  it("保存済みの sequence は読まずに捨て、並びにも使わない", () => {
+    // 部門内の並べ替えで sequence を書いていた旧データ。
     const config = parseMatchingConfig({
       version: 1,
       matches: [
@@ -276,7 +256,7 @@ describe("parseMatchingConfig", () => {
           round: 1,
           order: 1,
           sequence: 0,
-          matchNumber: "2",
+          matchName: "b",
           slots: [{ kind: "bye" }, { kind: "bye" }],
         },
         {
@@ -284,17 +264,18 @@ describe("parseMatchingConfig", () => {
           bracket: "winners",
           round: 1,
           order: 0,
-          matchNumber: "1",
+          sequence: 1,
+          matchName: "a",
           slots: [{ kind: "bye" }, { kind: "bye" }],
         },
       ],
     });
 
     expect(config.matches.map((match) => match.id)).toEqual(["m1-0", "m1-1"]);
-    expect(config.matches.map((match) => match.sequence)).toEqual([0, 1]);
+    expect(config.matches[0]).not.toHaveProperty("sequence");
   });
 
-  it("sequence が整数以外なら DivisionJsonError", () => {
+  it("sequence が整数でなくてもエラーにしない（読まないため）", () => {
     expect(() =>
       parseMatchingConfig({
         version: 1,
@@ -305,12 +286,12 @@ describe("parseMatchingConfig", () => {
             round: 1,
             order: 0,
             sequence: "1",
-            matchNumber: "1",
+            matchName: "1",
             slots: [{ kind: "bye" }, { kind: "bye" }],
           },
         ],
       }),
-    ).toThrow(/matchingConfig\.matches\[0\]\.sequence/);
+    ).not.toThrow();
   });
 });
 

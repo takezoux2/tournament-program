@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { DEFAULT_MATCH_NAME } from "@/lib/division/match-name";
 import type { MatchingConfig, SlotSource } from "@/lib/division/types";
 import {
   buildFromSlots,
@@ -40,8 +41,7 @@ describe("buildFromSlots", () => {
         bracket: "winners",
         round: 1,
         order: 0,
-        sequence: 0,
-        matchNumber: "1",
+        matchName: DEFAULT_MATCH_NAME,
         slots: [entry("a"), entry("b")],
       },
     ]);
@@ -121,7 +121,21 @@ describe("buildFromSlots", () => {
     }
   });
 
-  it("試合番号を round 昇順 → order 昇順で 1 始まりの連番で振る", () => {
+  it("bye の試合を含む全試合に既定の試合名テンプレートを入れる", () => {
+    const config = buildFromSlots([
+      { kind: "entry", entryId: "e1" },
+      { kind: "entry", entryId: "e2" },
+      { kind: "entry", entryId: "e3" },
+    ]);
+
+    expect(config.matches.map((match) => match.matchName)).toEqual([
+      DEFAULT_MATCH_NAME,
+      DEFAULT_MATCH_NAME,
+      DEFAULT_MATCH_NAME,
+    ]);
+  });
+
+  it("試合に実施順（sequence）を持たせない", () => {
     const config = buildFromSlots([
       entry("e1"),
       entry("e2"),
@@ -129,21 +143,8 @@ describe("buildFromSlots", () => {
       entry("e4"),
     ]);
 
-    const numbers = config.matches
-      .sort((a, b) => a.round - b.round || a.order - b.order)
-      .map((match) => match.matchNumber);
-    expect(numbers).toEqual(["1", "2", "3"]);
-  });
-
-  it("bye 試合にも試合番号を振る", () => {
-    const config = buildFromSlots([
-      { kind: "entry", entryId: "e1" },
-      { kind: "entry", entryId: "e2" },
-      { kind: "entry", entryId: "e3" },
-    ]);
-
     for (const match of config.matches) {
-      expect(match.matchNumber).toMatch(/^\d+$/);
+      expect(match).not.toHaveProperty("sequence");
     }
   });
 });
@@ -164,8 +165,7 @@ describe("toSlots", () => {
           bracket: "winners",
           round: 1,
           order: 1,
-          sequence: 0,
-          matchNumber: "2",
+          matchName: "2",
           slots: [entry("c"), entry("d")],
         },
         {
@@ -173,8 +173,7 @@ describe("toSlots", () => {
           bracket: "winners",
           round: 1,
           order: 0,
-          sequence: 1,
-          matchNumber: "1",
+          matchName: "1",
           slots: [entry("a"), entry("b")],
         },
       ],
@@ -216,8 +215,7 @@ describe("isSingleEliminationShape", () => {
           bracket: "winners",
           round: 2,
           order: 0,
-          sequence: 0,
-          matchNumber: "2",
+          matchName: "2",
           slots: [entry("a"), entry("c")],
         },
       ],
@@ -246,8 +244,7 @@ describe("isSingleEliminationShape", () => {
           bracket: "winners",
           round: 1,
           order: 0,
-          sequence: 0,
-          matchNumber: "1",
+          matchName: "1",
           slots: [entry("a"), entry("b")],
         },
         {
@@ -255,8 +252,7 @@ describe("isSingleEliminationShape", () => {
           bracket: "winners",
           round: 1,
           order: 1,
-          sequence: 1,
-          matchNumber: "2",
+          matchName: "2",
           slots: [entry("a"), entry("c")],
         },
       ],

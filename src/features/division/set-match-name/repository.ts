@@ -11,24 +11,23 @@ import {
   DivisionDataError,
   type DivisionError,
   DivisionMatchNotFoundError,
-  DivisionMatchNumberConflictError,
   toDivisionError,
 } from "../errors";
 import { isEditableFormat } from "../matching-strategy";
 import type { DivisionIds, DivisionSetupOutcome } from "../setup-store";
-import type { SetMatchNumberInput } from "./schema";
+import type { SetMatchNameInput } from "./schema";
 
-export type SetMatchNumberPort = (
+export type SetMatchNamePort = (
   ids: DivisionIds,
-  input: SetMatchNumberInput,
+  input: SetMatchNameInput,
 ) => Effect.Effect<DivisionSetupOutcome<null>, DivisionError>;
 
 /**
- * 試合番号だけを書き換える。組み合わせの構造も勝敗の参照も変えないため、
+ * 試合名だけを書き換える。組み合わせの構造も勝敗の参照も変えないため、
  * 勝敗記録後でも編集できる。runDivisionSetup は results が 1 件でもあると
  * 拒否する読み出しなので、ここでは使わず専用のトランザクションを書く。
  */
-export const setMatchNumberInDb: SetMatchNumberPort = (ids, input) =>
+export const setMatchNameInDb: SetMatchNamePort = (ids, input) =>
   Effect.tryPromise({
     try: () =>
       prisma.$transaction(async (tx): Promise<DivisionSetupOutcome<null>> => {
@@ -54,23 +53,11 @@ export const setMatchNumberInDb: SetMatchNumberPort = (ids, input) =>
         if (!target) {
           throw new DivisionMatchNotFoundError({ matchId: input.matchId });
         }
-        if (
-          config.matches.some(
-            (match) =>
-              match.id !== input.matchId &&
-              match.matchNumber === input.matchNumber,
-          )
-        ) {
-          throw new DivisionMatchNumberConflictError({
-            matchNumber: input.matchNumber,
-          });
-        }
-
         const next: MatchingConfig = {
           version: 1,
           matches: config.matches.map((match) =>
             match.id === input.matchId
-              ? { ...match, matchNumber: input.matchNumber }
+              ? { ...match, matchName: input.matchName }
               : match,
           ),
         };

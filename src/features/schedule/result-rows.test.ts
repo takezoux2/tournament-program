@@ -11,31 +11,29 @@ const match = (
   id: string,
   round: number,
   order: number,
-  sequence: number,
-  matchNumber: string,
+  matchName: string,
   slots: BracketMatch["slots"],
 ): BracketMatch => ({
   id,
   bracket: "winners",
   round,
   order,
-  sequence,
-  matchNumber,
+  matchName,
   slots,
 });
 
 const matchingConfig: MatchingConfig = {
   version: 1,
   matches: [
-    match("m1-0", 1, 0, 0, "1", [
+    match("m1-0", 1, 0, "1", [
       { kind: "entry", entryId: "e1" },
       { kind: "entry", entryId: "e2" },
     ]),
-    match("m1-1", 1, 1, 1, "2", [
+    match("m1-1", 1, 1, "2", [
       { kind: "entry", entryId: "e3" },
       { kind: "bye" },
     ]),
-    match("m2-0", 2, 0, 2, "3", [
+    match("m2-0", 2, 0, "3", [
       { kind: "winnerOf", matchId: "m1-0" },
       { kind: "winnerOf", matchId: "m1-1" },
     ]),
@@ -48,9 +46,7 @@ const participants: ScheduleParticipant[] = [
   { id: "p3", name: "鈴木" },
 ];
 
-const division = (
-  results: ScheduleDivision["results"],
-): ScheduleDivision => ({
+const division = (results: ScheduleDivision["results"]): ScheduleDivision => ({
   id: "dA",
   name: "男子",
   order: 0,
@@ -67,21 +63,21 @@ const division = (
   results,
 });
 
-const matchRow = (matchId: string, matchNumber: string): ScheduleRowView => ({
+const matchRow = (matchId: string, matchName: string): ScheduleRowView => ({
   kind: "match",
   key: `match:dA:${matchId}`,
   divisionId: "dA",
   divisionName: "男子",
   matchId,
-  matchNumber,
-  label: `${matchNumber}回戦 第${matchNumber}試合`,
+  matchName,
+  label: "1回戦 (1)",
   card: "山田 vs 佐藤",
 });
 
 const rows: ScheduleRowView[] = [
-  matchRow("m1-0", "1"),
-  matchRow("m1-1", "2"),
-  matchRow("m2-0", "3"),
+  matchRow("m1-0", "第1試合"),
+  matchRow("m1-1", "第2試合"),
+  matchRow("m2-0", "第3試合"),
 ];
 
 const asMatch = (row: ReturnType<typeof buildResultRows>[number]) => {
@@ -201,5 +197,24 @@ describe("buildResultRows", () => {
     const result = buildResultRows(rows, [], participants);
 
     expect(result).toEqual([]);
+  });
+
+  it("未確定のスロットは、行が持つ展開済みの試合名で「◯◯の勝者」と書く", () => {
+    const named: ScheduleRowView[] = [
+      matchRow("m1-0", "準決勝A"),
+      matchRow("m1-1", "準決勝B"),
+      matchRow("m2-0", "決勝"),
+    ];
+
+    const result = buildResultRows(
+      named,
+      [division({ version: 1, matches: [] })],
+      participants,
+    );
+
+    expect(asMatch(result[2]).slots[0]).toEqual({
+      label: "準決勝Aの勝者",
+      entryId: null,
+    });
   });
 });

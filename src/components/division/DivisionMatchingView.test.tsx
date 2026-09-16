@@ -1,13 +1,18 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import type { DivisionDetail } from "@/features/division/repository";
+import { overallSeqKey } from "@/lib/division/overall-order";
 
 // ブラケットの組み立ては DivisionBracket.test.tsx が見る。ここでは
-// 「どの形式でどれを描くか」だけを確かめたいので、ブラケットは差し替える。
+// 「どの形式でどれを描くか」と、何を渡したかだけを確かめる。
+const bracketProps = vi.fn();
 vi.mock("./DivisionBracket", () => ({
-  DivisionBracket: ({ heightClassName }: { heightClassName?: string }) => (
-    <div data-testid="bracket">{heightClassName ?? "default"}</div>
-  ),
+  DivisionBracket: (props: { heightClassName?: string }) => {
+    bracketProps(props);
+    return (
+      <div data-testid="bracket">{props.heightClassName ?? "default"}</div>
+    );
+  },
 }));
 
 const { DivisionMatchingView } = await import("./DivisionMatchingView");
@@ -16,6 +21,8 @@ const participants = [
   { id: "p1", name: "佐藤 蓮", nameKana: "サトウ レン", playerNumber: "1" },
   { id: "p2", name: "鈴木 陽菜", nameKana: "スズキ ハルナ", playerNumber: "2" },
 ];
+
+const noSeq = new Map<string, number>();
 
 const buildDivision = (
   overrides: Partial<DivisionDetail> = {},
@@ -39,8 +46,7 @@ const buildDivision = (
         bracket: "winners",
         round: 1,
         order: 0,
-        sequence: 0,
-        matchNumber: "1",
+        matchName: "1",
         slots: [
           { kind: "entry", entryId: "e1" },
           { kind: "entry", entryId: "e2" },
@@ -59,6 +65,7 @@ describe("DivisionMatchingView", () => {
       <DivisionMatchingView
         division={buildDivision({ format: "SINGLE_ELIMINATION" })}
         participants={participants}
+        overallSeq={noSeq}
         heightClassName="h-[20rem]"
       />,
     );
@@ -71,6 +78,7 @@ describe("DivisionMatchingView", () => {
       <DivisionMatchingView
         division={buildDivision()}
         participants={participants}
+        overallSeq={noSeq}
       />,
     );
 
@@ -91,6 +99,7 @@ describe("DivisionMatchingView", () => {
           matchingConfig: { version: 1, matches: [] },
         })}
         participants={participants}
+        overallSeq={noSeq}
       />,
     );
 
@@ -109,8 +118,7 @@ describe("DivisionMatchingView", () => {
                 bracket: "winners",
                 round: 2,
                 order: 0,
-                sequence: 0,
-                matchNumber: "1",
+                matchName: "1",
                 slots: [
                   { kind: "entry", entryId: "e1" },
                   { kind: "winnerOf", matchId: "m1-0" },
@@ -120,6 +128,7 @@ describe("DivisionMatchingView", () => {
           },
         })}
         participants={participants}
+        overallSeq={noSeq}
       />,
     );
 
@@ -135,6 +144,7 @@ describe("DivisionMatchingView", () => {
       <DivisionMatchingView
         division={buildDivision({ matchingConfig: { version: 2 } })}
         participants={participants}
+        overallSeq={noSeq}
       />,
     );
 
@@ -148,6 +158,7 @@ describe("DivisionMatchingView", () => {
       <DivisionMatchingView
         division={buildDivision({ format: "DOUBLE_ELIMINATION_GRAND_FINAL" })}
         participants={participants}
+        overallSeq={noSeq}
       />,
     );
 
@@ -156,5 +167,48 @@ describe("DivisionMatchingView", () => {
         "「ダブルエリミネーション（優勝決定戦あり）」のブラケット表示はまだ対応していません",
       ),
     ).toBeInTheDocument();
+  });
+
+  it("SINGLE_ELIMINATION は大会全体の通し番号をブラケットへそのまま渡す", () => {
+    const overallSeq = new Map([[overallSeqKey("d1", "m1-0"), 2]]);
+    render(
+      <DivisionMatchingView
+        division={buildDivision({ format: "SINGLE_ELIMINATION" })}
+        participants={participants}
+        overallSeq={overallSeq}
+      />,
+    );
+
+    expect(bracketProps.mock.lastCall?.[0].overallSeq).toBe(overallSeq);
+  });
+
+  it("ROUND_ROBIN のマスには大会全体の通し番号で展開した試合名を出す", () => {
+    render(
+      <DivisionMatchingView
+        division={buildDivision({
+          matchingConfig: {
+            version: 1,
+            matches: [
+              {
+                id: "r1-0",
+                bracket: "winners",
+                round: 1,
+                order: 0,
+                matchName: "第{{OverallSeq}}試合",
+                slots: [
+                  { kind: "entry", entryId: "e1" },
+                  { kind: "entry", entryId: "e2" },
+                ],
+              },
+            ],
+          },
+        })}
+        participants={participants}
+        overallSeq={new Map([[overallSeqKey("d1", "r1-0"), 4]])}
+      />,
+    );
+
+    // 星取表は左右対称なので同じ試合名が 2 マスに出る。
+    expect(screen.getAllByText("第4試合")).toHaveLength(2);
   });
 });

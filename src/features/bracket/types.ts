@@ -19,8 +19,8 @@ export type Match = {
   round: number;
   /** ラウンド内の上からの位置。0 始まり */
   order: number;
-  /** 表示用の試合番号。mock など無い場合は省略可 */
-  matchNumber?: string;
+  /** 表示用の試合名。mock など無い場合は省略可 */
+  matchName?: string;
   slots: [SlotSource, SlotSource];
 };
 
@@ -54,8 +54,8 @@ export type ResolvedMatch = {
   id: string;
   round: number;
   order: number;
-  /** 表示用の試合番号。元データに無ければ null */
-  matchNumber: string | null;
+  /** 表示用の試合名。元データに無ければ null */
+  matchName: string | null;
   slots: [ResolvedSlot, ResolvedSlot];
   winnerId: string | null;
   score: string | null;

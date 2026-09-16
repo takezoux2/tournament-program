@@ -37,7 +37,7 @@ const matchingConfig = {
       bracket: "winners",
       round: 1,
       order: 0,
-      matchNumber: "1",
+      matchName: "1",
       slots: [
         { kind: "entry", entryId: "e1" },
         { kind: "entry", entryId: "e2" },

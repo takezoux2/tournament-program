@@ -1,5 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { overallSeqKey } from "@/lib/division/overall-order";
 
 // @xyflow/react は jsdom で実寸を測れないため、描画そのものは差し替える。
 vi.mock("@/components/tournament/TournamentFlow", () => ({
@@ -11,6 +12,7 @@ vi.mock("@/components/tournament/TournamentFlow", () => ({
 const findPublicTournament = vi.fn();
 const findDivisionInTournament = vi.fn();
 const listParticipantsInTournament = vi.fn();
+const listOverallOrderSources = vi.fn();
 const getOptionalSession = vi.fn();
 const notFound = vi.fn(() => {
   throw new Error("NEXT_NOT_FOUND");
@@ -31,6 +33,8 @@ vi.mock("@/features/division/repository", () => ({
     organizationId: string,
     tournamentId: string,
   ) => listParticipantsInTournament(organizationId, tournamentId),
+  listOverallOrderSources: (tournamentId: string) =>
+    listOverallOrderSources(tournamentId),
 }));
 vi.mock("@/shared/middleware/require-session", () => ({
   getOptionalSession: () => getOptionalSession(),
@@ -105,6 +109,8 @@ describe("PublicDivisionPage", () => {
         playerNumber: "2",
       },
     ]);
+    listOverallOrderSources.mockReset();
+    listOverallOrderSources.mockResolvedValue(new Map());
   });
 
   it("部門はゲートが返した organizationId で絞り込む", async () => {
@@ -134,6 +140,7 @@ describe("PublicDivisionPage", () => {
     await expect(Page(pageProps("t1", "d1"))).rejects.toThrow("NEXT_NOT_FOUND");
     expect(notFound).toHaveBeenCalled();
     expect(findDivisionInTournament).not.toHaveBeenCalled();
+    expect(listOverallOrderSources).not.toHaveBeenCalled();
   });
 
   it("部門が見つからなければ notFound を呼ぶ", async () => {
@@ -178,8 +185,7 @@ describe("PublicDivisionPage", () => {
             bracket: "winners",
             round: 1,
             order: 0,
-            sequence: 0,
-            matchNumber: "1",
+            matchName: "1",
             slots: [
               { kind: "entry", entryId: "e1" },
               { kind: "entry", entryId: "e2" },
@@ -246,5 +252,37 @@ describe("PublicDivisionPage", () => {
     render(await Page(pageProps("t1", "d1")));
 
     expect(screen.queryByRole("status")).not.toBeInTheDocument();
+  });
+
+  it("リーグの結果表には大会全体の通し番号で展開した試合名を出す", async () => {
+    listOverallOrderSources.mockResolvedValue(
+      new Map([[overallSeqKey("d1", "r1-0"), 4]]),
+    );
+    findDivisionInTournament.mockResolvedValue({
+      ...division,
+      format: "ROUND_ROBIN" as const,
+      matchingConfig: {
+        version: 1,
+        matches: [
+          {
+            id: "r1-0",
+            bracket: "winners",
+            round: 1,
+            order: 0,
+            matchName: "第{{OverallSeq}}試合",
+            slots: [
+              { kind: "entry", entryId: "e1" },
+              { kind: "entry", entryId: "e2" },
+            ],
+          },
+        ],
+      },
+      results: { version: 1, matches: [] },
+    });
+
+    render(await Page(pageProps("t1", "d1")));
+
+    expect(listOverallOrderSources).toHaveBeenCalledWith("t1");
+    expect(screen.getAllByText("第4試合")).toHaveLength(2);
   });
 });

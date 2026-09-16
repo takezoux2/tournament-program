@@ -199,7 +199,7 @@ describe("addEntryInDb", () => {
       entryId: added,
     });
     // bye を埋めるだけでも buildFromSlots が木を丸ごと組み立て直すため、
-    // 手で振った試合番号は失われる。regenerated はその事実を伝える。
+    // 手で振った試合名は失われる。regenerated はその事実を伝える。
     expect(result).toEqual({ found: true, value: { regenerated: true } });
   });
 
@@ -327,7 +327,7 @@ describe("addEntryInDb", () => {
             bracket: "winners",
             round: 1,
             order: 0,
-            matchNumber: "1",
+            matchName: "1",
             slots: [
               { kind: "entry", entryId: "e1" },
               { kind: "entry", entryId: "e2" },
@@ -352,7 +352,7 @@ describe("addEntryInDb", () => {
     const written = divisionUpdateMany.mock.calls[0][0].data.matchingConfig;
     // 3 人の総当たりは 3 試合。
     expect(written.matches).toHaveLength(3);
-    // 手で振った試合番号が消えたことを画面へ伝えるためのフラグ。
+    // 手で振った試合名が消えたことを画面へ伝えるためのフラグ。
     expect(result).toEqual({ found: true, value: { regenerated: true } });
   });
 });

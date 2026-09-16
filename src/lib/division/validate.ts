@@ -55,7 +55,6 @@ export const validateEntries = (
 /**
  * 組み合わせの整合性を検証する（spec のルール 4〜6）。
  * 参照先の round が自分より必ず小さいことを課すため、循環は構造的に起きない。
- * あわせて sequence が 0 からの連番になっていることも検証する。
  */
 export const validateMatchingConfig = (
   config: MatchingConfig,
@@ -68,29 +67,13 @@ export const validateMatchingConfig = (
     errors.push(`matchingConfig.matches[].id が重複しています: ${id}`);
   }
 
-  for (const matchNumber of duplicates(
-    matches.map((match) => match.matchNumber),
-  )) {
-    errors.push(
-      `matchingConfig.matches[].matchNumber が重複しています: ${matchNumber}`,
-    );
-  }
+  // 試合名は重複してよい。既定値がテンプレートなので、全試合が同じ文字列を
+  // 持つのが正常な状態。results も ScheduleItem も試合を id で指すので、
+  // 名前の一意性に依存している参照は無い。
   for (const match of matches) {
-    if (match.matchNumber === "") {
-      errors.push(`${match.id}: matchNumber が空です`);
+    if (match.matchName === "") {
+      errors.push(`${match.id}: matchName が空です`);
     }
-  }
-
-  // 実施順は 0 から抜けなく並んでいなければならない。読み出し（parse.ts）が
-  // 常にこの形へ正規化するため、ここで捕まえるのは書き込み側（生成・並べ替え）の
-  // 不具合。保存の直前にだけ効く網として置く。
-  const sequences = matches
-    .map((match) => match.sequence)
-    .sort((left, right) => left - right);
-  if (sequences.some((sequence, index) => sequence !== index)) {
-    errors.push(
-      `matchingConfig.matches[].sequence が 0 からの連番ではありません: ${sequences.join(", ")}`,
-    );
   }
 
   const entryIds = new Set(entries.entries.map((entry) => entry.id));

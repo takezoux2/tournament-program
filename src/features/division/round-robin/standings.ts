@@ -10,7 +10,7 @@ export type LeagueOutcome = "win" | "loss" | "draw";
 /** 結果表の 1 マス。outcome が null の対戦は未実施。 */
 export type LeagueTableCell =
   | { kind: "self" }
-  | { kind: "match"; matchNumber: string; outcome: LeagueOutcome | null }
+  | { kind: "match"; matchName: string; outcome: LeagueOutcome | null }
   | { kind: "none" };
 
 /** 結果表の 1 行。順位表の列（勝・分・敗・勝点・順位）も持つ。 */
@@ -39,7 +39,7 @@ const UNKNOWN_PARTICIPANT_LABEL = "（不明な参加者）";
 
 /** 対戦を「左の側から見た結果」に読み替えたもの。outcome null は未実施。 */
 type PlayedMatch = {
-  matchNumber: string;
+  matchName: string;
   left: string;
   right: string;
   outcome: LeagueOutcome | null;
@@ -71,6 +71,7 @@ const flip = (outcome: LeagueOutcome): LeagueOutcome => {
 const readMatches = (
   config: MatchingConfig,
   results: DivisionResults,
+  matchNames: ReadonlyMap<string, string>,
 ): PlayedMatch[] => {
   const recorded = new Map(
     results.matches.map((record) => [record.matchId, record.winnerEntryId]),
@@ -91,7 +92,9 @@ const readMatches = (
       outcome = "loss";
     }
     played.push({
-      matchNumber: match.matchNumber,
+      // 展開に失敗する経路は無いが、引けなければテンプレートをそのまま出す
+      // （round-robin/view.ts の星取表と同じ倒し方）。
+      matchName: matchNames.get(match.id) ?? match.matchName,
       left: first.entryId,
       right: second.entryId,
       outcome,
@@ -224,6 +227,8 @@ export const toLeagueTableView = (
   entries: DivisionEntries,
   results: DivisionResults,
   participants: { id: string; name: string }[],
+  /** 展開済みの試合名。{{OverallSeq}} は大会全体を見ないと決まらないので上で作って渡す */
+  matchNames: ReadonlyMap<string, string>,
 ): LeagueTableView => {
   const nameById = new Map(
     participants.map((participant) => [participant.id, participant.name]),
@@ -238,7 +243,7 @@ export const toLeagueTableView = (
     ]),
   );
 
-  const matches = readMatches(config, results);
+  const matches = readMatches(config, results, matchNames);
   const standings = rankStandings(
     sortedBySeed.map((entry) => ({ entryId: entry.id, seed: entry.seed })),
     matches,
@@ -283,7 +288,7 @@ export const toLeagueTableView = (
             : match.left === standing.entryId
               ? match.outcome
               : flip(match.outcome);
-        return { kind: "match", matchNumber: match.matchNumber, outcome };
+        return { kind: "match", matchName: match.matchName, outcome };
       }),
     })),
   };

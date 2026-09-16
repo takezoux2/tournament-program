@@ -27,7 +27,7 @@ const matchingConfig = {
       bracket: "winners",
       round: 1,
       order: 0,
-      matchNumber: "1",
+      matchName: "1",
       slots: [
         { kind: "entry", entryId: "e1" },
         { kind: "entry", entryId: "e2" },
@@ -38,7 +38,7 @@ const matchingConfig = {
       bracket: "winners",
       round: 1,
       order: 1,
-      matchNumber: "2",
+      matchName: "2",
       slots: [
         { kind: "entry", entryId: "e3" },
         { kind: "entry", entryId: "e4" },
@@ -49,7 +49,7 @@ const matchingConfig = {
       bracket: "winners",
       round: 2,
       order: 0,
-      matchNumber: "3",
+      matchName: "3",
       slots: [
         { kind: "winnerOf", matchId: "m1-0" },
         { kind: "winnerOf", matchId: "m1-1" },
@@ -81,7 +81,7 @@ const empty = { version: 1, matches: [] };
 const run = (input: { matchId: string; winnerEntryId: string }) =>
   Effect.runPromiseExit(recordResultInDb(ids, input));
 
-/** 失敗のタグを確かめる。set-match-number/repository.test.ts と同じ書き方。 */
+/** 失敗のタグを確かめる。set-match-name/repository.test.ts と同じ書き方。 */
 const expectFailureTag = (
   exit: Exit.Exit<unknown, { _tag: string }>,
   tag: string,

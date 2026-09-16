@@ -1,5 +1,10 @@
 import "server-only";
 import type { DivisionFormat } from "@/generated/prisma/enums";
+import {
+  buildOverallSeq,
+  type OverallOrderDivision,
+} from "@/lib/division/overall-order";
+import { parseMatchingConfig } from "@/lib/division/parse";
 import { prisma } from "@/shared/db/prisma";
 
 export type DivisionSummary = {
@@ -96,4 +101,60 @@ export const listParticipantsInTournament = async (
     // bracket 側の Participant.team は省略可能なプロパティ。null は運ばない。
     team: row.team ?? undefined,
   }));
+};
+
+/**
+ * 大会の全試合の通し番号を読む。試合名の {{OverallSeq}} を展開するのに要る。
+ *
+ * 所有権は呼び出し側のページが既に確立している（管理画面は
+ * requireOrganization と findDivisionInTournament の 3 段 where、公開画面は
+ * findPublicTournament の公開ゲート）。ここは番号を作るだけで、
+ * 大会 id 以外の絞り込みは行わない。
+ *
+ * features/schedule にも同じ材料を読む関数があるが、features どうしは
+ * 依存できないため別に持つ。並びの規則そのものは lib/division/overall-order.ts
+ * の 1 つを共有しているので、番号がずれることはない。
+ */
+export const listOverallOrderSources = async (
+  tournamentId: string,
+): Promise<Map<string, number>> => {
+  const [divisions, items] = await Promise.all([
+    prisma.division.findMany({
+      where: { tournamentId },
+      orderBy: { order: "asc" },
+      select: { id: true, order: true, matchingConfig: true },
+    }),
+    prisma.scheduleItem.findMany({
+      where: { tournamentId, kind: "MATCH" },
+      orderBy: { order: "asc" },
+      select: { divisionId: true, matchId: true },
+    }),
+  ]);
+
+  return buildOverallSeq(
+    divisions.map(
+      (division): OverallOrderDivision => ({
+        id: division.id,
+        order: division.order,
+        // 壊れた Json を持つ部門があっても他の部門の番号は出したいので、
+        // その部門だけ試合ゼロとして扱う。
+        matchIds: (() => {
+          try {
+            return parseMatchingConfig(division.matchingConfig).matches.map(
+              (match) => match.id,
+            );
+          } catch {
+            return [];
+          }
+        })(),
+      }),
+    ),
+    // kind: "MATCH" の行は divisionId / matchId を必ず持つが、列としては
+    // nullable なので落として渡す。
+    items.flatMap((item) =>
+      item.divisionId === null || item.matchId === null
+        ? []
+        : [{ divisionId: item.divisionId, matchId: item.matchId }],
+    ),
+  );
 };

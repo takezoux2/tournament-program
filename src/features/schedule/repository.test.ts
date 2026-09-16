@@ -22,7 +22,7 @@ const matchingConfig = {
       bracket: "winners",
       round: 1,
       order: 0,
-      matchNumber: "1",
+      matchName: "1",
       slots: [
         { kind: "entry", entryId: "e1" },
         { kind: "entry", entryId: "e2" },
@@ -93,8 +93,8 @@ describe("loadScheduleView", () => {
         divisionId: "dA",
         divisionName: "男子",
         matchId: "m1-0",
-        matchNumber: "1",
-        label: "1回戦 第1試合",
+        matchName: "1",
+        label: "1回戦 (1)",
         card: "山田 vs 佐藤",
       },
     ]);
@@ -129,8 +129,8 @@ describe("loadResultRows", () => {
         divisionId: "dA",
         divisionName: "男子",
         matchId: "m1-0",
-        matchNumber: "1",
-        label: "1回戦 第1試合",
+        matchName: "1",
+        label: "1回戦 (1)",
         slots: [
           { label: "山田", entryId: "e1" },
           { label: "佐藤", entryId: "e2" },
