@@ -44,10 +44,6 @@ export const divisionErrorMessage: (error: DivisionError) => string =
       () => "対象の試合が見つかりません。画面を再読み込みしてください",
     ),
     Match.tag(
-      "DivisionMatchNumberConflictError",
-      () => "その試合番号は別の試合で使われています",
-    ),
-    Match.tag(
       "DivisionParticipantNotFoundError",
       () => "対象の参加者が見つかりません。画面を再読み込みしてください",
     ),

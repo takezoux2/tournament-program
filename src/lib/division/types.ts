@@ -39,7 +39,7 @@ export type BracketMatch = {
    * 実施順は持たない。試合の順番は大会の進行順（ScheduleItem）だけが決める。
    */
   order: number;
-  /** 表示用の試合名。部門内で一意。デフォルトは round/order 順の連番 */
+  /** 表示用の試合名。部門内で重複してよい */
   matchName: string;
   slots: [SlotSource, SlotSource];
 };

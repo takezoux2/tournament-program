@@ -93,20 +93,6 @@ describe("setMatchNameAction", () => {
     expect(setMatchNameInDb).not.toHaveBeenCalled();
   });
 
-  it("試合番号が重複していたら文言を返す", async () => {
-    const { DivisionMatchNumberConflictError } = await import("../errors");
-    setMatchNameInDb.mockReturnValue(
-      Effect.fail(new DivisionMatchNumberConflictError({ matchName: "12" })),
-    );
-
-    const state = await setMatchNameAction(
-      INITIAL_DIVISION_FORM_STATE,
-      formData("m1", "12"),
-    );
-
-    expect(state.error).toBe("その試合番号は別の試合で使われています");
-  });
-
   it("部門が無ければ 404 にする", async () => {
     setMatchNameInDb.mockReturnValue(Effect.succeed({ found: false }));
 

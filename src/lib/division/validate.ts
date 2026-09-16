@@ -67,11 +67,9 @@ export const validateMatchingConfig = (
     errors.push(`matchingConfig.matches[].id が重複しています: ${id}`);
   }
 
-  for (const matchName of duplicates(matches.map((match) => match.matchName))) {
-    errors.push(
-      `matchingConfig.matches[].matchName が重複しています: ${matchName}`,
-    );
-  }
+  // 試合名は重複してよい。既定値がテンプレートなので、全試合が同じ文字列を
+  // 持つのが正常な状態。results も ScheduleItem も試合を id で指すので、
+  // 名前の一意性に依存している参照は無い。
   for (const match of matches) {
     if (match.matchName === "") {
       errors.push(`${match.id}: matchName が空です`);

@@ -46,7 +46,7 @@ beforeEach(() => {
 });
 
 describe("setMatchNameInDb", () => {
-  it("指定した試合の番号だけを書き換える", async () => {
+  it("指定した試合の試合名だけを書き換える", async () => {
     const outcome = await Effect.runPromise(
       setMatchNameInDb(ids, { matchId: "m1-0", matchName: "A" }),
     );
@@ -95,7 +95,7 @@ describe("setMatchNameInDb", () => {
     expect(divisionUpdateMany).not.toHaveBeenCalled();
   });
 
-  it("別の試合と同じ番号なら DivisionMatchNumberConflictError", async () => {
+  it("別の試合と同じ試合名でも保存できる", async () => {
     const twoMatches = buildFromSlots([
       { kind: "entry", entryId: "e1" },
       { kind: "entry", entryId: "e2" },
@@ -107,22 +107,18 @@ describe("setMatchNameInDb", () => {
       entries,
       matchingConfig: twoMatches,
     });
+    const sameAsOther = twoMatches.matches[1].matchName;
 
-    const exit = await Effect.runPromiseExit(
-      setMatchNameInDb(ids, { matchId: "m1-0", matchName: "2" }),
+    const outcome = await Effect.runPromise(
+      setMatchNameInDb(ids, { matchId: "m1-0", matchName: sameAsOther }),
     );
-    expect(exit._tag).toBe("Failure");
-    if (Exit.isFailure(exit)) {
-      const failure = Cause.failureOption(exit.cause);
-      expect(Option.isSome(failure)).toBe(true);
-      if (Option.isSome(failure)) {
-        expect(failure.value._tag).toBe("DivisionMatchNumberConflictError");
-      }
-    }
-    expect(divisionUpdateMany).not.toHaveBeenCalled();
+
+    expect(outcome).toEqual({ found: true, value: null });
+    const written = divisionUpdateMany.mock.calls[0][0].data.matchingConfig;
+    expect(written.matches[0].matchName).toBe(sameAsOther);
   });
 
-  it("同じ試合への同じ番号の再設定は重複にならない", async () => {
+  it("同じ試合への同じ試合名の再設定もそのまま保存する", async () => {
     const outcome = await Effect.runPromise(
       setMatchNameInDb(ids, { matchId: "m1-0", matchName: "1" }),
     );

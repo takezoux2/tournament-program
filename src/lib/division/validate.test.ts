@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { DEFAULT_MATCH_NAME } from "./match-name";
 import type { DivisionEntries, DivisionResults, MatchingConfig } from "./types";
 import {
   reachableEntryIds,
@@ -249,8 +250,8 @@ describe("validateMatchingConfig", () => {
     expect(validateMatchingConfig(config(), roster)).toEqual([]);
   });
 
-  it("matchName が重複していたらエラー", () => {
-    // 既存テストの match fixture ヘルパーを使い、2 試合に同じ matchName "1" を与える
+  it("試合名が重複していてもエラーにしない", () => {
+    // 既定値はテンプレートなので、部門内の全試合が同じ文字列を持つのが正常な状態。
     const errors = validateMatchingConfig(
       {
         version: 1,
@@ -260,7 +261,7 @@ describe("validateMatchingConfig", () => {
             bracket: "winners",
             round: 1,
             order: 0,
-            matchName: "1",
+            matchName: DEFAULT_MATCH_NAME,
             slots: [{ kind: "bye" }, { kind: "bye" }],
           },
           {
@@ -268,16 +269,15 @@ describe("validateMatchingConfig", () => {
             bracket: "winners",
             round: 1,
             order: 1,
-            matchName: "1",
+            matchName: DEFAULT_MATCH_NAME,
             slots: [{ kind: "bye" }, { kind: "bye" }],
           },
         ],
       },
       { version: 1, entries: [] },
     );
-    expect(errors).toContain(
-      "matchingConfig.matches[].matchName が重複しています: 1",
-    );
+
+    expect(errors).toEqual([]);
   });
 
   it("matchName が空文字ならエラー", () => {

@@ -11,7 +11,6 @@ import {
   DivisionDataError,
   type DivisionError,
   DivisionMatchNotFoundError,
-  DivisionMatchNumberConflictError,
   toDivisionError,
 } from "../errors";
 import { isEditableFormat } from "../matching-strategy";
@@ -54,17 +53,6 @@ export const setMatchNameInDb: SetMatchNamePort = (ids, input) =>
         if (!target) {
           throw new DivisionMatchNotFoundError({ matchId: input.matchId });
         }
-        if (
-          config.matches.some(
-            (match) =>
-              match.id !== input.matchId && match.matchName === input.matchName,
-          )
-        ) {
-          throw new DivisionMatchNumberConflictError({
-            matchName: input.matchName,
-          });
-        }
-
         const next: MatchingConfig = {
           version: 1,
           matches: config.matches.map((match) =>
