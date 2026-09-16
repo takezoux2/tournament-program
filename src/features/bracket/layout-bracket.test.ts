@@ -7,6 +7,9 @@ import {
   NODE_HEIGHT,
   NODE_WIDTH,
   type Position,
+  SECTION_GAP,
+  SECTION_LABEL_OFFSET,
+  sectionLabels,
 } from "./layout-bracket";
 
 const round1 = (id: string, order: number): LayoutInput => ({
@@ -92,5 +95,81 @@ describe("layoutBracket", () => {
         { id: "z", round: 2, order: 0, sourceMatchIds: ["ghost", null] },
       ]),
     ).toThrow(/ghost/);
+  });
+});
+
+describe("layoutBracket（ダブルエリミネーション）", () => {
+  const side = (
+    id: string,
+    bracket: "winners" | "losers" | "final",
+    round: number,
+    order: number,
+    sources: [string | null, string | null] = [null, null],
+  ): LayoutInput => ({ id, bracket, round, order, sourceMatchIds: sources });
+
+  // 4 枠 grandFinal: 勝者側 m1-0, m1-1 → m2-0、敗者側 l1-0 → l2-0、決勝 f
+  const de: LayoutInput[] = [
+    side("m1-0", "winners", 1, 0),
+    side("m1-1", "winners", 1, 1),
+    side("m2-0", "winners", 2, 0, ["m1-0", "m1-1"]),
+    side("l1-0", "losers", 2, 0),
+    side("l2-0", "losers", 3, 0, ["l1-0", null]),
+    side("f", "final", 4, 0, ["m2-0", "l2-0"]),
+  ];
+
+  it("敗者側は勝者側の最下端より SECTION_GAP 下から始まり、列は敗者側内の番号", () => {
+    const positions = layoutBracket(de);
+    const winnersBottom = at(positions, "m1-1").y + NODE_HEIGHT;
+    expect(at(positions, "l1-0")).toEqual({
+      x: 0,
+      y: winnersBottom + SECTION_GAP,
+    });
+    expect(at(positions, "l2-0")).toEqual({
+      x: NODE_WIDTH + GAP_X,
+      y: at(positions, "l1-0").y,
+    });
+  });
+
+  it("決勝は両ブラケットの最終列の右で、両決勝の中点", () => {
+    const positions = layoutBracket(de);
+    expect(at(positions, "f")).toEqual({
+      x: 2 * (NODE_WIDTH + GAP_X),
+      y: (at(positions, "m2-0").y + at(positions, "l2-0").y) / 2,
+    });
+  });
+
+  it("入力順に依存しない", () => {
+    expect(layoutBracket([...de].reverse())).toEqual(layoutBracket(de));
+  });
+
+  it("sectionLabels は各エリアの左上にラベルを置く", () => {
+    const positions = layoutBracket(de);
+    expect(sectionLabels(de, positions)).toEqual([
+      {
+        id: "section-winners",
+        label: "勝者側",
+        position: { x: 0, y: -SECTION_LABEL_OFFSET },
+      },
+      {
+        id: "section-losers",
+        label: "敗者側",
+        position: {
+          x: 0,
+          y: at(positions, "l1-0").y - SECTION_LABEL_OFFSET,
+        },
+      },
+      {
+        id: "section-final",
+        label: "決勝",
+        position: {
+          x: at(positions, "f").x,
+          y: at(positions, "f").y - SECTION_LABEL_OFFSET,
+        },
+      },
+    ]);
+  });
+
+  it("勝者側だけならラベルを出さない", () => {
+    expect(sectionLabels(matches, layoutBracket(matches))).toEqual([]);
   });
 });
