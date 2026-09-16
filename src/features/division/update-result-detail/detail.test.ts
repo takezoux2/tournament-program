@@ -88,6 +88,24 @@ describe("buildDetailRecord", () => {
     expect(result.scores).toEqual([{ entryId: "e1", values: [7, null, null] }]);
   });
 
+  // 同じ人のスコアが 2 件あると、どちらを表示・集計するか決まらない。
+  // 画面の並び（DOM の順）で先に来たものを正とする。
+  it("同じ entryId のスコアが重なったら最初の 1 件だけ残す", () => {
+    const result = buildDetailRecord(
+      existing,
+      {
+        ...input,
+        scores: [
+          { entryId: "e1", values: [7, 7, 7] },
+          { entryId: "e1", values: [1, 1, 1] },
+        ],
+      },
+      allEnabled,
+      standing,
+    );
+    expect(result.scores).toEqual([{ entryId: "e1", values: [7, 7, 7] }]);
+  });
+
   it("count を超えたスコアは切り詰める", () => {
     const result = buildDetailRecord(
       existing,

@@ -14,18 +14,18 @@ import { updateResultDetailForDivision } from "./usecase";
  * スコアの欄名は score_<entryId>。index を名前に入れず getAll の順（＝DOM の順）を
  * そのまま使う。サーバ側は entryId を信用せず、repository がその試合に立っている
  * 2 人と突き合わせて捨てる。
+ *
+ * 同じ scoreEntryId が重なって届いたら最初の 1 件だけ残す。重なったまま渡すと
+ * スキーマの「2 件まで」に掛かったり、同じ人のスコアが 2 件保存されたりする。
  */
 const readScores = (formData: FormData) =>
-  formData.getAll("scoreEntryId").map((raw) => {
-    const entryId = String(raw);
-    return {
-      entryId,
-      values: formData.getAll(`score_${entryId}`).map((value) => {
-        const text = String(value).trim();
-        return text === "" ? null : Number(text);
-      }),
-    };
-  });
+  [...new Set(formData.getAll("scoreEntryId").map(String))].map((entryId) => ({
+    entryId,
+    values: formData.getAll(`score_${entryId}`).map((value) => {
+      const text = String(value).trim();
+      return text === "" ? null : Number(text);
+    }),
+  }));
 
 export const updateResultDetailAction = async (
   prevState: DivisionFormState,

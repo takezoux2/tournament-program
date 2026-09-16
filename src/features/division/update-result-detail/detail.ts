@@ -51,6 +51,11 @@ export const buildDetailRecord = (
     const scores = input.scores
       // 送られてきた entryId は信用しない。その試合に立っている 2 人だけを通す。
       .filter((entry) => standingEntryIds.includes(entry.entryId))
+      // 同じ人が 2 件あると表示・集計に使う方が決まらない。先に来た方を正とする。
+      .filter(
+        (entry, index, all) =>
+          all.findIndex((other) => other.entryId === entry.entryId) === index,
+      )
       .map(
         (entry): MatchScoreEntry => ({
           entryId: entry.entryId,
