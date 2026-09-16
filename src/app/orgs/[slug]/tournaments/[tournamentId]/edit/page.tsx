@@ -2,17 +2,20 @@ import { notFound } from "next/navigation";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { DeleteTournamentForm } from "@/components/tournament/DeleteTournamentForm";
 import { TournamentForm } from "@/components/tournament/TournamentForm";
+import { UnpublishTournamentForm } from "@/components/tournament/UnpublishTournamentForm";
 import { deleteTournamentAction } from "@/features/tournament/delete/handler";
 import { findTournamentInOrganization } from "@/features/tournament/repository";
+import { unpublishTournamentAction } from "@/features/tournament/unpublish/handler";
 import { updateTournamentAction } from "@/features/tournament/update/handler";
 import { toDateTimeLocalValue } from "@/lib/datetime/local";
+import { canByCode } from "@/shared/authz/ability";
 import { requireOrganization } from "@/shared/middleware/require-organization";
 
 export default async function EditTournamentPage({
   params,
 }: PageProps<"/orgs/[slug]/tournaments/[tournamentId]/edit">) {
   const { slug, tournamentId } = await params;
-  const { session, organization } = await requireOrganization(slug);
+  const { session, organization, ability } = await requireOrganization(slug);
 
   const tournament = await findTournamentInOrganization(
     organization.id,
@@ -21,6 +24,9 @@ export default async function EditTournamentPage({
   if (!tournament) {
     notFound();
   }
+
+  // UI の出し分けは体感のためで、境界は Server Action 側の requirePermission。
+  const canUnpublish = canByCode(ability, "tournament.edit");
 
   return (
     <main className="min-h-screen bg-slate-50">
@@ -51,6 +57,15 @@ export default async function EditTournamentPage({
             tournamentId={tournament.id}
           />
         </div>
+
+        {tournament.status !== "DRAFT" && canUnpublish && (
+          <UnpublishTournamentForm
+            action={unpublishTournamentAction}
+            slug={slug}
+            tournamentId={tournament.id}
+            tournamentName={tournament.name}
+          />
+        )}
 
         <DeleteTournamentForm
           action={deleteTournamentAction}

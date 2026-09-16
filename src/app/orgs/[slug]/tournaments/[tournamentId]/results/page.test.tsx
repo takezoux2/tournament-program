@@ -58,7 +58,7 @@ beforeEach(() => {
       divisionId: "d1",
       divisionName: "男子",
       matchId: "m1-0",
-      matchNumber: "1",
+      matchName: "1",
       label: "1回戦 第1試合",
       slots: [
         { label: "山田", entryId: "e1" },
@@ -87,7 +87,7 @@ describe("TournamentResultsPage", () => {
     expect(requireOrganization).toHaveBeenCalledWith("tennis");
     expect(loadResultRows).toHaveBeenCalledWith("o1", "t1");
     expect(
-      screen.getByRole("button", { name: "男子 第1試合 山田の勝ち" }),
+      screen.getByRole("button", { name: "男子 1 山田の勝ち" }),
     ).toBeInTheDocument();
   });
 

@@ -6,6 +6,7 @@ import { AppHeader } from "@/components/layout/AppHeader";
 import { needsParticipants } from "@/features/division/format";
 import {
   findDivisionInTournament,
+  listOverallOrderSources,
   listParticipantsInTournament,
 } from "@/features/division/repository";
 import { findTournamentInOrganization } from "@/features/tournament/repository";
@@ -19,9 +20,13 @@ export default async function DivisionPage({
   const { created } = await searchParams;
   const { session, organization } = await requireOrganization(slug);
 
-  const [tournament, division] = await Promise.all([
+  const [tournament, division, overallSeq] = await Promise.all([
     findTournamentInOrganization(organization.id, tournamentId),
     findDivisionInTournament(organization.id, tournamentId, divisionId),
+    // 大会 id だけで読む関数だが、所有権は requireOrganization と上の 2 つが
+    // 確かめ、見つからなければ下の notFound で打ち切る。番号が画面に出るのは
+    // 所有権を通ったときだけ（setup / league のページと同じ形）。
+    listOverallOrderSources(tournamentId),
   ]);
   if (!tournament || !division) {
     notFound();
@@ -64,6 +69,7 @@ export default async function DivisionPage({
           <DivisionMatchingView
             division={division}
             participants={participants}
+            overallSeq={overallSeq}
           />
         </div>
       </div>

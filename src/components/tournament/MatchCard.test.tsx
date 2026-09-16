@@ -43,7 +43,7 @@ const doneMatch: ResolvedMatch = {
   note: null,
   status: "done",
   sourceMatchIds: ["r1-m1", "r1-m2"],
-  matchNumber: null,
+  matchName: null,
 };
 
 describe("MatchCard", () => {
@@ -70,6 +70,51 @@ describe("MatchCard", () => {
       "data-winner",
       "false",
     );
+  });
+
+  it("勝者が決まった試合では敗者の行だけ data-loser が true になる", () => {
+    render(<MatchCard match={doneMatch} />);
+    expect(screen.getByTestId("slot-r2-m1-0")).toHaveAttribute(
+      "data-loser",
+      "false",
+    );
+    expect(screen.getByTestId("slot-r2-m1-1")).toHaveAttribute(
+      "data-loser",
+      "true",
+    );
+  });
+
+  it("勝者の行は緑、敗者の行はグレーで表示する", () => {
+    render(<MatchCard match={doneMatch} />);
+    const winner = screen.getByTestId("slot-r2-m1-0");
+    const loser = screen.getByTestId("slot-r2-m1-1");
+    expect(winner).toHaveClass("bg-green-200", "font-bold");
+    expect(loser).toHaveClass("bg-slate-100", "text-slate-400");
+    expect(loser).not.toHaveClass("font-bold");
+  });
+
+  it("勝者が未決定の試合には敗者がいない", () => {
+    render(
+      <MatchCard
+        match={{
+          ...doneMatch,
+          id: "r3-m2",
+          slots: [
+            confirmed("p1", "佐藤 蓮", 1, false),
+            confirmed("p8", "中村 芽依", 8, false),
+          ],
+          winnerId: null,
+          score: null,
+          status: "ready",
+        }}
+      />,
+    );
+    for (const index of [0, 1]) {
+      const row = screen.getByTestId(`slot-r3-m2-${index}`);
+      expect(row).toHaveAttribute("data-loser", "false");
+      expect(row).toHaveClass("text-slate-700");
+      expect(row).not.toHaveClass("bg-slate-100");
+    }
   });
 
   it("ルート要素に status を出す", () => {
@@ -124,17 +169,17 @@ describe("MatchCard", () => {
     expect(screen.queryByText("3-1")).not.toBeInTheDocument();
   });
 
-  it("試合番号があればバッジで表示する", () => {
-    render(<MatchCard match={{ ...doneMatch, matchNumber: "7" }} />);
-    expect(
-      screen.getByTestId(`match-number-${doneMatch.id}`),
-    ).toHaveTextContent("7");
+  it("試合名があればバッジで表示する", () => {
+    render(<MatchCard match={{ ...doneMatch, matchName: "7" }} />);
+    expect(screen.getByTestId(`match-name-${doneMatch.id}`)).toHaveTextContent(
+      "7",
+    );
   });
 
-  it("試合番号が null ならバッジを出さない", () => {
-    render(<MatchCard match={{ ...doneMatch, matchNumber: null }} />);
+  it("試合名が null ならバッジを出さない", () => {
+    render(<MatchCard match={{ ...doneMatch, matchName: null }} />);
     expect(
-      screen.queryByTestId(`match-number-${doneMatch.id}`),
+      screen.queryByTestId(`match-name-${doneMatch.id}`),
     ).not.toBeInTheDocument();
   });
 
@@ -179,10 +224,10 @@ describe("MatchCard", () => {
     expect(loserRow).not.toHaveTextContent("一本勝ち");
   });
 
-  it("メモがあり試合番号もあれば「第N試合のメモ」を読み上げ用ラベルにする", () => {
+  it("メモがあり試合名もあれば「<試合名>のメモ」を読み上げ用ラベルにする", () => {
     render(
       <MatchCard
-        match={{ ...doneMatch, note: "抗議あり", matchNumber: "7" }}
+        match={{ ...doneMatch, note: "抗議あり", matchName: "第7試合" }}
       />,
     );
     expect(
@@ -190,12 +235,12 @@ describe("MatchCard", () => {
     ).toBeInTheDocument();
   });
 
-  // 試合番号が無いとき、内部 id をそのままラベルに出すと読み上げに適さない
+  // 試合名が無いとき、内部 id をそのままラベルに出すと読み上げに適さない
   // ため、汎用の文言に落とす。
-  it("メモがあり試合番号が無ければ「試合のメモ」を読み上げ用ラベルにする", () => {
+  it("メモがあり試合名が無ければ「試合のメモ」を読み上げ用ラベルにする", () => {
     render(
       <MatchCard
-        match={{ ...doneMatch, note: "抗議あり", matchNumber: null }}
+        match={{ ...doneMatch, note: "抗議あり", matchName: null }}
       />,
     );
     expect(

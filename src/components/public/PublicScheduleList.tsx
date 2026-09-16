@@ -1,6 +1,7 @@
 import { MatchNoteButton } from "@/components/result/MatchNoteButton";
 import type { ResultRowView } from "@/features/schedule/result-rows";
 import { formatStartsAt } from "@/features/tournament/format";
+import { formatDivisionPosition } from "@/lib/division/label";
 import { formatMatchScoreSummary } from "@/lib/division/score";
 
 type MatchRow = Extract<ResultRowView, { kind: "match" }>;
@@ -79,14 +80,14 @@ export function PublicScheduleList({ rows }: { rows: ResultRowView[] }) {
           >
             <p className="flex flex-wrap items-baseline gap-x-2 gap-y-1 text-sm text-slate-800">
               <span className="shrink-0 rounded bg-slate-100 px-2 py-0.5 text-xs font-bold">
-                第{row.matchNumber}試合
+                {row.matchName}
               </span>
               <span className="min-w-0 wrap-break-word font-medium">
                 {`${row.slots[0].label} vs ${row.slots[1].label}`}
               </span>
             </p>
             <p className="mt-1 text-xs text-slate-500">
-              {row.divisionName} / {row.label}
+              {formatDivisionPosition(row.divisionName, row.label)}
             </p>
             {parts.length > 0 && (
               <p className="mt-1 flex items-center gap-2 text-xs text-slate-700">
@@ -94,7 +95,7 @@ export function PublicScheduleList({ rows }: { rows: ResultRowView[] }) {
                 {row.resultConfig.note.enabled && (
                   <MatchNoteButton
                     note={row.note}
-                    label={`${row.divisionName} 第${row.matchNumber}試合のメモ`}
+                    label={`${row.divisionName} ${row.matchName}のメモ`}
                   />
                 )}
               </p>

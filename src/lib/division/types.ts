@@ -31,18 +31,19 @@ export type BracketMatch = {
   bracket: BracketSide;
   /** 1 = 1 回戦。ROUND_ROBIN は節を持たないので常に 1 */
   round: number;
-  /** ラウンド内の上からの位置。0 始まり */
-  order: number;
   /**
-   * 部門内での実施順。0 始まりの連番。並べ替えで変わる。
+   * ラウンド内の上からの位置。0 始まり。
    *
    * round/order は「ブラケット上のどこにある試合か」を表し、描画座標に
-   * そのまま使われる（features/bracket/layout-bracket.ts）。実施順として
-   * 動かすと対戦表の形が崩れるため、「何番目にやるか」は別の項に持つ。
+   * そのまま使われる（features/bracket/layout-bracket.ts）。部門の中の
+   * 実施順は持たない。試合の順番は大会の進行順（ScheduleItem）だけが決める。
    */
-  sequence: number;
-  /** 表示用の試合番号。部門内で一意。デフォルトは round/order 順の連番 */
-  matchNumber: string;
+  order: number;
+  /**
+   * 表示用の試合名のテンプレート。{{OverallSeq}}（大会の進行順の通し番号）を使える。
+   * 部門内で重複してよい（既定値は全試合で同じ文字列になる）
+   */
+  matchName: string;
   slots: [SlotSource, SlotSource];
 };
 

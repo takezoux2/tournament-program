@@ -1,6 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import type { DivisionDetail } from "@/features/division/repository";
+import { overallSeqKey } from "@/lib/division/overall-order";
 import { DivisionSetup } from "./DivisionSetup";
 
 // ブラケットの組み立てまでは踏み込まないので、区画ごと差し替える。
@@ -8,7 +9,7 @@ vi.mock("./DivisionBracket", () => ({
   DivisionBracket: () => <div>bracket</div>,
 }));
 
-// 8 つとも同じ vi.fn を使い回すと、EntryList/MatchingSection への配線で
+// 7 つとも同じ vi.fn を使い回すと、EntryList/MatchingSection への配線で
 // prop を取り違えても（例: reorderAction と removeAction の入れ替え）
 // 参照が同じなので検知できない。ここでは配線チェックのため別々にしている。
 const actions = {
@@ -17,8 +18,7 @@ const actions = {
   reorderEntry: vi.fn(async () => ({ error: null })),
   generateMatching: vi.fn(async () => ({ error: null })),
   swapSlots: vi.fn(async () => ({ error: null })),
-  reorderMatches: vi.fn(async () => ({ error: null })),
-  setMatchNumber: vi.fn(async () => ({ error: null })),
+  setMatchName: vi.fn(async () => ({ error: null })),
   setPlayerNumber: vi.fn(async () => ({ error: null })),
 };
 
@@ -41,6 +41,7 @@ const props = {
   participants: [],
   members: [],
   actions,
+  overallSeq: new Map<string, number>(),
 };
 
 describe("DivisionSetup", () => {
@@ -111,7 +112,7 @@ describe("DivisionSetup", () => {
                 bracket: "winners",
                 round: 2,
                 order: 0,
-                matchNumber: "2",
+                matchName: "2",
                 slots: [
                   { kind: "entry", entryId: "e1" },
                   { kind: "entry", entryId: "e3" },
@@ -129,12 +130,43 @@ describe("DivisionSetup", () => {
       ),
     ).toBeInTheDocument();
     expect(
-      screen.getByText("組み合わせを作り直すと、ここに試合の実施順が出ます"),
+      screen.getByText("組み合わせを作り直すと、ここに試合が出ます"),
     ).toBeInTheDocument();
     // 生成ボタンは残す。押せば直る。
     expect(
       screen.getByRole("button", { name: "組み合わせを生成" }),
     ).toBeInTheDocument();
+  });
+
+  it("試合名の入力欄にはテンプレートを、隣には overallSeq で展開した名前を出す", () => {
+    // {{OverallSeq}} は大会全体を見ないと決まらないので、resolveMatchNames が
+    // overallSeq props から展開した結果が MatchOrderList まで届くことを確かめる。
+    render(
+      <DivisionSetup
+        {...props}
+        overallSeq={new Map([[overallSeqKey("d1", "m1-0"), 3]])}
+        division={division({
+          matchingConfig: {
+            version: 1,
+            matches: [
+              {
+                id: "m1-0",
+                bracket: "winners",
+                round: 1,
+                order: 0,
+                matchName: "第{{OverallSeq}}試合",
+                slots: [{ kind: "bye" }, { kind: "bye" }],
+              },
+            ],
+          },
+        })}
+      />,
+    );
+
+    expect(screen.getByLabelText("1回戦 (1)の試合名")).toHaveValue(
+      "第{{OverallSeq}}試合",
+    );
+    expect(screen.getByText("第3試合")).toBeInTheDocument();
   });
 
   it("Json が壊れていてもページを落とさない", () => {
@@ -150,10 +182,10 @@ describe("DivisionSetup", () => {
     ).toBeInTheDocument();
   });
 
-  it("8 つのアクションがそれぞれ正しい子コンポーネントの prop に届く", async () => {
+  it("7 つのアクションがそれぞれ正しい子コンポーネントの prop に届く", async () => {
     // 子を実物のままにすると、reorderAction と removeAction の入れ替えのような
     // 配線ミスは「ボタンを押して呼ばれた関数を見る」形でしか検知できず、
-    // 8 つの Server Action を全部押下確認するのは重い。ここだけ子を
+    // 7 つの Server Action を全部押下確認するのは重い。ここだけ子を
     // スタブに差し替え、DivisionSetup が渡した prop を直接検査する。
     // vi.mock は他のテストにも効いてしまうため、resetModules + 動的 import で
     // このテストの中だけ差し替える。
@@ -208,9 +240,9 @@ describe("DivisionSetup", () => {
         actions.generateMatching,
       );
       expect(matchingSectionProps?.swapAction).toBe(actions.swapSlots);
-      expect(matchOrderListProps?.reorderAction).toBe(actions.reorderMatches);
-      expect(matchOrderListProps?.setMatchNumberAction).toBe(
-        actions.setMatchNumber,
+      expect(matchOrderListProps).not.toHaveProperty("reorderAction");
+      expect(matchOrderListProps?.setMatchNameAction).toBe(
+        actions.setMatchName,
       );
       expect(entryListProps?.disabled).toBe(false);
 
@@ -231,7 +263,7 @@ describe("DivisionSetup", () => {
       expect(entryListProps?.disabled).toBe(true);
       expect(addEntryFormProps?.disabled).toBe(true);
       expect(matchingSectionProps?.disabled).toBe(true);
-      // 実施順と試合番号は構造を変えないため、locked でも編集できる。
+      // 試合名は構造を変えないため、locked でも編集できる。
       // MatchOrderList は disabled を受け取らない prop 契約なので、
       // 渡されていないこと自体がその仕様を型より外でも固定する。
       expect(matchOrderListProps?.disabled).toBeUndefined();

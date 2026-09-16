@@ -21,7 +21,7 @@ const match = (
   id,
   round,
   order,
-  matchNumber: null,
+  matchName: null,
   slots: [emptySlot, emptySlot],
   winnerId,
   score: null,

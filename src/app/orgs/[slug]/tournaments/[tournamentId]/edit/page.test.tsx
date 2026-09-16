@@ -41,6 +41,9 @@ vi.mock("@/features/tournament/update/handler", () => ({
 vi.mock("@/features/tournament/delete/handler", () => ({
   deleteTournamentAction: vi.fn(),
 }));
+vi.mock("@/features/tournament/unpublish/handler", () => ({
+  unpublishTournamentAction: async () => ({ error: null }),
+}));
 
 const { default: EditTournamentPage } = await import("./page");
 
@@ -125,5 +128,54 @@ describe("EditTournamentPage", () => {
     expect(
       screen.getByRole("button", { name: "この大会を削除する" }),
     ).toBeInTheDocument();
+  });
+
+  it.each(["IN_PROGRESS", "COMPLETED"] as const)(
+    "公開中（%s）の大会には非公開ボタンを出す",
+    async (status) => {
+      findTournamentInOrganization.mockResolvedValue({ ...tournament, status });
+
+      const element = await EditTournamentPage(pageProps("tennis", "t1"));
+      render(element);
+
+      expect(
+        screen.getByRole("button", { name: "非公開にする" }),
+      ).toBeInTheDocument();
+    },
+  );
+
+  it("準備中の大会には非公開ボタンを出さない", async () => {
+    findTournamentInOrganization.mockResolvedValue({
+      ...tournament,
+      status: "DRAFT",
+    });
+
+    const element = await EditTournamentPage(pageProps("tennis", "t1"));
+    render(element);
+
+    expect(
+      screen.queryByRole("button", { name: "非公開にする" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("tournament.edit を持たなければ、公開中でも非公開ボタンを出さない", async () => {
+    const codes = PERMISSION_CODES.filter((code) => code !== "tournament.edit");
+    requireOrganization.mockResolvedValue({
+      session,
+      organization,
+      permissionCodes: codes,
+      ability: defineAbilityFor(codes),
+    });
+    findTournamentInOrganization.mockResolvedValue({
+      ...tournament,
+      status: "IN_PROGRESS",
+    });
+
+    const element = await EditTournamentPage(pageProps("tennis", "t1"));
+    render(element);
+
+    expect(
+      screen.queryByRole("button", { name: "非公開にする" }),
+    ).not.toBeInTheDocument();
   });
 });

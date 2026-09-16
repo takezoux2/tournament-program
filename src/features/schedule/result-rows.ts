@@ -49,8 +49,8 @@ export type ResultRowView =
       divisionId: string;
       divisionName: string;
       matchId: string;
-      matchNumber: string;
-      /** 「1回戦 第1試合」 */
+      matchName: string;
+      /** 「1回戦 (1)」。リーグは位置を持たないので空文字 */
       label: string;
       slots: [ResultSlotView, ResultSlotView];
       /** BYE の自動勝ち上がりを含む。決まっていなければ null */
@@ -100,6 +100,20 @@ export const buildResultRows = (
   divisions: ScheduleDivision[],
   participants: ScheduleParticipant[],
 ): ResultRowView[] => {
+  // 展開済みの試合名は進行順の行（buildScheduleView の出力）が既に持っている。
+  // 行は大会の全試合を含むので、部門ごとの「試合 id → 表示名」に組み直して
+  // スロットの文言（「第3試合の勝者」）もそれで作る。通し番号をここで
+  // 計算し直すと、進行順の一覧と結果入力で規則が 2 本になるため。
+  const namesByDivision = new Map<string, Map<string, string>>();
+  for (const row of rows) {
+    if (row.kind !== "match") {
+      continue;
+    }
+    const names = namesByDivision.get(row.divisionId) ?? new Map();
+    names.set(row.matchId, row.matchName);
+    namesByDivision.set(row.divisionId, names);
+  }
+
   const context = new Map(
     divisions.map((division) => [
       division.id,
@@ -107,7 +121,7 @@ export const buildResultRows = (
         division,
         resolved: resolveMatchSlots(division.matchingConfig, division.results),
         labelSlot: createSlotLabeler(
-          division.matchingConfig,
+          namesByDivision.get(division.id) ?? new Map<string, string>(),
           division.entries,
           participants,
         ),
@@ -174,7 +188,7 @@ export const buildResultRows = (
         divisionId: row.divisionId,
         divisionName: row.divisionName,
         matchId: row.matchId,
-        matchNumber: row.matchNumber,
+        matchName: row.matchName,
         label: row.label,
         slots: [slotView(0), slotView(1)],
         winnerEntryId: resolved.winnerEntryId,

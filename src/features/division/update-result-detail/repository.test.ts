@@ -23,7 +23,7 @@ const matchingConfig = {
       bracket: "winners",
       round: 1,
       order: 0,
-      matchNumber: "1",
+      matchName: "第1試合",
       slots: [
         { kind: "entry", entryId: "e1" },
         { kind: "entry", entryId: "e2" },
@@ -34,7 +34,7 @@ const matchingConfig = {
       bracket: "winners",
       round: 2,
       order: 0,
-      matchNumber: "2",
+      matchName: "第2試合",
       slots: [{ kind: "winnerOf", matchId: "m1-0" }, { kind: "bye" }],
     },
   ],

@@ -55,7 +55,7 @@ describe("PublicSchedulePage", () => {
         divisionId: "d1",
         divisionName: "男子シングルス",
         matchId: "m1-0",
-        matchNumber: "1",
+        matchName: "1",
         label: "1回戦 第1試合",
         slots: [
           { label: "佐藤 蓮", entryId: "e1" },

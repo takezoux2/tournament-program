@@ -17,6 +17,8 @@ const participants = [
   { id: "p2", name: "鈴木 陽菜", nameKana: "スズキ ハルナ", playerNumber: "2" },
 ];
 
+const noSeq = new Map<string, number>();
+
 const buildDivision = (
   overrides: Partial<DivisionDetail> = {},
 ): DivisionDetail => ({
@@ -63,6 +65,7 @@ describe("DivisionBracket", () => {
       <DivisionBracket
         division={buildDivision()}
         participants={participants}
+        overallSeq={noSeq}
       />,
     );
 
@@ -76,6 +79,7 @@ describe("DivisionBracket", () => {
           matchingConfig: { version: 1, matches: [] },
         })}
         participants={participants}
+        overallSeq={noSeq}
       />,
     );
 
@@ -88,6 +92,7 @@ describe("DivisionBracket", () => {
       <DivisionBracket
         division={buildDivision({ format: "ROUND_ROBIN" })}
         participants={participants}
+        overallSeq={noSeq}
       />,
     );
 
@@ -119,6 +124,7 @@ describe("DivisionBracket", () => {
           },
         })}
         participants={participants}
+        overallSeq={noSeq}
       />,
     );
 
@@ -136,6 +142,7 @@ describe("DivisionBracket", () => {
       <DivisionBracket
         division={buildDivision({ resultConfig: { version: 2 } })}
         participants={participants}
+        overallSeq={noSeq}
       />,
     );
 
@@ -152,6 +159,7 @@ describe("DivisionBracket", () => {
       <DivisionBracket
         division={buildDivision({ matchingConfig: { version: 2 } })}
         participants={participants}
+        overallSeq={noSeq}
       />,
     );
 
@@ -190,6 +198,7 @@ describe("DivisionBracket", () => {
             playerNumber: "3",
           },
         ]}
+        overallSeq={noSeq}
       />,
     );
 
@@ -210,6 +219,7 @@ describe("DivisionBracket", () => {
           matchingConfig: { version: 1, matches: [] },
         })}
         participants={participants}
+        overallSeq={noSeq}
       />,
     );
 
@@ -221,6 +231,7 @@ describe("DivisionBracket", () => {
       <DivisionBracket
         division={buildDivision()}
         participants={participants}
+        overallSeq={noSeq}
       />,
     );
 
@@ -232,6 +243,7 @@ describe("DivisionBracket", () => {
       <DivisionBracket
         division={buildDivision()}
         participants={participants}
+        overallSeq={noSeq}
         heightClassName="h-[20rem]"
       />,
     );

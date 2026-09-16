@@ -1,3 +1,4 @@
+import { DEFAULT_MATCH_NAME } from "./match-name";
 import type {
   BracketMatch,
   BracketSide,
@@ -153,15 +154,9 @@ const parseBracketSide = (value: unknown, path: string): BracketSide => {
     : fail(path, "winners / losers / final のいずれか");
 };
 
-/** matchNumber / sequence 補完前の 1 試合。旧データにはどちらも無い。 */
-type ParsedBracketMatch = Omit<BracketMatch, "matchNumber" | "sequence"> & {
-  matchNumber?: string;
-  sequence?: number;
-};
-
-/** matchNumber を補ったあとの 1 試合。sequence はまだ無いことがある。 */
-type NumberedBracketMatch = Omit<BracketMatch, "sequence"> & {
-  sequence?: number;
+/** matchName 補完前の 1 試合。旧データには無い。 */
+type ParsedBracketMatch = Omit<BracketMatch, "matchName"> & {
+  matchName?: string;
 };
 
 const parseBracketMatch = (
@@ -183,87 +178,39 @@ const parseBracketMatch = (
       parseSlotSource(slots[1], `${path}.slots[1]`),
     ],
   };
-  if (record.matchNumber !== undefined) {
-    parsed.matchNumber = asString(record.matchNumber, `${path}.matchNumber`);
+  if (record.matchName !== undefined) {
+    parsed.matchName = asString(record.matchName, `${path}.matchName`);
   }
-  if (record.sequence !== undefined) {
-    parsed.sequence = asInt(record.sequence, `${path}.sequence`);
-  }
+  // 旧データの sequence（部門内の実施順）は読まずに捨てる。試合の順番は
+  // 大会の進行順だけが持つ。型が合わない値でも読まないので弾かない。
   return parsed;
 };
 
 /**
- * matchNumber の無い試合（列追加前に保存された旧データ）へ番号を補完する。
- * round/order 順に、既存の番号と衝突しない最小の正整数を文字列で割り当てる。
+ * matchName の無い試合（改名前に保存された旧データ）へ既定のテンプレートを入れる。
+ *
+ * 旧 matchNumber の値は読み継がない。リテラルの番号を残すと、その部門だけが
+ * 進行順の並べ替えに追従しなくなり、新しく作った部門と挙動が分かれるため。
  * データ移行を行わない代わりに、読み出しが必ず完全な形へ正規化する。
  */
-const fillMatchNumbers = (
-  matches: ParsedBracketMatch[],
-): NumberedBracketMatch[] => {
-  const used = new Set(
-    matches.flatMap((match) =>
-      match.matchNumber === undefined ? [] : [match.matchNumber],
-    ),
+const fillMatchNames = (matches: ParsedBracketMatch[]): BracketMatch[] =>
+  matches.map((match) =>
+    match.matchName === undefined
+      ? { ...match, matchName: DEFAULT_MATCH_NAME }
+      : (match as BracketMatch),
   );
-  let candidate = 1;
-  const nextNumber = (): string => {
-    while (used.has(String(candidate))) {
-      candidate += 1;
-    }
-    used.add(String(candidate));
-    return String(candidate);
-  };
-
-  const assigned = new Map<string, string>();
-  for (const match of [...matches].sort(
-    (left, right) => left.round - right.round || left.order - right.order,
-  )) {
-    if (match.matchNumber === undefined) {
-      assigned.set(match.id, nextNumber());
-    }
-  }
-
-  return matches.map((match) =>
-    match.matchNumber === undefined
-      ? { ...match, matchNumber: assigned.get(match.id) as string }
-      : (match as NumberedBracketMatch),
-  );
-};
 
 /**
- * 実施順を補い、0 からの連番に正規化する。
+ * round → order の順に並べる。
  *
- * 全試合が sequence を持つならその昇順、1 つでも欠けていれば round/order 順に
- * 並べ、その並びで 0 から振り直す。欠けているのは列を足す前に保存された
- * 旧データで、round/order 順は運営者が今見ている並びそのものなので、
- * 補完しても画面の並びは変わらない。
- *
- * 揃っていないときに残っている値を使わないのは、途中まで書き込まれた
- * 壊れたデータで並びが飛び飛びになるのを避けるため。値が揃っていても
- * 添字で振り直すので、重複や欠番のあるデータもここで詰め直される。
- * データ移行を行わない代わりに、読み出しが必ず完全な形へ正規化する
- * （matchNumber の補完と同じ方針）。
- *
- * 返す配列の順がそのまま実施順になる。下流は sequence で並べ直さずに
- * 配列順を読んでよい。
+ * Json の配列順は当てにできない（旧データは部門内の並べ替えで sequence 順に
+ * 並んでいる）ので、読み出しで構造上の順に揃える。下流（試合名の一覧、
+ * 進行順に行を持たない試合の末尾追加）は並べ直さずに配列の順を読む。
  */
-const fillSequences = (matches: NumberedBracketMatch[]): BracketMatch[] => {
-  const complete = matches.every((match) => match.sequence !== undefined);
-  const byPosition = (
-    left: NumberedBracketMatch,
-    right: NumberedBracketMatch,
-  ): number => left.round - right.round || left.order - right.order;
-
-  return [...matches]
-    .sort(
-      complete
-        ? (left, right) =>
-            (left.sequence as number) - (right.sequence as number) ||
-            byPosition(left, right)
-        : byPosition,
-    )
-    .map((match, sequence) => ({ ...match, sequence }));
-};
+const sortByPosition = (matches: BracketMatch[]): BracketMatch[] =>
+  [...matches].sort(
+    (left, right) => left.round - right.round || left.order - right.order,
+  );
 
 const parseMatchResultRecord = (
   value: unknown,
@@ -316,8 +263,8 @@ export const parseMatchingConfig = (value: unknown): MatchingConfig => {
   const record = asRecord(value, "matchingConfig");
   return {
     version: asVersion1(record.version, "matchingConfig.version"),
-    matches: fillSequences(
-      fillMatchNumbers(
+    matches: sortByPosition(
+      fillMatchNames(
         asArray(record.matches, "matchingConfig.matches").map((item, index) =>
           parseBracketMatch(item, `matchingConfig.matches[${index}]`),
         ),

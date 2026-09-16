@@ -10,6 +10,7 @@ const findTournamentInOrganization = vi.fn();
 const findDivisionInTournament = vi.fn();
 const listParticipantsInTournament = vi.fn();
 const listMembersInOrganization = vi.fn();
+const listOverallOrderSources = vi.fn();
 const notFound = vi.fn(() => {
   throw new Error("NEXT_NOT_FOUND");
 });
@@ -37,6 +38,8 @@ vi.mock("@/features/division/repository", () => ({
     organizationId: string,
     tournamentId: string,
   ) => listParticipantsInTournament(organizationId, tournamentId),
+  listOverallOrderSources: (tournamentId: string) =>
+    listOverallOrderSources(tournamentId),
 }));
 
 vi.mock("@/features/organization/repository", () => ({
@@ -44,7 +47,7 @@ vi.mock("@/features/organization/repository", () => ({
     listMembersInOrganization(organizationId),
 }));
 
-// 7 つの Server Action は "use server" を持つので、テストでは差し替える。
+// 6 つの Server Action は "use server" を持つので、テストでは差し替える。
 vi.mock("@/features/division/add-entry/handler", () => ({
   addEntryAction: vi.fn(),
 }));
@@ -57,11 +60,8 @@ vi.mock("@/features/division/reorder-entry/handler", () => ({
 vi.mock("@/features/division/generate-matching/handler", () => ({
   generateMatchingAction: vi.fn(),
 }));
-vi.mock("@/features/division/reorder-matches/handler", () => ({
-  reorderMatchesAction: vi.fn(),
-}));
-vi.mock("@/features/division/set-match-number/handler", () => ({
-  setMatchNumberAction: vi.fn(),
+vi.mock("@/features/division/set-match-name/handler", () => ({
+  setMatchNameAction: vi.fn(),
 }));
 vi.mock("@/features/division/set-player-number/handler", () => ({
   setPlayerNumberAction: vi.fn(),
@@ -88,11 +88,8 @@ const { reorderEntryAction } = await import(
 const { generateMatchingAction } = await import(
   "@/features/division/generate-matching/handler"
 );
-const { reorderMatchesAction } = await import(
-  "@/features/division/reorder-matches/handler"
-);
-const { setMatchNumberAction } = await import(
-  "@/features/division/set-match-number/handler"
+const { setMatchNameAction } = await import(
+  "@/features/division/set-match-name/handler"
 );
 const { setPlayerNumberAction } = await import(
   "@/features/division/set-player-number/handler"
@@ -126,6 +123,7 @@ beforeEach(() => {
   findDivisionInTournament.mockReset();
   listParticipantsInTournament.mockReset();
   listMembersInOrganization.mockReset();
+  listOverallOrderSources.mockReset();
   notFound.mockClear();
   leagueSetupProps.mockClear();
 
@@ -140,6 +138,7 @@ beforeEach(() => {
   findDivisionInTournament.mockResolvedValue(league);
   listParticipantsInTournament.mockResolvedValue([]);
   listMembersInOrganization.mockResolvedValue([]);
+  listOverallOrderSources.mockResolvedValue(new Map());
 });
 
 describe("LeagueSetupPage", () => {
@@ -184,8 +183,22 @@ describe("LeagueSetupPage", () => {
     );
   });
 
-  it("7 つの Server Action をそれぞれ対応する actions のプロパティに渡す", async () => {
-    // 7 つとも別モジュールの vi.fn() なので参照が異なる。Object.keys().sort()
+  it("大会 id で通し番号を読み、LeagueSetup にそのまま渡す", async () => {
+    const overallSeq = new Map([["d1:m1-0", 1]]);
+    listOverallOrderSources.mockResolvedValue(overallSeq);
+
+    render(await LeagueSetupPage(pageProps()));
+
+    expect(listOverallOrderSources).toHaveBeenCalledWith("t1");
+    expect(leagueSetupProps).toHaveBeenCalledTimes(1);
+    const { overallSeq: passed } = leagueSetupProps.mock.calls[0][0] as {
+      overallSeq: unknown;
+    };
+    expect(passed).toBe(overallSeq);
+  });
+
+  it("6 つの Server Action をそれぞれ対応する actions のプロパティに渡す", async () => {
+    // 6 つとも別モジュールの vi.fn() なので参照が異なる。Object.keys().sort()
     // だけの比較では 2 つの action を取り違えて渡しても通ってしまうため、
     // setup/page.test.tsx と同じく 1 つずつ toBe で参照を確かめる。
     render(await LeagueSetupPage(pageProps()));
@@ -198,8 +211,8 @@ describe("LeagueSetupPage", () => {
     expect(actions.removeEntry).toBe(removeEntryAction);
     expect(actions.reorderEntry).toBe(reorderEntryAction);
     expect(actions.generateMatching).toBe(generateMatchingAction);
-    expect(actions.reorderMatches).toBe(reorderMatchesAction);
-    expect(actions.setMatchNumber).toBe(setMatchNumberAction);
+    expect(actions.setMatchName).toBe(setMatchNameAction);
     expect(actions.setPlayerNumber).toBe(setPlayerNumberAction);
+    expect(actions).not.toHaveProperty("reorderMatches");
   });
 });

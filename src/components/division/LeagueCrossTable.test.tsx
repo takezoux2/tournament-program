@@ -15,7 +15,7 @@ const table: CrossTableView = {
       label: "山田",
       cells: [
         { kind: "self" },
-        { kind: "match", matchNumber: "1" },
+        { kind: "match", matchName: "1" },
         { kind: "none" },
       ],
     },
@@ -23,9 +23,9 @@ const table: CrossTableView = {
       entryId: "e2",
       label: "佐藤",
       cells: [
-        { kind: "match", matchNumber: "1" },
+        { kind: "match", matchName: "1" },
         { kind: "self" },
-        { kind: "match", matchNumber: "2" },
+        { kind: "match", matchName: "2" },
       ],
     },
     {
@@ -33,7 +33,7 @@ const table: CrossTableView = {
       label: "鈴木",
       cells: [
         { kind: "none" },
-        { kind: "match", matchNumber: "2" },
+        { kind: "match", matchName: "2" },
         { kind: "self" },
       ],
     },
@@ -48,11 +48,13 @@ describe("LeagueCrossTable", () => {
     expect(screen.getAllByText("鈴木")).toHaveLength(2);
   });
 
-  it("対戦があるマスに試合番号を出す", () => {
+  it("対戦があるマスにマスが持つ試合名をそのまま出す", () => {
+    // 通し番号の展開は toCrossTableView 側で済んでいる。ここで「第◯試合」の
+    // 飾りを足すと、展開済みの文言（例: 第9試合）が二重になってしまう。
     render(<LeagueCrossTable table={table} />);
     // 見出し行にも「山田」が出るので、行の名前ではなく位置で選ぶ。
     const row = screen.getAllByRole("row")[1];
-    expect(within(row).getByText("第1試合")).toBeInTheDocument();
+    expect(within(row).getByText("1")).toBeInTheDocument();
   });
 
   it("対角は自分自身なので印を出す", () => {

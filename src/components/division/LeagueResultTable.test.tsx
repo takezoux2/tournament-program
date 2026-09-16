@@ -20,8 +20,8 @@ const table: LeagueTableView = {
       points: 4,
       cells: [
         { kind: "self" },
-        { kind: "match", matchNumber: "1", outcome: "win" },
-        { kind: "match", matchNumber: "3", outcome: "draw" },
+        { kind: "match", matchName: "第1試合", outcome: "win" },
+        { kind: "match", matchName: "第3試合", outcome: "draw" },
       ],
     },
     {
@@ -33,9 +33,9 @@ const table: LeagueTableView = {
       losses: 1,
       points: 0,
       cells: [
-        { kind: "match", matchNumber: "1", outcome: "loss" },
+        { kind: "match", matchName: "第1試合", outcome: "loss" },
         { kind: "self" },
-        { kind: "match", matchNumber: "2", outcome: null },
+        { kind: "match", matchName: "第2試合", outcome: null },
       ],
     },
     {
@@ -47,8 +47,8 @@ const table: LeagueTableView = {
       losses: 0,
       points: 1,
       cells: [
-        { kind: "match", matchNumber: "3", outcome: "draw" },
-        { kind: "match", matchNumber: "2", outcome: null },
+        { kind: "match", matchName: "第3試合", outcome: "draw" },
+        { kind: "match", matchName: "第2試合", outcome: null },
         { kind: "self" },
       ],
     },
@@ -100,7 +100,7 @@ describe("LeagueResultTable", () => {
     expect(screen.getAllByLabelText("引き分け")).toHaveLength(2);
   });
 
-  it("未実施のマスは試合番号だけを出す", () => {
+  it("未実施のマスは試合名だけを出す", () => {
     render(<LeagueResultTable table={table} />);
 
     const row = screen.getAllByRole("row")[2];
@@ -152,5 +152,47 @@ describe("LeagueResultTable", () => {
     const cell = within(row).getAllByRole("cell")[2];
     expect(cell).toBeEmptyDOMElement();
     expect(within(cell).queryByRole("img")).toBeNull();
+  });
+
+  it("マスには渡された試合名をそのまま出し、飾りを足さない", () => {
+    const named: LeagueTableView = {
+      headers: [
+        { entryId: "e1", label: "山田" },
+        { entryId: "e2", label: "佐藤" },
+      ],
+      rows: [
+        {
+          entryId: "e1",
+          label: "山田",
+          rank: 1,
+          wins: 0,
+          draws: 0,
+          losses: 0,
+          points: 0,
+          cells: [
+            { kind: "self" },
+            { kind: "match", matchName: "決勝", outcome: null },
+          ],
+        },
+        {
+          entryId: "e2",
+          label: "佐藤",
+          rank: 1,
+          wins: 0,
+          draws: 0,
+          losses: 0,
+          points: 0,
+          cells: [
+            { kind: "match", matchName: "決勝", outcome: null },
+            { kind: "self" },
+          ],
+        },
+      ],
+    };
+    render(<LeagueResultTable table={named} />);
+
+    // cell[0] が順位、cell[1] が自分自身、cell[2] が佐藤との対戦。
+    const row = screen.getAllByRole("row")[1];
+    expect(within(row).getAllByRole("cell")[2]).toHaveTextContent(/^決勝$/);
   });
 });

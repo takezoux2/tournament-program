@@ -1,10 +1,42 @@
 import { describe, expect, it } from "vitest";
 import {
+  type BracketMatch,
   DEFAULT_DIVISION_RESULT_CONFIG,
   type MatchingConfig,
 } from "@/lib/division/types";
 import { buildScheduleView, dividerKey, matchKey, toSaveItems } from "./domain";
 import type { ScheduleDivision, ScheduleItemRecord } from "./types";
+
+/**
+ * 試合名のテスト用の最小構成。round/order/slots はブラケット表示側の関心事で
+ * このテストでは使わないため、既定値で埋めて呼び出し側からは隠す。
+ */
+const makeMatch = (
+  overrides: Partial<BracketMatch> & Pick<BracketMatch, "id">,
+): BracketMatch => ({
+  bracket: "winners",
+  round: 1,
+  order: 0,
+  matchName: "1",
+  slots: [{ kind: "bye" }, { kind: "bye" }],
+  ...overrides,
+});
+
+/** 試合名のテスト用の最小の部門。entries は使わないので空のまま。 */
+const makeDivision = (overrides: {
+  id: string;
+  order: number;
+  matches: BracketMatch[];
+}): ScheduleDivision => ({
+  id: overrides.id,
+  name: overrides.id,
+  order: overrides.order,
+  format: "SINGLE_ELIMINATION",
+  entries: { version: 1, entries: [] },
+  matchingConfig: { version: 1, matches: overrides.matches },
+  results: { version: 1, matches: [] },
+  resultConfig: DEFAULT_DIVISION_RESULT_CONFIG,
+});
 
 const config = (
   entryIds: [string, string],
@@ -17,8 +49,7 @@ const config = (
       bracket: "winners",
       round: 1,
       order: 0,
-      sequence: 0,
-      matchNumber: numbers[0],
+      matchName: numbers[0],
       slots: [
         { kind: "entry", entryId: entryIds[0] },
         { kind: "entry", entryId: entryIds[1] },
@@ -29,8 +60,7 @@ const config = (
       bracket: "winners",
       round: 1,
       order: 1,
-      sequence: 1,
-      matchNumber: numbers[1],
+      matchName: numbers[1],
       slots: [{ kind: "entry", entryId: entryIds[0] }, { kind: "bye" }],
     },
   ],
@@ -78,7 +108,7 @@ const participants = [
 ];
 
 /**
- * round/order（描画座標）と配列順（実施順）がわざと食い違う部門。
+ * round/order（描画座標）と配列順がわざと食い違う部門。
  * 2 回戦の試合を配列の先頭に置いてある。buildMatchRows が round/order で
  * 並べ直す実装に戻ると m1-0, m1-1, m2-0 の順になってしまうため、
  * このずれがあって初めて「並べ替えない」ことを検出できる。
@@ -103,8 +133,7 @@ const outOfOrderDivision: ScheduleDivision = {
         bracket: "winners",
         round: 2,
         order: 0,
-        sequence: 0,
-        matchNumber: "1",
+        matchName: "1",
         slots: [
           { kind: "winnerOf", matchId: "m1-0" },
           { kind: "winnerOf", matchId: "m1-1" },
@@ -115,8 +144,7 @@ const outOfOrderDivision: ScheduleDivision = {
         bracket: "winners",
         round: 1,
         order: 0,
-        sequence: 1,
-        matchNumber: "2",
+        matchName: "2",
         slots: [
           { kind: "entry", entryId: "e1" },
           { kind: "entry", entryId: "e2" },
@@ -127,8 +155,7 @@ const outOfOrderDivision: ScheduleDivision = {
         bracket: "winners",
         round: 1,
         order: 1,
-        sequence: 2,
-        matchNumber: "3",
+        matchName: "3",
         slots: [{ kind: "entry", entryId: "e1" }, { kind: "bye" }],
       },
     ],
@@ -138,7 +165,7 @@ const outOfOrderDivision: ScheduleDivision = {
 };
 
 describe("buildScheduleView", () => {
-  it("行が 1 件も無ければ部門順 → 部門内の実施順で全試合を並べる", () => {
+  it("行が 1 件も無ければ部門順 → 部門内の配列順で全試合を並べる", () => {
     const rows = buildScheduleView([divisionB, divisionA], participants, []);
 
     expect(rows.map((row) => row.key)).toEqual([
@@ -149,7 +176,7 @@ describe("buildScheduleView", () => {
     ]);
   });
 
-  it("部門内は round/order で並べ直さず、配列順（＝実施順）をそのまま使う", () => {
+  it("部門内は round/order で並べ直さず、配列順をそのまま使う", () => {
     const rows = buildScheduleView([outOfOrderDivision], participants, []);
 
     expect(rows.map((row) => row.key)).toEqual([
@@ -159,7 +186,7 @@ describe("buildScheduleView", () => {
     ]);
   });
 
-  it("試合行に部門名・試合番号・位置・対戦カードを載せる", () => {
+  it("試合行に部門名・試合名・位置・対戦カードを載せる", () => {
     const [row] = buildScheduleView([divisionA], participants, []);
 
     expect(row).toEqual({
@@ -168,8 +195,8 @@ describe("buildScheduleView", () => {
       divisionId: "dA",
       divisionName: "男子",
       matchId: "m1-0",
-      matchNumber: "1",
-      label: "1回戦 第1試合",
+      matchName: "1",
+      label: "1回戦 (1)",
       card: "山田 vs 佐藤",
     });
   });
@@ -236,7 +263,7 @@ describe("buildScheduleView", () => {
     ]);
   });
 
-  it("リーグの部門は実施順の通し番号で並べる", () => {
+  it("リーグの部門は位置の文言を空にする", () => {
     const league: ScheduleDivision = {
       id: "dL",
       name: "リーグ",
@@ -257,8 +284,7 @@ describe("buildScheduleView", () => {
             bracket: "winners",
             round: 1,
             order: 0,
-            sequence: 0,
-            matchNumber: "1",
+            matchName: "1",
             slots: [
               { kind: "entry", entryId: "g1" },
               { kind: "entry", entryId: "g2" },
@@ -274,7 +300,7 @@ describe("buildScheduleView", () => {
 
     expect(rows).toHaveLength(1);
     expect(rows[0].kind).toBe("match");
-    expect(rows[0].kind === "match" && rows[0].label).toBe("第1試合");
+    expect(rows[0].kind === "match" && rows[0].label).toBe("");
   });
 });
 
@@ -289,5 +315,112 @@ describe("toSaveItems", () => {
       { kind: "match", divisionId: "dA", matchId: "m1-0" },
       { kind: "match", divisionId: "dA", matchId: "m1-1" },
     ]);
+  });
+});
+
+describe("buildScheduleView の試合名", () => {
+  it("テンプレートを展開して行に載せる", () => {
+    const division = makeDivision({
+      id: "d1",
+      order: 0,
+      matches: [
+        makeMatch({ id: "m1", matchName: "第{{OverallSeq}}試合" }),
+        makeMatch({ id: "m2", matchName: "決勝" }),
+      ],
+    });
+
+    const rows = buildScheduleView([division], [], []);
+
+    expect(rows[0]).toMatchObject({ matchId: "m1", matchName: "第1試合" });
+    expect(rows[1]).toMatchObject({ matchId: "m2", matchName: "決勝" });
+  });
+
+  it("部門内の番号（{{DivisionSeq}}）は展開しない", () => {
+    const division = makeDivision({
+      id: "d1",
+      order: 0,
+      matches: [
+        makeMatch({
+          id: "m1",
+          matchName: "第{{DivisionSeq}}試合",
+        }),
+      ],
+    });
+
+    const rows = buildScheduleView([division], [], []);
+
+    expect(rows[0]).toMatchObject({ matchId: "m1", matchName: "第試合" });
+  });
+
+  it("OverallSeq は区切りを数えず、保存された進行順に従う", () => {
+    const division = makeDivision({
+      id: "d1",
+      order: 0,
+      matches: [
+        makeMatch({ id: "m1", matchName: "{{OverallSeq}}" }),
+        makeMatch({ id: "m2", matchName: "{{OverallSeq}}" }),
+      ],
+    });
+
+    const rows = buildScheduleView(
+      [division],
+      [],
+      [
+        { kind: "divider", id: "s1", label: "午前の部", startsAt: null },
+        { kind: "match", id: "s2", divisionId: "d1", matchId: "m2" },
+        { kind: "divider", id: "s3", label: "午後の部", startsAt: null },
+        { kind: "match", id: "s4", divisionId: "d1", matchId: "m1" },
+      ],
+    );
+
+    expect(
+      rows.map((row) => (row.kind === "match" ? row.matchName : row.label)),
+    ).toEqual(["午前の部", "1", "午後の部", "2"]);
+  });
+
+  it("OverallSeq は部門をまたいで通しで数える", () => {
+    const first = makeDivision({
+      id: "d1",
+      order: 0,
+      matches: [makeMatch({ id: "m1", matchName: "{{OverallSeq}}" })],
+    });
+    const second = makeDivision({
+      id: "d2",
+      order: 1,
+      matches: [makeMatch({ id: "n1", matchName: "{{OverallSeq}}" })],
+    });
+
+    const rows = buildScheduleView([first, second], [], []);
+
+    expect(
+      rows.map((row) => (row.kind === "match" ? row.matchName : "")),
+    ).toEqual(["1", "2"]);
+  });
+
+  it("対戦カードの勝者・敗者の参照は展開済みの試合名で書く", () => {
+    const division = makeDivision({
+      id: "d1",
+      order: 0,
+      matches: [
+        makeMatch({ id: "m1", matchName: "準決勝" }),
+        makeMatch({ id: "m2", order: 1, matchName: "第{{OverallSeq}}試合" }),
+        makeMatch({
+          id: "m3",
+          round: 2,
+          matchName: "決勝",
+          slots: [
+            { kind: "winnerOf", matchId: "m1" },
+            { kind: "loserOf", matchId: "m2" },
+          ],
+        }),
+      ],
+    });
+
+    const rows = buildScheduleView([division], [], []);
+
+    expect(rows[2]).toMatchObject({
+      matchId: "m3",
+      card: "準決勝の勝者 vs 第2試合の敗者",
+    });
   });
 });

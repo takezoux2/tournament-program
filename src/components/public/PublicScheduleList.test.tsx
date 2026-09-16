@@ -25,7 +25,7 @@ const rows: ResultRowView[] = [
     divisionId: "d1",
     divisionName: "男子シングルス",
     matchId: "m1-0",
-    matchNumber: "1",
+    matchName: "1",
     label: "1回戦 第1試合",
     slots: [
       { label: "佐藤 蓮", entryId: "e1" },
@@ -51,7 +51,7 @@ const rows: ResultRowView[] = [
     divisionId: "d1",
     divisionName: "男子シングルス",
     matchId: "m2-0",
-    matchNumber: "2",
+    matchName: "2",
     label: "2回戦 第1試合",
     slots: [
       { label: "高橋 葵", entryId: "e3" },
@@ -73,7 +73,7 @@ const matchRow: MatchRow = {
   divisionId: "d1",
   divisionName: "男子シングルス",
   matchId: "m1-0",
-  matchNumber: "1",
+  matchName: "第1試合",
   label: "1回戦 第1試合",
   slots: [
     { label: "田中", entryId: "e1" },
@@ -112,10 +112,10 @@ describe("PublicScheduleList", () => {
     expect(screen.queryByText("未設定")).not.toBeInTheDocument();
   });
 
-  it("試合番号と対戦カードを出す", () => {
+  it("試合名と対戦カードを出す", () => {
     render(<PublicScheduleList rows={rows} />);
 
-    expect(screen.getByText("第1試合")).toBeInTheDocument();
+    expect(screen.getByText("1")).toBeInTheDocument();
     expect(screen.getByText("佐藤 蓮 vs 鈴木 陽菜")).toBeInTheDocument();
   });
 
@@ -203,5 +203,35 @@ describe("PublicScheduleList", () => {
       />,
     );
     expect(screen.getByText("午前の部")).toBeInTheDocument();
+  });
+
+  it("位置の文言が空の試合行（リーグ）は部門名だけを出す", () => {
+    render(
+      <PublicScheduleList
+        rows={[
+          {
+            ...matchRow,
+            key: "match:dL:r1-0",
+            divisionId: "dL",
+            divisionName: "女子リーグ",
+            matchId: "r1-0",
+            matchName: "第3試合",
+            label: "",
+            slots: [
+              { label: "高橋", entryId: "e3" },
+              { label: "伊藤", entryId: "e4" },
+            ],
+            winnerEntryId: null,
+            state: "ready",
+            winReason: null,
+            scores: [],
+            note: null,
+          },
+        ]}
+      />,
+    );
+
+    expect(screen.getByText("女子リーグ")).toBeInTheDocument();
+    expect(screen.queryByText(/女子リーグ \//)).toBeNull();
   });
 });

@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
-import type { MatchNumberRowView } from "@/features/division/match-number-view";
+import type { MatchNameRowView } from "@/features/division/match-name-view";
 import {
   type DivisionFormAction,
   INITIAL_DIVISION_FORM_STATE,
@@ -9,21 +9,21 @@ import {
 
 /**
  * 1 行の中身。1 行 1 フォームで、useActionState を行ごとに持たせ、
- * エラーをその行の隣に出す。試合番号は組み合わせの構造を変えないため、
+ * エラーをその行の隣に出す。試合名は組み合わせの構造を変えないため、
  * 勝敗記録後も編集できる（disabled を受け取らないのは意図）。
  *
- * <li> を返さないのは、一覧側（MatchOrderList）が行の枠とドラッグハンドルを
- * 持つため。行の見た目と掴む場所を一覧に集めておくと、この部品は
- * 「試合番号を直す口」だけに集中できる。
+ * <li> を返さないのは、一覧側（MatchOrderList）が行の枠を持つため。
+ * 行の見た目を一覧に集めておくと、この部品は「試合名を直す口」だけに
+ * 集中できる。
  */
-export function MatchNumberRow({
+export function MatchNameRow({
   row,
   slug,
   tournamentId,
   divisionId,
   action,
 }: {
-  row: MatchNumberRowView;
+  row: MatchNameRowView;
   slug: string;
   tournamentId: string;
   divisionId: string;
@@ -34,10 +34,16 @@ export function MatchNumberRow({
     INITIAL_DIVISION_FORM_STATE,
   );
 
+  // リーグの行は位置の文言を持たない（空文字）。入力欄の名前には対戦カードを
+  // 使い、支援技術に「の試合名」という同じ名前の欄が並ばないようにする。
+  const rowName = row.label === "" ? row.card : row.label;
+
   return (
     <div className="flex flex-1 items-center justify-between gap-4">
       <div className="min-w-0">
-        <p className="text-sm font-medium text-slate-800">{row.label}</p>
+        {row.label !== "" && (
+          <p className="text-sm font-medium text-slate-800">{row.label}</p>
+        )}
         <p className="truncate text-xs text-slate-500">{row.card}</p>
       </div>
 
@@ -46,13 +52,18 @@ export function MatchNumberRow({
         <input type="hidden" name="tournamentId" value={tournamentId} />
         <input type="hidden" name="divisionId" value={divisionId} />
         <input type="hidden" name="matchId" value={row.matchId} />
+        {/* 入力欄はテンプレートそのもの。展開後は隣に出して、変数を書いた
+            結果がその場で分かるようにする。 */}
         <input
           type="text"
-          name="matchNumber"
-          defaultValue={row.matchNumber}
-          aria-label={`${row.label}の試合番号`}
-          className="w-20 rounded border border-slate-300 px-2 py-1 text-sm"
+          name="matchName"
+          defaultValue={row.template}
+          aria-label={`${rowName}の試合名`}
+          className="w-48 rounded border border-slate-300 px-2 py-1 text-sm"
         />
+        <span className="whitespace-nowrap text-xs text-slate-500">
+          {row.matchName}
+        </span>
         <button
           type="submit"
           disabled={pending}

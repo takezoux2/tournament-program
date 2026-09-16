@@ -33,6 +33,11 @@ export type FromDivisionInput = {
   results: DivisionResults;
   resultConfig: DivisionResultConfig;
   participants: DivisionSourceParticipant[];
+  /**
+   * 展開済みの試合名（試合 id → 表示名）。{{OverallSeq}} は大会全体を
+   * 見ないと決まらないため、部門だけを受け取るこの関数では作れない。
+   */
+  matchNames: ReadonlyMap<string, string>;
 };
 
 export type FromDivisionResult = {
@@ -128,7 +133,8 @@ export function fromDivision(
       id: source.id,
       round: source.round,
       order: source.order,
-      matchNumber: source.matchNumber,
+      // 引けなければテンプレートをそのまま出す。描画を止めるほどの不整合ではない。
+      matchName: input.matchNames.get(source.id) ?? source.matchName,
       slots: [first, second],
     });
   }

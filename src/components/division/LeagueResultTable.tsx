@@ -18,8 +18,8 @@ const numberClassName =
   "whitespace-nowrap border-b border-slate-100 px-3 py-2 text-center text-sm text-slate-800";
 
 /**
- * 1 マスの中身。対戦済みは印を大きく、試合番号を小さく添える。
- * 未実施は試合番号だけを淡色で出し、「まだ」であることを見た目で分ける。
+ * 1 マスの中身。対戦済みは印を大きく、試合名を小さく添える。
+ * 未実施は試合名だけを淡色で出し、「まだ」であることを見た目で分ける。
  */
 const CellContent = ({ cell }: { cell: LeagueTableCell }) => {
   switch (cell.kind) {
@@ -28,9 +28,11 @@ const CellContent = ({ cell }: { cell: LeagueTableCell }) => {
     case "none":
       return null;
     case "match": {
+      // 展開は toLeagueTableView の上（DivisionMatchingView）で済んでいる。
+      // 「第◯試合」の形は試合名そのものが決めるので、ここでは飾りを足さない。
       const number = (
         <span className="block text-[10px] text-slate-400">
-          第{cell.matchNumber}試合
+          {cell.matchName}
         </span>
       );
       if (cell.outcome === null) {

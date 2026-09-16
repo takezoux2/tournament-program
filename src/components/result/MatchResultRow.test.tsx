@@ -20,7 +20,7 @@ const recordedRow = (overrides: Partial<MatchRow> = {}): MatchRow => ({
   divisionId: "d1",
   divisionName: "男子",
   matchId: "m1-0",
-  matchNumber: "1",
+  matchName: "第1試合",
   label: "1回戦 第1試合",
   slots: [
     { label: "田中", entryId: "e1" },

@@ -17,14 +17,14 @@ const bracket: Bracket = {
       id: "m1",
       round: 1,
       order: 0,
-      matchNumber: "1",
+      matchName: "1",
       slots: [{ kind: "participant", participantId: "p1" }, { kind: "bye" }],
     },
     {
       id: "m2",
       round: 1,
       order: 1,
-      matchNumber: "2",
+      matchName: "2",
       slots: [
         { kind: "participant", participantId: "p2" },
         { kind: "participant", participantId: "p3" },
@@ -34,7 +34,7 @@ const bracket: Bracket = {
       id: "m3",
       round: 2,
       order: 0,
-      matchNumber: "3",
+      matchName: "3",
       slots: [
         { kind: "winnerOf", matchId: "m1" },
         { kind: "winnerOf", matchId: "m2" },
@@ -120,7 +120,7 @@ describe("resolveBracket", () => {
           id: "x1",
           round: 1,
           order: 0,
-          matchNumber: "1",
+          matchName: "1",
           slots: [
             { kind: "participant", participantId: "ghost" },
             { kind: "bye" },
@@ -139,7 +139,7 @@ describe("resolveBracket", () => {
           id: "x1",
           round: 2,
           order: 0,
-          matchNumber: "1",
+          matchName: "1",
           slots: [{ kind: "winnerOf", matchId: "ghost" }, { kind: "bye" }],
         },
       ],
@@ -198,20 +198,20 @@ describe("resolveBracket", () => {
     expect(match.note).toBeNull();
   });
 
-  it("matchNumber を ResolvedMatch へ通す。無ければ null", () => {
-    const bracketWithNumber: Bracket = {
+  it("matchName を ResolvedMatch へ通す。無ければ null", () => {
+    const bracketWithName: Bracket = {
       ...bracket,
       matches: [
         {
           ...bracket.matches[0],
-          matchNumber: "3",
+          matchName: "3",
         },
       ],
     };
-    const withNumber = resolveBracket(participants, bracketWithNumber, []);
-    expect(withNumber[0].matchNumber).toBe("3");
+    const withName = resolveBracket(participants, bracketWithName, []);
+    expect(withName[0].matchName).toBe("3");
 
-    const bracketWithoutNumber: Bracket = {
+    const bracketWithoutName: Bracket = {
       ...bracket,
       matches: [
         {
@@ -225,11 +225,7 @@ describe("resolveBracket", () => {
         },
       ],
     };
-    const withoutNumber = resolveBracket(
-      participants,
-      bracketWithoutNumber,
-      [],
-    );
-    expect(withoutNumber[0].matchNumber).toBeNull();
+    const withoutName = resolveBracket(participants, bracketWithoutName, []);
+    expect(withoutName[0].matchName).toBeNull();
   });
 });

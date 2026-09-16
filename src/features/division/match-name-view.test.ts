@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
+import { DEFAULT_MATCH_NAME } from "@/lib/division/match-name";
 import type { DivisionEntries } from "@/lib/division/types";
-import { toMatchOrderView } from "./match-number-view";
+import { toMatchOrderView } from "./match-name-view";
 import { buildFromSlots } from "./single-elimination/build";
 
 const entries: DivisionEntries = {
@@ -27,38 +28,19 @@ const config = buildFromSlots([
   { kind: "entry", entryId: "e4" },
 ]);
 
+const noNames = new Map<string, string>();
+
 describe("toMatchOrderView", () => {
-  it("配列の順（＝実施順）のまま行にする", () => {
+  it("配列の順のまま行にする", () => {
     const rows = toMatchOrderView(
       config,
       entries,
       participants,
       "SINGLE_ELIMINATION",
+      noNames,
     );
 
     expect(rows.map((row) => row.matchId)).toEqual(["m1-0", "m1-1", "m2-0"]);
-  });
-
-  it("並べ替え済みの配列は並べ直さずにそのまま返す", () => {
-    // 実施順を入れ替えたあとの config。round/order で並べ直す実装だと
-    // 元の順に戻ってしまうので、このテストが効く。
-    const reordered = {
-      version: 1 as const,
-      matches: [
-        { ...config.matches[2], sequence: 0, matchNumber: "1" },
-        { ...config.matches[0], sequence: 1, matchNumber: "2" },
-        { ...config.matches[1], sequence: 2, matchNumber: "3" },
-      ],
-    };
-
-    const rows = toMatchOrderView(
-      reordered,
-      entries,
-      participants,
-      "SINGLE_ELIMINATION",
-    );
-
-    expect(rows.map((row) => row.matchId)).toEqual(["m2-0", "m1-0", "m1-1"]);
   });
 
   it("位置の文言と対戦カードを載せる", () => {
@@ -67,19 +49,52 @@ describe("toMatchOrderView", () => {
       entries,
       participants,
       "SINGLE_ELIMINATION",
+      noNames,
     );
 
     expect(row).toEqual({
       matchId: "m1-0",
-      matchNumber: "1",
-      label: "1回戦 第1試合",
+      template: DEFAULT_MATCH_NAME,
+      matchName: DEFAULT_MATCH_NAME,
+      label: "1回戦 (1)",
       card: "山田 vs 佐藤",
     });
   });
 
   it("名前を引けない参加者は（不明な参加者）として出す", () => {
-    const [row] = toMatchOrderView(config, entries, [], "SINGLE_ELIMINATION");
+    const [row] = toMatchOrderView(
+      config,
+      entries,
+      [],
+      "SINGLE_ELIMINATION",
+      noNames,
+    );
 
     expect(row.card).toBe("（不明な参加者） vs （不明な参加者）");
+  });
+
+  it("渡された展開済みの試合名を行に載せる", () => {
+    const rows = toMatchOrderView(
+      config,
+      entries,
+      participants,
+      "SINGLE_ELIMINATION",
+      new Map([["m1-0", "第9試合"]]),
+    );
+
+    expect(rows[0].matchName).toBe("第9試合");
+  });
+
+  it("template には保存されているテンプレートを、matchName には展開後の名前を載せる", () => {
+    const [row] = toMatchOrderView(
+      config,
+      entries,
+      participants,
+      "SINGLE_ELIMINATION",
+      new Map([["m1-0", "第9試合"]]),
+    );
+
+    expect(row.template).toBe(DEFAULT_MATCH_NAME);
+    expect(row.matchName).toBe("第9試合");
   });
 });

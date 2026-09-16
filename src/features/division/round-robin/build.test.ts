@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { DEFAULT_MATCH_NAME } from "@/lib/division/match-name";
 import type { DivisionEntry } from "@/lib/division/types";
 import { buildRoundRobin, circleRounds, isRoundRobinShape } from "./build";
 
@@ -106,9 +107,6 @@ describe("buildRoundRobin", () => {
     expect(config.matches.map((match) => match.order)).toEqual([
       0, 1, 2, 3, 4, 5,
     ]);
-    expect(config.matches.map((match) => match.sequence)).toEqual([
-      0, 1, 2, 3, 4, 5,
-    ]);
     expect(config.matches.map((match) => match.id)).toEqual([
       "r1-0",
       "r1-1",
@@ -116,14 +114,6 @@ describe("buildRoundRobin", () => {
       "r1-3",
       "r1-4",
       "r1-5",
-    ]);
-    expect(config.matches.map((match) => match.matchNumber)).toEqual([
-      "1",
-      "2",
-      "3",
-      "4",
-      "5",
-      "6",
     ]);
   });
 
@@ -141,10 +131,10 @@ describe("buildRoundRobin", () => {
     ).toEqual(["e1-e4", "e2-e3", "e1-e3", "e4-e2", "e1-e2", "e3-e4"]);
   });
 
-  it("matchNumber は実施順の通し番号", () => {
+  it("全試合に既定の試合名テンプレートを入れる", () => {
     expect(
-      buildRoundRobin(entriesOf(4)).matches.map((match) => match.matchNumber),
-    ).toEqual(["1", "2", "3", "4", "5", "6"]);
+      buildRoundRobin(entriesOf(4)).matches.map((match) => match.matchName),
+    ).toEqual(Array.from({ length: 6 }, () => DEFAULT_MATCH_NAME));
   });
 
   it("スロットは両方とも entry で、bracket は winners 固定", () => {
@@ -191,6 +181,12 @@ describe("buildRoundRobin", () => {
       buildRoundRobin(entriesOf(6)),
     );
   });
+
+  it("試合に実施順（sequence）を持たせない", () => {
+    for (const match of buildRoundRobin(entriesOf(4)).matches) {
+      expect(match).not.toHaveProperty("sequence");
+    }
+  });
 });
 
 describe("isRoundRobinShape", () => {
@@ -212,8 +208,7 @@ describe("isRoundRobinShape", () => {
             bracket: "winners",
             round: 2,
             order: 0,
-            sequence: 0,
-            matchNumber: "3",
+            matchName: "3",
             slots: [
               { kind: "winnerOf", matchId: "m1-0" },
               { kind: "winnerOf", matchId: "m1-1" },
@@ -234,8 +229,7 @@ describe("isRoundRobinShape", () => {
             bracket: "winners",
             round: 1,
             order: 0,
-            sequence: 0,
-            matchNumber: "1",
+            matchName: "1",
             slots: [{ kind: "entry", entryId: "e1" }, { kind: "bye" }],
           },
         ],

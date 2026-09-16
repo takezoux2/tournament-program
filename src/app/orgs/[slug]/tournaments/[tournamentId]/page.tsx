@@ -3,10 +3,13 @@ import { notFound } from "next/navigation";
 import { TrackCreated } from "@/components/analytics/TrackCreated";
 import { DivisionList } from "@/components/division/DivisionList";
 import { AppHeader } from "@/components/layout/AppHeader";
+import { PublishTournamentButton } from "@/components/tournament/PublishTournamentButton";
 import { TournamentDetailView } from "@/components/tournament/TournamentDetail";
 import { reorderDivisionAction } from "@/features/division/reorder/handler";
 import { listDivisionsInTournament } from "@/features/division/repository";
+import { publishTournamentAction } from "@/features/tournament/publish/handler";
 import { findTournamentInOrganization } from "@/features/tournament/repository";
+import { canByCode } from "@/shared/authz/ability";
 import { requireOrganization } from "@/shared/middleware/require-organization";
 
 export default async function TournamentPage({
@@ -15,7 +18,7 @@ export default async function TournamentPage({
 }: PageProps<"/orgs/[slug]/tournaments/[tournamentId]">) {
   const { slug, tournamentId } = await params;
   const { created } = await searchParams;
-  const { session, organization } = await requireOrganization(slug);
+  const { session, organization, ability } = await requireOrganization(slug);
 
   const tournament = await findTournamentInOrganization(
     organization.id,
@@ -29,6 +32,9 @@ export default async function TournamentPage({
     organization.id,
     tournamentId,
   );
+
+  // UI の出し分けは体感のためで、境界は Server Action 側の requirePermission。
+  const canPublish = canByCode(ability, "tournament.edit");
 
   return (
     <main className="min-h-screen bg-slate-50">
@@ -49,6 +55,16 @@ export default async function TournamentPage({
         <TournamentDetailView slug={slug} tournament={tournament} />
 
         <div className="flex flex-wrap gap-2">
+          {/* 公開後は status が DRAFT でなくなり、revalidate でボタンが消える。 */}
+          {tournament.status === "DRAFT" && canPublish && (
+            <PublishTournamentButton
+              action={publishTournamentAction}
+              slug={slug}
+              tournamentId={tournament.id}
+              tournamentName={tournament.name}
+            />
+          )}
+
           <Link
             href={`/orgs/${slug}/tournaments/${tournament.id}/matches`}
             className="rounded border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-800"

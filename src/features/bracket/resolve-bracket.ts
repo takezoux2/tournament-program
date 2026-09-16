@@ -86,7 +86,7 @@ export function resolveBracket(
       id: match.id,
       round: match.round,
       order: match.order,
-      matchNumber: match.matchNumber ?? null,
+      matchName: match.matchName ?? null,
       slots,
       winnerId,
       score,
