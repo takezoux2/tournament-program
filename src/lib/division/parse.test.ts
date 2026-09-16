@@ -402,9 +402,7 @@ describe("parseDivisionResultConfigOrDefault", () => {
         throw new TypeError("boom");
       },
     };
-    expect(() => parseDivisionResultConfigOrDefault(broken)).toThrow(
-      TypeError,
-    );
+    expect(() => parseDivisionResultConfigOrDefault(broken)).toThrow(TypeError);
   });
 });
 

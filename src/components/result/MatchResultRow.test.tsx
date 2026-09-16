@@ -85,9 +85,7 @@ describe("MatchResultRow の詳細", () => {
     const { rerender } = renderRow(row);
 
     await user.click(screen.getByRole("button", { name: /詳細/ }));
-    expect(
-      screen.getByRole("combobox", { name: "勝因" }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("combobox", { name: "勝因" })).toBeInTheDocument();
 
     // 取り消し後は state が "ready" に戻り、record は残らない想定。
     // 詳細トグル自体が recorded の行にしか出ないため、フォームも一緒に消える。
@@ -111,6 +109,8 @@ describe("MatchResultRow の詳細", () => {
     expect(
       screen.queryByRole("combobox", { name: "勝因" }),
     ).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /詳細/ })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /詳細/ }),
+    ).not.toBeInTheDocument();
   });
 });

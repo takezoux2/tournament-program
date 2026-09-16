@@ -72,10 +72,7 @@ const asScoreValue = (value: unknown, path: string): number => {
   return value;
 };
 
-const asScoreAggregation = (
-  value: unknown,
-  path: string,
-): ScoreAggregation => {
+const asScoreAggregation = (value: unknown, path: string): ScoreAggregation => {
   const raw = asString(value, path);
   return raw === "sum" || raw === "average"
     ? raw
