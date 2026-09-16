@@ -61,4 +61,53 @@ describe("DivisionForm", () => {
       "d1",
     );
   });
+
+  it("defaultResultConfig が無ければ設定欄を出さない", () => {
+    render(
+      <DivisionForm
+        action={noopAction}
+        slug="acme"
+        tournamentId="t1"
+        submitLabel="作成する"
+      />,
+    );
+    expect(screen.queryByText("結果入力の設定")).not.toBeInTheDocument();
+  });
+
+  it("defaultResultConfig を渡すと現在の設定を初期値にした欄を出す", () => {
+    const config = {
+      version: 1 as const,
+      winReason: { enabled: true, options: ["一本勝ち", "判定勝ち"] },
+      score: { enabled: false, count: 5, aggregation: "average" as const },
+      note: { enabled: true },
+    };
+
+    render(
+      <DivisionForm
+        action={noopAction}
+        slug="acme"
+        tournamentId="t1"
+        submitLabel="保存する"
+        divisionId="d1"
+        defaultResultConfig={config}
+      />,
+    );
+
+    expect(
+      screen.getByRole("checkbox", { name: "勝因を記録する" }),
+    ).toBeChecked();
+    expect(
+      screen.getByRole("textbox", { name: "勝因の選択肢（1行1項目）" }),
+    ).toHaveValue("一本勝ち\n判定勝ち");
+    expect(
+      screen.getByRole("checkbox", { name: "スコアを記録する" }),
+    ).not.toBeChecked();
+    expect(screen.getByRole("combobox", { name: "スコア欄の数" })).toHaveValue(
+      "5",
+    );
+    expect(screen.getByRole("radio", { name: "平均" })).toBeChecked();
+    expect(
+      screen.getByRole("checkbox", { name: "メモを記録する" }),
+    ).toBeChecked();
+  });
 });

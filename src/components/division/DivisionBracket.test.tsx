@@ -47,6 +47,7 @@ const buildDivision = (
     ],
   },
   results: { version: 1, matches: [] },
+  resultConfig: null,
   createdAt: new Date("2026-08-01T00:00:00Z"),
   ...overrides,
 });
