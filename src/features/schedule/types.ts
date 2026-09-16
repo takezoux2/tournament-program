@@ -1,6 +1,7 @@
 import type { DivisionFormat } from "@/generated/prisma/enums";
 import type {
   DivisionEntries,
+  DivisionResultConfig,
   DivisionResults,
   MatchingConfig,
 } from "@/lib/division/types";
@@ -26,6 +27,8 @@ export type ScheduleDivision = {
   matchingConfig: MatchingConfig;
   /** 勝敗記録。進行順のマージ（buildScheduleView）では使わず、結果入力の行だけが使う。 */
   results: DivisionResults;
+  /** 結果入力の設定。結果の行（buildResultRows）だけが使う。 */
+  resultConfig: DivisionResultConfig;
 };
 
 /** 表示名の解決に使う参加者。 */

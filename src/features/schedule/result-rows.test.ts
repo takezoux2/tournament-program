@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import type { BracketMatch, MatchingConfig } from "@/lib/division/types";
+import type {
+  BracketMatch,
+  DivisionResultConfig,
+  MatchingConfig,
+} from "@/lib/division/types";
+import { DEFAULT_DIVISION_RESULT_CONFIG } from "@/lib/division/types";
 import { buildResultRows } from "./result-rows";
 import type {
   ScheduleDivision,
@@ -65,6 +70,7 @@ const division = (
   },
   matchingConfig,
   results,
+  resultConfig: DEFAULT_DIVISION_RESULT_CONFIG,
 });
 
 const matchRow = (matchId: string, matchNumber: string): ScheduleRowView => ({
@@ -171,15 +177,16 @@ describe("buildResultRows", () => {
     });
   });
 
-  it("区切り行は見出しとして素通しする", () => {
+  it("区切り行は見出しと開始予定時刻を素通しする", () => {
+    const startsAt = new Date(2026, 8, 5, 9, 0);
     const withDivider: ScheduleRowView[] = [
       {
         kind: "divider",
         key: "divider:d1",
         id: "d1",
         label: "午前の部",
-        startsAt: null,
-        startsAtInput: "",
+        startsAt,
+        startsAtInput: "2026-09-05T09:00",
       },
       ...rows,
     ];
@@ -194,6 +201,7 @@ describe("buildResultRows", () => {
       kind: "divider",
       key: "divider:d1",
       label: "午前の部",
+      startsAt,
     });
   });
 
@@ -201,5 +209,55 @@ describe("buildResultRows", () => {
     const result = buildResultRows(rows, [], participants);
 
     expect(result).toEqual([]);
+  });
+
+  const resultConfig: DivisionResultConfig = {
+    version: 1,
+    winReason: { enabled: true, options: ["一本勝ち"] },
+    score: { enabled: true, count: 3, aggregation: "sum" },
+    note: { enabled: true },
+  };
+
+  it("記録済みの詳細と部門の設定を行に載せる", () => {
+    const result = buildResultRows(
+      rows,
+      [
+        {
+          ...division({
+            version: 1,
+            matches: [
+              {
+                matchId: "m1-0",
+                winnerEntryId: "e1",
+                winReason: "一本勝ち",
+                scores: [{ entryId: "e1", values: [7, null, 7] }],
+                note: "抗議あり",
+              },
+            ],
+          }),
+          resultConfig,
+        },
+      ],
+      participants,
+    );
+
+    const row = result.find((r) => r.kind === "match" && r.matchId === "m1-0");
+    expect(row).toMatchObject({
+      resultConfig,
+      winReason: "一本勝ち",
+      scores: [{ entryId: "e1", values: [7, null, 7] }],
+      note: "抗議あり",
+    });
+  });
+
+  it("詳細が無い試合は null と空配列になる", () => {
+    const result = buildResultRows(
+      rows,
+      [{ ...division({ version: 1, matches: [] }), resultConfig }],
+      participants,
+    );
+
+    const row = result.find((r) => r.kind === "match" && r.matchId === "m1-0");
+    expect(row).toMatchObject({ winReason: null, scores: [], note: null });
   });
 });

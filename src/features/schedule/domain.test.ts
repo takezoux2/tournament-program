@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import type { MatchingConfig } from "@/lib/division/types";
+import {
+  DEFAULT_DIVISION_RESULT_CONFIG,
+  type MatchingConfig,
+} from "@/lib/division/types";
 import { buildScheduleView, dividerKey, matchKey, toSaveItems } from "./domain";
 import type { ScheduleDivision, ScheduleItemRecord } from "./types";
 
@@ -47,6 +50,7 @@ const divisionA: ScheduleDivision = {
   },
   matchingConfig: config(["e1", "e2"], ["1", "2"]),
   results: { version: 1, matches: [] },
+  resultConfig: DEFAULT_DIVISION_RESULT_CONFIG,
 };
 
 const divisionB: ScheduleDivision = {
@@ -63,6 +67,7 @@ const divisionB: ScheduleDivision = {
   },
   matchingConfig: config(["f1", "f2"], ["1", "2"]),
   results: { version: 1, matches: [] },
+  resultConfig: DEFAULT_DIVISION_RESULT_CONFIG,
 };
 
 const participants = [
@@ -129,6 +134,7 @@ const outOfOrderDivision: ScheduleDivision = {
     ],
   },
   results: { version: 1, matches: [] },
+  resultConfig: DEFAULT_DIVISION_RESULT_CONFIG,
 };
 
 describe("buildScheduleView", () => {
@@ -261,6 +267,7 @@ describe("buildScheduleView", () => {
         ],
       },
       results: { version: 1, matches: [] },
+      resultConfig: DEFAULT_DIVISION_RESULT_CONFIG,
     };
 
     const rows = buildScheduleView([league], participants, []);

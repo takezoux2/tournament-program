@@ -30,6 +30,15 @@ const matchRow = (
   winnerEntryId: null,
   state: "ready",
   downstreamRecordedCount: 0,
+  resultConfig: {
+    version: 1,
+    winReason: { enabled: false, options: [] },
+    score: { enabled: false, count: 3, aggregation: "sum" },
+    note: { enabled: false },
+  },
+  winReason: null,
+  scores: [],
+  note: null,
   ...overrides,
 });
 
@@ -222,7 +231,7 @@ describe("MatchResultList", () => {
 
   it("区切りは見出しとして出す", () => {
     renderList([
-      { kind: "divider", key: "divider:x1", label: "午前の部" },
+      { kind: "divider", key: "divider:x1", label: "午前の部", startsAt: null },
       matchRow(),
     ]);
 

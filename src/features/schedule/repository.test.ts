@@ -39,6 +39,13 @@ const entries = {
   ],
 };
 
+const resultConfig = {
+  version: 1,
+  winReason: { enabled: false, options: [] },
+  score: { enabled: false, count: 3, aggregation: "sum" },
+  note: { enabled: false },
+};
+
 beforeEach(() => {
   divisionFindMany.mockReset();
   participantFindMany.mockReset();
@@ -52,6 +59,7 @@ beforeEach(() => {
       entries,
       matchingConfig,
       results: { version: 1, matches: [] },
+      resultConfig,
     },
   ]);
   participantFindMany.mockResolvedValue([
@@ -138,6 +146,10 @@ describe("loadResultRows", () => {
         winnerEntryId: null,
         state: "ready",
         downstreamRecordedCount: 0,
+        resultConfig,
+        winReason: null,
+        scores: [],
+        note: null,
       },
     ]);
   });

@@ -2,6 +2,7 @@ import "server-only";
 import type { Prisma } from "@/generated/prisma/client";
 import {
   parseDivisionEntries,
+  parseDivisionResultConfig,
   parseDivisionResults,
   parseMatchingConfig,
 } from "@/lib/division/parse";
@@ -45,6 +46,7 @@ const loadDivisions = async (
       entries: true,
       matchingConfig: true,
       results: true,
+      resultConfig: true,
     },
   });
 
@@ -57,6 +59,7 @@ const loadDivisions = async (
     entries: parseDivisionEntries(row.entries),
     matchingConfig: parseMatchingConfig(row.matchingConfig),
     results: parseDivisionResults(row.results),
+    resultConfig: parseDivisionResultConfig(row.resultConfig),
   }));
 };
 
