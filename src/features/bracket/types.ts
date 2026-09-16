@@ -10,11 +10,17 @@ export type Participant = {
 export type SlotSource =
   | { kind: "participant"; participantId: string }
   | { kind: "winnerOf"; matchId: string }
+  | { kind: "loserOf"; matchId: string }
   | { kind: "bye" };
+
+/** 試合がどのブラケットに属するか。 */
+export type BracketSide = "winners" | "losers" | "final";
 
 /** ブラケット構造上の 1 試合。「誰と誰がいつ当たるか」。 */
 export type Match = {
   id: string;
+  /** 所属ブラケット。省略時は winners（シングルエリミネーション・mock） */
+  bracket?: BracketSide;
   /** 1 = 1 回戦 */
   round: number;
   /** ラウンド内の上からの位置。0 始まり */
@@ -45,6 +51,8 @@ export type ResolvedSlot = {
   participant: Participant | null;
   state: SlotState;
   isWinner: boolean;
+  /** pending のときの説明（「第3試合の敗者」など）。無ければ「未定」と出す */
+  pendingLabel?: string;
 };
 
 export type MatchStatus = "done" | "ready" | "waiting" | "bye";
@@ -52,6 +60,8 @@ export type MatchStatus = "done" | "ready" | "waiting" | "bye";
 /** 3 つのデータを突き合わせた、描画用の 1 試合。 */
 export type ResolvedMatch = {
   id: string;
+  /** 所属ブラケット。resolveBracket は常に埋める */
+  bracket?: BracketSide;
   round: number;
   order: number;
   /** 表示用の試合番号。元データに無ければ null */
@@ -60,6 +70,6 @@ export type ResolvedMatch = {
   winnerId: string | null;
   score: string | null;
   status: MatchStatus;
-  /** 各スロットの供給元試合 id。エッジ生成とレイアウトに使う */
+  /** 各スロットの winnerOf 供給元試合 id。loserOf は線を引かないので null */
   sourceMatchIds: [string | null, string | null];
 };

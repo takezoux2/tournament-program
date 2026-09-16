@@ -177,4 +177,27 @@ describe("MatchCard", () => {
       screen.queryByTestId(`match-number-${doneMatch.id}`),
     ).not.toBeInTheDocument();
   });
+
+  it("pending のスロットに説明があればそれを出す", () => {
+    render(
+      <MatchCard
+        match={{
+          ...doneMatch,
+          slots: [
+            {
+              participant: null,
+              state: "pending",
+              isWinner: false,
+              pendingLabel: "第3試合の敗者",
+            },
+            { participant: null, state: "pending", isWinner: false },
+          ],
+          winnerId: null,
+          status: "waiting",
+        }}
+      />,
+    );
+    expect(screen.getByText("第3試合の敗者")).toBeInTheDocument();
+    expect(screen.getByText("未定")).toBeInTheDocument();
+  });
 });

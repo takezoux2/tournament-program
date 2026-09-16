@@ -3,6 +3,7 @@ import type { ResolvedMatch, ResolvedSlot } from "@/features/bracket/types";
 
 function slotLabel(slot: ResolvedSlot): string {
   if (slot.state === "bye") return "BYE";
+  if (slot.state === "pending" && slot.pendingLabel) return slot.pendingLabel;
   return slot.participant?.name ?? "未定";
 }
 

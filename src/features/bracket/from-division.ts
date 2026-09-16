@@ -13,6 +13,13 @@ import type {
   SlotSource,
 } from "./types";
 
+/** ブラケットとして描ける形式。リーグは星取表（LeagueResultTable）で描く。 */
+const BRACKET_FORMATS: readonly DivisionFormat[] = [
+  "SINGLE_ELIMINATION",
+  "DOUBLE_ELIMINATION_GRAND_FINAL",
+  "DOUBLE_ELIMINATION_THIRD_PLACE",
+];
+
 /** 表示名を解決済みの参加者。DB からの取得は呼び出し側（repository）が行う。 */
 export type DivisionSourceParticipant = {
   id: string;
@@ -39,10 +46,9 @@ export type FromDivisionResult = {
 };
 
 /**
- * 描画側の SlotSource へ写す。対応できない種類は null を返し、呼び出し元が
- * 部門ごと描画対象から外す。
+ * 描画側の SlotSource へ写す。
  */
-const toSlotSource = (source: DivisionSlotSource): SlotSource | null => {
+const toSlotSource = (source: DivisionSlotSource): SlotSource => {
   switch (source.kind) {
     case "entry":
       // 描画側の participantId には entryId をそのまま使う。matchingConfig も
@@ -50,30 +56,30 @@ const toSlotSource = (source: DivisionSlotSource): SlotSource | null => {
       return { kind: "participant", participantId: source.entryId };
     case "winnerOf":
       return { kind: "winnerOf", matchId: source.matchId };
+    case "loserOf":
+      return { kind: "loserOf", matchId: source.matchId };
     case "bye":
       return { kind: "bye" };
-    case "loserOf":
-      // 敗者復活は features/bracket が扱えない。
-      return null;
   }
 };
 
 /**
  * Division の Json を features/bracket の描画型へ変換する。
  *
- * 対応するのは SINGLE_ELIMINATION のみ。描画側は勝ち上がり木を前提にしており、
- * 敗者ブラケットのレイアウトもリーグの星取表も持たないため、扱えない部門は
- * null を返して呼び出し元に案内を出させる。
+ * SE と DE を扱う。SE は勝ち上がり木だけを許す。描画側は勝ち上がり木を前提に
+ * したレイアウトしか持たないため、リーグの星取表や扱えない部門は null を
+ * 返して呼び出し元に案内を出させる。
  */
 export function fromDivision(
   input: FromDivisionInput,
 ): FromDivisionResult | null {
-  if (input.format !== "SINGLE_ELIMINATION") {
+  if (!BRACKET_FORMATS.includes(input.format)) {
     return null;
   }
   if (input.matchingConfig.matches.length === 0) {
     return null;
   }
+  const singleElimination = input.format === "SINGLE_ELIMINATION";
 
   const sourceById = new Map(input.participants.map((p) => [p.id, p]));
 
@@ -103,11 +109,19 @@ export function fromDivision(
 
   const matches: Match[] = [];
   for (const source of input.matchingConfig.matches) {
-    if (source.bracket !== "winners") {
+    // シングルエリミネーションに敗者側の試合があるのは形式を書き換えた
+    // 部門などの不整合。勝ち上がり木として描けないので描かない。
+    if (singleElimination && source.bracket !== "winners") {
       return null;
     }
     for (const slot of source.slots) {
-      if (slot.kind === "winnerOf" && !matchIds.has(slot.matchId)) {
+      if (singleElimination && slot.kind === "loserOf") {
+        return null;
+      }
+      if (
+        (slot.kind === "winnerOf" || slot.kind === "loserOf") &&
+        !matchIds.has(slot.matchId)
+      ) {
         // 存在しない試合を参照している＝データ不整合。描かない。
         return null;
       }
@@ -116,17 +130,13 @@ export function fromDivision(
         return null;
       }
     }
-    const first = toSlotSource(source.slots[0]);
-    const second = toSlotSource(source.slots[1]);
-    if (first === null || second === null) {
-      return null;
-    }
     matches.push({
       id: source.id,
+      bracket: source.bracket,
       round: source.round,
       order: source.order,
       matchNumber: source.matchNumber,
-      slots: [first, second],
+      slots: [toSlotSource(source.slots[0]), toSlotSource(source.slots[1])],
     });
   }
 
