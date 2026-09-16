@@ -12,18 +12,21 @@ const confirmed = (
   participant: { id, name, seed },
   state: "confirmed",
   isWinner,
+  score: null,
 });
 
 const pending: ResolvedSlot = {
   participant: null,
   state: "pending",
   isWinner: false,
+  score: null,
 };
 
 const bye: ResolvedSlot = {
   participant: null,
   state: "bye",
   isWinner: false,
+  score: null,
 };
 
 const doneMatch: ResolvedMatch = {
@@ -36,6 +39,8 @@ const doneMatch: ResolvedMatch = {
   ],
   winnerId: "p1",
   score: "3-1",
+  winReason: null,
+  note: null,
   status: "done",
   sourceMatchIds: ["r1-m1", "r1-m2"],
   matchNumber: null,
@@ -131,5 +136,58 @@ describe("MatchCard", () => {
     expect(
       screen.queryByTestId(`match-number-${doneMatch.id}`),
     ).not.toBeInTheDocument();
+  });
+
+  it("スロットにスコアがあれば各行に表示する", () => {
+    render(
+      <MatchCard
+        match={{
+          ...doneMatch,
+          slots: [
+            { ...doneMatch.slots[0], score: "21" },
+            { ...doneMatch.slots[1], score: "18" },
+          ],
+        }}
+      />,
+    );
+    expect(screen.getByText("21")).toBeInTheDocument();
+    expect(screen.getByText("18")).toBeInTheDocument();
+  });
+
+  // スロットにスコアがあるときは旧来の右上バッジ（match.score）と重なるため出さない。
+  it("スロットにスコアがあれば右上の旧バッジは出さない", () => {
+    render(
+      <MatchCard
+        match={{
+          ...doneMatch,
+          score: "3-1",
+          slots: [
+            { ...doneMatch.slots[0], score: "21" },
+            { ...doneMatch.slots[1], score: "18" },
+          ],
+        }}
+      />,
+    );
+    expect(screen.queryByText("3-1")).not.toBeInTheDocument();
+  });
+
+  it("勝因は勝者の行にだけ表示する", () => {
+    render(<MatchCard match={{ ...doneMatch, winReason: "一本勝ち" }} />);
+    const winnerRow = screen.getByTestId(`slot-${doneMatch.id}-0`);
+    const loserRow = screen.getByTestId(`slot-${doneMatch.id}-1`);
+    expect(winnerRow).toHaveTextContent("一本勝ち");
+    expect(loserRow).not.toHaveTextContent("一本勝ち");
+  });
+
+  it("メモがあればメモボタンを表示する", () => {
+    render(<MatchCard match={{ ...doneMatch, note: "抗議あり" }} />);
+    expect(
+      screen.getByRole("button", { name: `${doneMatch.matchNumber ?? doneMatch.id}のメモ` }),
+    ).toBeInTheDocument();
+  });
+
+  it("メモが無ければメモボタンを表示しない", () => {
+    render(<MatchCard match={{ ...doneMatch, note: null }} />);
+    expect(screen.queryByRole("button")).not.toBeInTheDocument();
   });
 });

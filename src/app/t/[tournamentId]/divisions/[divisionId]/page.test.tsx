@@ -83,6 +83,12 @@ const division = {
     ],
   },
   results: { version: 1, matches: [] },
+  resultConfig: {
+    version: 1,
+    winReason: { enabled: false, options: [] },
+    score: { enabled: false, count: 3, aggregation: "sum" },
+    note: { enabled: false },
+  },
   createdAt: new Date("2026-08-01T00:00:00Z"),
 };
 

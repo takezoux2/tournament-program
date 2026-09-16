@@ -10,6 +10,7 @@ import type {
 } from "@/features/division/repository";
 import {
   parseDivisionEntries,
+  parseDivisionResultConfig,
   parseDivisionResults,
   parseMatchingConfig,
 } from "@/lib/division/parse";
@@ -36,12 +37,14 @@ export function DivisionBracket({
     entries: ReturnType<typeof parseDivisionEntries>;
     matchingConfig: ReturnType<typeof parseMatchingConfig>;
     results: ReturnType<typeof parseDivisionResults>;
+    resultConfig: ReturnType<typeof parseDivisionResultConfig>;
   };
   try {
     parsed = {
       entries: parseDivisionEntries(division.entries),
       matchingConfig: parseMatchingConfig(division.matchingConfig),
       results: parseDivisionResults(division.results),
+      resultConfig: parseDivisionResultConfig(division.resultConfig),
     };
   } catch {
     return <Notice>ブラケットのデータを読み込めませんでした</Notice>;
@@ -67,6 +70,7 @@ export function DivisionBracket({
     entries: parsed.entries,
     matchingConfig: parsed.matchingConfig,
     results: parsed.results,
+    resultConfig: parsed.resultConfig,
     participants,
   });
   if (converted === null) {

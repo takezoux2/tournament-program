@@ -72,6 +72,16 @@ export function resolveBracket(
       }
     }
 
+    const scoreByParticipant = new Map(
+      (result?.scores ?? []).map((entry) => [entry.participantId, entry.score]),
+    );
+    for (const slot of slots) {
+      slot.score =
+        slot.participant === null
+          ? null
+          : (scoreByParticipant.get(slot.participant.id) ?? null);
+    }
+
     return {
       id: match.id,
       round: match.round,
@@ -80,6 +90,8 @@ export function resolveBracket(
       slots,
       winnerId,
       score,
+      winReason: result?.winReason ?? null,
+      note: result?.note ?? null,
       status: toStatus(hasBye, winnerId, slots),
       sourceMatchIds,
     };
@@ -93,7 +105,7 @@ function resolveSlot(
   winnerByMatchId: Map<string, string>,
 ): ResolvedSlot {
   if (source.kind === "bye") {
-    return { participant: null, state: "bye", isWinner: false };
+    return { participant: null, state: "bye", isWinner: false, score: null };
   }
 
   if (source.kind === "participant") {
@@ -101,6 +113,7 @@ function resolveSlot(
       participant: lookupParticipant(participantById, source.participantId),
       state: "confirmed",
       isWinner: false,
+      score: null,
     };
   }
 
@@ -109,12 +122,13 @@ function resolveSlot(
   }
   const winnerId = winnerByMatchId.get(source.matchId);
   if (winnerId === undefined) {
-    return { participant: null, state: "pending", isWinner: false };
+    return { participant: null, state: "pending", isWinner: false, score: null };
   }
   return {
     participant: lookupParticipant(participantById, winnerId),
     state: "confirmed",
     isWinner: false,
+    score: null,
   };
 }
 
