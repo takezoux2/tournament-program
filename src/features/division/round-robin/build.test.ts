@@ -106,9 +106,6 @@ describe("buildRoundRobin", () => {
     expect(config.matches.map((match) => match.order)).toEqual([
       0, 1, 2, 3, 4, 5,
     ]);
-    expect(config.matches.map((match) => match.sequence)).toEqual([
-      0, 1, 2, 3, 4, 5,
-    ]);
     expect(config.matches.map((match) => match.id)).toEqual([
       "r1-0",
       "r1-1",
@@ -191,6 +188,12 @@ describe("buildRoundRobin", () => {
       buildRoundRobin(entriesOf(6)),
     );
   });
+
+  it("試合に実施順（sequence）を持たせない", () => {
+    for (const match of buildRoundRobin(entriesOf(4)).matches) {
+      expect(match).not.toHaveProperty("sequence");
+    }
+  });
 });
 
 describe("isRoundRobinShape", () => {
@@ -212,7 +215,6 @@ describe("isRoundRobinShape", () => {
             bracket: "winners",
             round: 2,
             order: 0,
-            sequence: 0,
             matchName: "3",
             slots: [
               { kind: "winnerOf", matchId: "m1-0" },
@@ -234,7 +236,6 @@ describe("isRoundRobinShape", () => {
             bracket: "winners",
             round: 1,
             order: 0,
-            sequence: 0,
             matchName: "1",
             slots: [{ kind: "entry", entryId: "e1" }, { kind: "bye" }],
           },

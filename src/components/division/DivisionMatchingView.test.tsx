@@ -46,7 +46,6 @@ const buildDivision = (
         bracket: "winners",
         round: 1,
         order: 0,
-        sequence: 0,
         matchName: "1",
         slots: [
           { kind: "entry", entryId: "e1" },
@@ -119,7 +118,6 @@ describe("DivisionMatchingView", () => {
                 bracket: "winners",
                 round: 2,
                 order: 0,
-                sequence: 0,
                 matchName: "1",
                 slots: [
                   { kind: "entry", entryId: "e1" },

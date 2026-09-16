@@ -13,7 +13,6 @@ const makeMatch = (
   bracket: "winners",
   round: 1,
   order: 0,
-  sequence: 0,
   matchName: "1",
   slots: [{ kind: "bye" }, { kind: "bye" }],
   ...overrides,
@@ -45,7 +44,6 @@ const config = (
       bracket: "winners",
       round: 1,
       order: 0,
-      sequence: 0,
       matchName: numbers[0],
       slots: [
         { kind: "entry", entryId: entryIds[0] },
@@ -57,7 +55,6 @@ const config = (
       bracket: "winners",
       round: 1,
       order: 1,
-      sequence: 1,
       matchName: numbers[1],
       slots: [{ kind: "entry", entryId: entryIds[0] }, { kind: "bye" }],
     },
@@ -104,7 +101,7 @@ const participants = [
 ];
 
 /**
- * round/order（描画座標）と配列順（実施順）がわざと食い違う部門。
+ * round/order（描画座標）と配列順がわざと食い違う部門。
  * 2 回戦の試合を配列の先頭に置いてある。buildMatchRows が round/order で
  * 並べ直す実装に戻ると m1-0, m1-1, m2-0 の順になってしまうため、
  * このずれがあって初めて「並べ替えない」ことを検出できる。
@@ -129,7 +126,6 @@ const outOfOrderDivision: ScheduleDivision = {
         bracket: "winners",
         round: 2,
         order: 0,
-        sequence: 0,
         matchName: "1",
         slots: [
           { kind: "winnerOf", matchId: "m1-0" },
@@ -141,7 +137,6 @@ const outOfOrderDivision: ScheduleDivision = {
         bracket: "winners",
         round: 1,
         order: 0,
-        sequence: 1,
         matchName: "2",
         slots: [
           { kind: "entry", entryId: "e1" },
@@ -153,7 +148,6 @@ const outOfOrderDivision: ScheduleDivision = {
         bracket: "winners",
         round: 1,
         order: 1,
-        sequence: 2,
         matchName: "3",
         slots: [{ kind: "entry", entryId: "e1" }, { kind: "bye" }],
       },
@@ -163,7 +157,7 @@ const outOfOrderDivision: ScheduleDivision = {
 };
 
 describe("buildScheduleView", () => {
-  it("行が 1 件も無ければ部門順 → 部門内の実施順で全試合を並べる", () => {
+  it("行が 1 件も無ければ部門順 → 部門内の配列順で全試合を並べる", () => {
     const rows = buildScheduleView([divisionB, divisionA], participants, []);
 
     expect(rows.map((row) => row.key)).toEqual([
@@ -174,7 +168,7 @@ describe("buildScheduleView", () => {
     ]);
   });
 
-  it("部門内は round/order で並べ直さず、配列順（＝実施順）をそのまま使う", () => {
+  it("部門内は round/order で並べ直さず、配列順をそのまま使う", () => {
     const rows = buildScheduleView([outOfOrderDivision], participants, []);
 
     expect(rows.map((row) => row.key)).toEqual([
@@ -282,7 +276,6 @@ describe("buildScheduleView", () => {
             bracket: "winners",
             round: 1,
             order: 0,
-            sequence: 0,
             matchName: "1",
             slots: [
               { kind: "entry", entryId: "g1" },
@@ -322,8 +315,8 @@ describe("buildScheduleView の試合名", () => {
       id: "d1",
       order: 0,
       matches: [
-        makeMatch({ id: "m1", sequence: 0, matchName: "第{{OverallSeq}}試合" }),
-        makeMatch({ id: "m2", sequence: 1, matchName: "決勝" }),
+        makeMatch({ id: "m1", matchName: "第{{OverallSeq}}試合" }),
+        makeMatch({ id: "m2", matchName: "決勝" }),
       ],
     });
 
@@ -340,7 +333,6 @@ describe("buildScheduleView の試合名", () => {
       matches: [
         makeMatch({
           id: "m1",
-          sequence: 1,
           matchName: "第{{DivisionSeq}}試合",
         }),
       ],
@@ -356,8 +348,8 @@ describe("buildScheduleView の試合名", () => {
       id: "d1",
       order: 0,
       matches: [
-        makeMatch({ id: "m1", sequence: 0, matchName: "{{OverallSeq}}" }),
-        makeMatch({ id: "m2", sequence: 1, matchName: "{{OverallSeq}}" }),
+        makeMatch({ id: "m1", matchName: "{{OverallSeq}}" }),
+        makeMatch({ id: "m2", matchName: "{{OverallSeq}}" }),
       ],
     });
 
@@ -381,16 +373,12 @@ describe("buildScheduleView の試合名", () => {
     const first = makeDivision({
       id: "d1",
       order: 0,
-      matches: [
-        makeMatch({ id: "m1", sequence: 0, matchName: "{{OverallSeq}}" }),
-      ],
+      matches: [makeMatch({ id: "m1", matchName: "{{OverallSeq}}" })],
     });
     const second = makeDivision({
       id: "d2",
       order: 1,
-      matches: [
-        makeMatch({ id: "n1", sequence: 0, matchName: "{{OverallSeq}}" }),
-      ],
+      matches: [makeMatch({ id: "n1", matchName: "{{OverallSeq}}" })],
     });
 
     const rows = buildScheduleView([first, second], [], []);

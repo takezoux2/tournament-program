@@ -11,7 +11,6 @@ const match = (
   id: string,
   round: number,
   order: number,
-  sequence: number,
   matchName: string,
   slots: BracketMatch["slots"],
 ): BracketMatch => ({
@@ -19,7 +18,6 @@ const match = (
   bracket: "winners",
   round,
   order,
-  sequence,
   matchName,
   slots,
 });
@@ -27,15 +25,15 @@ const match = (
 const matchingConfig: MatchingConfig = {
   version: 1,
   matches: [
-    match("m1-0", 1, 0, 0, "1", [
+    match("m1-0", 1, 0, "1", [
       { kind: "entry", entryId: "e1" },
       { kind: "entry", entryId: "e2" },
     ]),
-    match("m1-1", 1, 1, 1, "2", [
+    match("m1-1", 1, 1, "2", [
       { kind: "entry", entryId: "e3" },
       { kind: "bye" },
     ]),
-    match("m2-0", 2, 0, 2, "3", [
+    match("m2-0", 2, 0, "3", [
       { kind: "winnerOf", matchId: "m1-0" },
       { kind: "winnerOf", matchId: "m1-1" },
     ]),
@@ -48,9 +46,7 @@ const participants: ScheduleParticipant[] = [
   { id: "p3", name: "鈴木" },
 ];
 
-const division = (
-  results: ScheduleDivision["results"],
-): ScheduleDivision => ({
+const division = (results: ScheduleDivision["results"]): ScheduleDivision => ({
   id: "dA",
   name: "男子",
   order: 0,

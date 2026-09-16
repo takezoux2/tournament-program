@@ -30,7 +30,7 @@ const config = buildFromSlots([
 const noNames = new Map<string, string>();
 
 describe("toMatchOrderView", () => {
-  it("配列の順（＝実施順）のまま行にする", () => {
+  it("配列の順のまま行にする", () => {
     const rows = toMatchOrderView(
       config,
       entries,

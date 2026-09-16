@@ -154,7 +154,6 @@ describe("DivisionSetup", () => {
                 bracket: "winners",
                 round: 1,
                 order: 0,
-                sequence: 0,
                 matchName: "第{{OverallSeq}}試合",
                 slots: [{ kind: "bye" }, { kind: "bye" }],
               },

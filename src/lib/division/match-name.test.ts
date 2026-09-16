@@ -57,7 +57,6 @@ const match = (id: string, order: number, matchName: string): BracketMatch => ({
   bracket: "winners",
   round: 1,
   order,
-  sequence: order,
   matchName,
   slots: [{ kind: "bye" }, { kind: "bye" }],
 });

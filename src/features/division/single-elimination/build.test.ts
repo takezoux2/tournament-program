@@ -40,7 +40,6 @@ describe("buildFromSlots", () => {
         bracket: "winners",
         round: 1,
         order: 0,
-        sequence: 0,
         matchName: "1",
         slots: [entry("a"), entry("b")],
       },
@@ -146,6 +145,19 @@ describe("buildFromSlots", () => {
       expect(match.matchName).toMatch(/^\d+$/);
     }
   });
+
+  it("試合に実施順（sequence）を持たせない", () => {
+    const config = buildFromSlots([
+      entry("e1"),
+      entry("e2"),
+      entry("e3"),
+      entry("e4"),
+    ]);
+
+    for (const match of config.matches) {
+      expect(match).not.toHaveProperty("sequence");
+    }
+  });
 });
 
 describe("toSlots", () => {
@@ -164,7 +176,6 @@ describe("toSlots", () => {
           bracket: "winners",
           round: 1,
           order: 1,
-          sequence: 0,
           matchName: "2",
           slots: [entry("c"), entry("d")],
         },
@@ -173,7 +184,6 @@ describe("toSlots", () => {
           bracket: "winners",
           round: 1,
           order: 0,
-          sequence: 1,
           matchName: "1",
           slots: [entry("a"), entry("b")],
         },
@@ -216,7 +226,6 @@ describe("isSingleEliminationShape", () => {
           bracket: "winners",
           round: 2,
           order: 0,
-          sequence: 0,
           matchName: "2",
           slots: [entry("a"), entry("c")],
         },
@@ -246,7 +255,6 @@ describe("isSingleEliminationShape", () => {
           bracket: "winners",
           round: 1,
           order: 0,
-          sequence: 0,
           matchName: "1",
           slots: [entry("a"), entry("b")],
         },
@@ -255,7 +263,6 @@ describe("isSingleEliminationShape", () => {
           bracket: "winners",
           round: 1,
           order: 1,
-          sequence: 1,
           matchName: "2",
           slots: [entry("a"), entry("c")],
         },
