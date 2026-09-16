@@ -11,8 +11,8 @@ import { publishTournamentInDb } from "./repository";
 import { publishTournamentSchema } from "./schema";
 import { publishTournament } from "./usecase";
 
-// /t/[id] 配下は layout で組織名などを出しており、"page" 既定の再検証では
-// /t/[id]/schedule 等の子ページが古いままになる。
+// 公開可否は /t/[id] 配下のすべてのページ（schedule・participants・divisions）に効く。
+// "layout" を付けて子ページもまとめて再検証する。
 const revalidateTournamentPaths = (slug: string, tournamentId: string) => {
   revalidatePath(`/orgs/${slug}`);
   revalidatePath(`/orgs/${slug}/tournaments/${tournamentId}`);
