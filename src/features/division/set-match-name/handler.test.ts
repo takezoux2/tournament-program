@@ -93,6 +93,16 @@ describe("setMatchNameAction", () => {
     expect(setMatchNameInDb).not.toHaveBeenCalled();
   });
 
+  it("試合名の書き方が正しくなければ文言を返し、保存しない", async () => {
+    const state = await setMatchNameAction(
+      INITIAL_DIVISION_FORM_STATE,
+      formData("m1", "{{#a}}第1試合"),
+    );
+
+    expect(state.error).toBe("試合名の書き方が正しくありません");
+    expect(setMatchNameInDb).not.toHaveBeenCalled();
+  });
+
   it("部門が無ければ 404 にする", async () => {
     setMatchNameInDb.mockReturnValue(Effect.succeed({ found: false }));
 

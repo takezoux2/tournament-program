@@ -2,6 +2,7 @@ import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import type { DivisionDetail } from "@/features/division/repository";
 import { buildRoundRobin } from "@/features/division/round-robin/build";
+import { DEFAULT_MATCH_NAME } from "@/lib/division/match-name";
 import { overallSeqKey } from "@/lib/division/overall-order";
 import { LeagueSetup } from "./LeagueSetup";
 
@@ -69,8 +70,10 @@ describe("LeagueSetup", () => {
     // 試合名の一覧にしか無い試合名の入力欄（MatchNameRow の aria-label）を
     // 見て、本物の toMatchOrderView / MatchOrderList が描かれたことを確かめる。
     expect(screen.getByLabelText("山田 vs 田中の試合名")).toHaveValue(
-      "第1試合",
+      DEFAULT_MATCH_NAME,
     );
+    // 星取表の左右対称な 2 マスと、編集行のプレビューに同じ名前が出る。
+    expect(screen.getAllByText("第1試合")).toHaveLength(3);
   });
 
   it("リーグ以外の形式は案内だけを出す", () => {

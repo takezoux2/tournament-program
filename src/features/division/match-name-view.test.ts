@@ -54,6 +54,7 @@ describe("toMatchOrderView", () => {
 
     expect(row).toEqual({
       matchId: "m1-0",
+      template: DEFAULT_MATCH_NAME,
       matchName: DEFAULT_MATCH_NAME,
       label: "1回戦 (1)",
       card: "山田 vs 佐藤",
@@ -82,5 +83,18 @@ describe("toMatchOrderView", () => {
     );
 
     expect(rows[0].matchName).toBe("第9試合");
+  });
+
+  it("template には保存されているテンプレートを、matchName には展開後の名前を載せる", () => {
+    const [row] = toMatchOrderView(
+      config,
+      entries,
+      participants,
+      "SINGLE_ELIMINATION",
+      new Map([["m1-0", "第9試合"]]),
+    );
+
+    expect(row.template).toBe(DEFAULT_MATCH_NAME);
+    expect(row.matchName).toBe("第9試合");
   });
 });

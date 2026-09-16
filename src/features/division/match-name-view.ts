@@ -15,6 +15,9 @@ import type { DivisionEntries, MatchingConfig } from "@/lib/division/types";
 export type MatchNameRowView = {
   /** BracketMatch.id。保存時にこの id を送る */
   matchId: string;
+  /** 保存されているテンプレート文字列。入力欄の初期値になる */
+  template: string;
+  /** 展開後の表示名。入力欄の隣にプレビューとして出す */
   matchName: string;
   /** 「1回戦 (1)」のような構造上の位置。リーグは空文字 */
   label: string;
@@ -43,6 +46,7 @@ export const toMatchOrderView = (
 
   return config.matches.map((match) => ({
     matchId: match.id,
+    template: match.matchName,
     // 展開に失敗する経路は無いが、引けなければテンプレートをそのまま出す。
     matchName: matchNames.get(match.id) ?? match.matchName,
     label: matchPositionLabel(match, format),

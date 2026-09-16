@@ -137,10 +137,9 @@ describe("DivisionSetup", () => {
     ).toBeInTheDocument();
   });
 
-  it("overallSeq から展開した試合名を実施順の入力欄に出す", () => {
+  it("試合名の入力欄にはテンプレートを、隣には overallSeq で展開した名前を出す", () => {
     // {{OverallSeq}} は大会全体を見ないと決まらないので、resolveMatchNames が
-    // overallSeq props から展開した結果が MatchOrderList まで届くことを、
-    // 入力欄の値（defaultValue）で確かめる。
+    // overallSeq props から展開した結果が MatchOrderList まで届くことを確かめる。
     render(
       <DivisionSetup
         {...props}
@@ -163,7 +162,10 @@ describe("DivisionSetup", () => {
       />,
     );
 
-    expect(screen.getByLabelText("1回戦 (1)の試合名")).toHaveValue("第3試合");
+    expect(screen.getByLabelText("1回戦 (1)の試合名")).toHaveValue(
+      "第{{OverallSeq}}試合",
+    );
+    expect(screen.getByText("第3試合")).toBeInTheDocument();
   });
 
   it("Json が壊れていてもページを落とさない", () => {

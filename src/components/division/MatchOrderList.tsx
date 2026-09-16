@@ -42,6 +42,10 @@ export function MatchOrderList({
   return (
     <div className="space-y-2">
       <p className="text-xs text-slate-500">
+        試合名には {"{{OverallSeq}}"}
+        を書けます。大会の進行順で何番目の試合かに置き換わり、進行順を並べ替えると番号も振り直されます
+      </p>
+      <p className="text-xs text-slate-500">
         組み合わせを作り直したときと、トーナメントで 1
         回戦の組み合わせを入れ替えたときは、試合名が既定に戻ります
       </p>

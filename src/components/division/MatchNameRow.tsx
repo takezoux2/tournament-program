@@ -52,13 +52,18 @@ export function MatchNameRow({
         <input type="hidden" name="tournamentId" value={tournamentId} />
         <input type="hidden" name="divisionId" value={divisionId} />
         <input type="hidden" name="matchId" value={row.matchId} />
+        {/* 入力欄はテンプレートそのもの。展開後は隣に出して、変数を書いた
+            結果がその場で分かるようにする。 */}
         <input
           type="text"
           name="matchName"
-          defaultValue={row.matchName}
+          defaultValue={row.template}
           aria-label={`${rowName}の試合名`}
-          className="w-20 rounded border border-slate-300 px-2 py-1 text-sm"
+          className="w-48 rounded border border-slate-300 px-2 py-1 text-sm"
         />
+        <span className="whitespace-nowrap text-xs text-slate-500">
+          {row.matchName}
+        </span>
         <button
           type="submit"
           disabled={pending}
