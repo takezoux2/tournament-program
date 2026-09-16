@@ -32,13 +32,19 @@ export function MatchNoteButton({
       >
         📝
       </button>
-      <div
+      {/*
+        div だと結果一覧の要約行（<p> の中）に置いたときに <p> の中に
+        ブロック要素が入り、無効なネスト（hydration mismatch）になる。
+        span に block 相当のスタイルを当てて、インラインの文脈でも
+        安全に使えるようにしている（公開ページでも使う想定）。
+      */}
+      <span
         id={id}
         popover="auto"
-        className="max-w-xs rounded border border-slate-300 bg-white px-3 py-2 text-xs whitespace-pre-wrap text-slate-700 shadow-lg"
+        className="block max-w-xs rounded border border-slate-300 bg-white px-3 py-2 text-xs whitespace-pre-wrap text-slate-700 shadow-lg"
       >
         {note}
-      </div>
+      </span>
     </>
   );
 }

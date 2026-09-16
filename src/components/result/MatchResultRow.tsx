@@ -214,19 +214,21 @@ export function MatchResultRow({
         </p>
       )}
 
-      {detailAvailable && (summaryParts.length > 0 || row.note !== null) && (
-        <p className="mt-1 flex items-center gap-2 text-xs text-slate-600">
-          {summaryParts.join(" ・ ")}
-          {config.note.enabled && (
-            <MatchNoteButton
-              note={row.note}
-              label={`第${row.matchNumber}試合のメモ`}
-            />
-          )}
-        </p>
-      )}
+      {detailAvailable &&
+        (summaryParts.length > 0 ||
+          (config.note.enabled && row.note !== null)) && (
+          <p className="mt-1 flex items-center gap-2 text-xs text-slate-600">
+            {summaryParts.join(" ・ ")}
+            {config.note.enabled && (
+              <MatchNoteButton
+                note={row.note}
+                label={`第${row.matchNumber}試合のメモ`}
+              />
+            )}
+          </p>
+        )}
 
-      {detailOpen && (
+      {detailAvailable && detailOpen && (
         <MatchResultDetailForm
           row={row}
           slug={slug}

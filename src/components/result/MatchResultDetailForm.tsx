@@ -7,6 +7,7 @@ import {
 } from "@/features/division/state";
 import type { ResultRowView } from "@/features/schedule/result-rows";
 import { aggregateScore, formatScore } from "@/lib/division/score";
+import { MAX_NOTE_LENGTH, MAX_SCORE_VALUE } from "@/lib/division/types";
 
 type MatchRow = Extract<ResultRowView, { kind: "match" }>;
 
@@ -153,7 +154,7 @@ export function MatchResultDetailForm({
                       inputMode="decimal"
                       step="0.01"
                       min="0"
-                      max="999.99"
+                      max={MAX_SCORE_VALUE}
                       name={`score_${slot.entryId}`}
                       aria-label={`${slot.label} のスコア ${index + 1}`}
                       value={draft[slot.entryId]?.[index] ?? ""}
@@ -191,7 +192,7 @@ export function MatchResultDetailForm({
             name="note"
             type="text"
             defaultValue={row.note ?? ""}
-            maxLength={1000}
+            maxLength={MAX_NOTE_LENGTH}
             className="min-w-0 flex-1 rounded border border-slate-300 px-2 py-1 text-sm"
           />
         </div>
