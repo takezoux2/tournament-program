@@ -76,7 +76,7 @@ export type ScoreAggregation = "sum" | "average";
 export type DivisionResultConfig = {
   version: 1;
   winReason: { enabled: boolean; options: string[] };
-  /** count は 1〜MAX_SCORE_COUNT。片者あたりのスコア欄の数 */
+  /** count は 1〜MAX_SCORE_COUNT。片方あたりのスコア欄の数 */
   score: { enabled: boolean; count: number; aggregation: ScoreAggregation };
   note: { enabled: boolean };
 };

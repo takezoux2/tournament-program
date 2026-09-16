@@ -11,7 +11,13 @@ import type {
   ScoreAggregation,
   SlotSource,
 } from "./types";
-import { MAX_SCORE_COUNT, MAX_SCORE_VALUE } from "./types";
+import {
+  MAX_NOTE_LENGTH,
+  MAX_SCORE_COUNT,
+  MAX_SCORE_VALUE,
+  MAX_WIN_REASON_LENGTH,
+  MAX_WIN_REASON_OPTIONS,
+} from "./types";
 
 /** Json が想定の形をしていないことを表す。呼び出し元は入力エラーとして扱う。 */
 export class DivisionJsonError extends Error {
@@ -73,6 +79,23 @@ const asScoreAggregation = (
   return raw === "sum" || raw === "average"
     ? raw
     : fail(path, '"sum" または "average"');
+};
+
+/** 勝因ラベル 1 件。選択肢・記録の両方で使う。 */
+const asWinReasonLabel = (value: unknown, path: string): string => {
+  const raw = asString(value, path);
+  if (raw.length > MAX_WIN_REASON_LENGTH) {
+    return fail(path, `${MAX_WIN_REASON_LENGTH} 文字以内の文字列`);
+  }
+  return raw;
+};
+
+const asNote = (value: unknown, path: string): string => {
+  const raw = asString(value, path);
+  if (raw.length > MAX_NOTE_LENGTH) {
+    return fail(path, `${MAX_NOTE_LENGTH} 文字以内の文字列`);
+  }
+  return raw;
 };
 
 const parseMatchScoreEntry = (
@@ -266,7 +289,7 @@ const parseMatchResultRecord = (
     parsed.finishedAt = asString(record.finishedAt, `${path}.finishedAt`);
   }
   if (record.winReason !== undefined) {
-    parsed.winReason = asString(record.winReason, `${path}.winReason`);
+    parsed.winReason = asWinReasonLabel(record.winReason, `${path}.winReason`);
   }
   if (record.scores !== undefined) {
     parsed.scores = asArray(record.scores, `${path}.scores`).map(
@@ -274,7 +297,7 @@ const parseMatchResultRecord = (
     );
   }
   if (record.note !== undefined) {
-    parsed.note = asString(record.note, `${path}.note`);
+    parsed.note = asNote(record.note, `${path}.note`);
   }
   return parsed;
 };
@@ -330,15 +353,23 @@ export const parseDivisionResultConfig = (
     fail("resultConfig.score.count", `1 以上 ${MAX_SCORE_COUNT} 以下の整数`);
   }
 
+  const winReasonOptions = asArray(
+    winReason.options,
+    "resultConfig.winReason.options",
+  );
+  if (winReasonOptions.length > MAX_WIN_REASON_OPTIONS) {
+    fail(
+      "resultConfig.winReason.options",
+      `${MAX_WIN_REASON_OPTIONS} 件以内の配列`,
+    );
+  }
+
   return {
     version: asVersion1(record.version, "resultConfig.version"),
     winReason: {
       enabled: asBoolean(winReason.enabled, "resultConfig.winReason.enabled"),
-      options: asArray(
-        winReason.options,
-        "resultConfig.winReason.options",
-      ).map((item, index) =>
-        asString(item, `resultConfig.winReason.options[${index}]`),
+      options: winReasonOptions.map((item, index) =>
+        asWinReasonLabel(item, `resultConfig.winReason.options[${index}]`),
       ),
     },
     score: {

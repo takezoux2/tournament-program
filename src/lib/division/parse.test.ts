@@ -6,6 +6,11 @@ import {
   parseDivisionResults,
   parseMatchingConfig,
 } from "./parse";
+import {
+  MAX_NOTE_LENGTH,
+  MAX_WIN_REASON_LENGTH,
+  MAX_WIN_REASON_OPTIONS,
+} from "./types";
 
 describe("parseDivisionEntries", () => {
   it("妥当な値をそのまま返す", () => {
@@ -408,6 +413,29 @@ describe("parseDivisionResultConfig", () => {
       parseDivisionResultConfig({ ...valid, note: { enabled: "yes" } }),
     ).toThrow(DivisionJsonError);
   });
+
+  it("winReason.options が上限件数を超えたら弾く", () => {
+    const tooMany = Array.from(
+      { length: MAX_WIN_REASON_OPTIONS + 1 },
+      (_, index) => `理由${index}`,
+    );
+    expect(() =>
+      parseDivisionResultConfig({
+        ...valid,
+        winReason: { ...valid.winReason, options: tooMany },
+      }),
+    ).toThrow(DivisionJsonError);
+  });
+
+  it("winReason.options の 1 件が上限文字数を超えたら弾く", () => {
+    const tooLong = "あ".repeat(MAX_WIN_REASON_LENGTH + 1);
+    expect(() =>
+      parseDivisionResultConfig({
+        ...valid,
+        winReason: { ...valid.winReason, options: [tooLong] },
+      }),
+    ).toThrow(DivisionJsonError);
+  });
 });
 
 describe("parseDivisionResults の詳細項目", () => {
@@ -465,5 +493,33 @@ describe("parseDivisionResults の詳細項目", () => {
       ],
     };
     expect(() => parseDivisionResults(bad)).toThrow(DivisionJsonError);
+  });
+
+  it("winReason が上限文字数を超えたら弾く", () => {
+    const tooLong = {
+      version: 1,
+      matches: [
+        {
+          matchId: "m1",
+          winnerEntryId: "e1",
+          winReason: "あ".repeat(MAX_WIN_REASON_LENGTH + 1),
+        },
+      ],
+    };
+    expect(() => parseDivisionResults(tooLong)).toThrow(DivisionJsonError);
+  });
+
+  it("note が上限文字数を超えたら弾く", () => {
+    const tooLong = {
+      version: 1,
+      matches: [
+        {
+          matchId: "m1",
+          winnerEntryId: "e1",
+          note: "あ".repeat(MAX_NOTE_LENGTH + 1),
+        },
+      ],
+    };
+    expect(() => parseDivisionResults(tooLong)).toThrow(DivisionJsonError);
   });
 });
