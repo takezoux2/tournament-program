@@ -14,6 +14,7 @@ import {
   parseDivisionResults,
   parseMatchingConfig,
 } from "@/lib/division/parse";
+import { DEFAULT_DIVISION_RESULT_CONFIG } from "@/lib/division/types";
 import { Notice } from "./Notice";
 
 export function DivisionBracket({
@@ -37,17 +38,25 @@ export function DivisionBracket({
     entries: ReturnType<typeof parseDivisionEntries>;
     matchingConfig: ReturnType<typeof parseMatchingConfig>;
     results: ReturnType<typeof parseDivisionResults>;
-    resultConfig: ReturnType<typeof parseDivisionResultConfig>;
   };
   try {
     parsed = {
       entries: parseDivisionEntries(division.entries),
       matchingConfig: parseMatchingConfig(division.matchingConfig),
       results: parseDivisionResults(division.results),
-      resultConfig: parseDivisionResultConfig(division.resultConfig),
     };
   } catch {
     return <Notice>ブラケットのデータを読み込めませんでした</Notice>;
+  }
+
+  // resultConfig は表示のフィルタでしかない。壊れていてもブラケットそのものは
+  // 描けるはずなので、他の 3 列とは別に受け止めて既定値へ落とす
+  // （/edit ページの読み出しと同じ方針）。
+  let resultConfig = DEFAULT_DIVISION_RESULT_CONFIG;
+  try {
+    resultConfig = parseDivisionResultConfig(division.resultConfig);
+  } catch {
+    resultConfig = DEFAULT_DIVISION_RESULT_CONFIG;
   }
 
   if (parsed.matchingConfig.matches.length === 0) {
@@ -70,7 +79,7 @@ export function DivisionBracket({
     entries: parsed.entries,
     matchingConfig: parsed.matchingConfig,
     results: parsed.results,
-    resultConfig: parsed.resultConfig,
+    resultConfig,
     participants,
   });
   if (converted === null) {

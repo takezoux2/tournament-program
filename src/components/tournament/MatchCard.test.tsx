@@ -179,10 +179,27 @@ describe("MatchCard", () => {
     expect(loserRow).not.toHaveTextContent("一本勝ち");
   });
 
-  it("メモがあればメモボタンを表示する", () => {
-    render(<MatchCard match={{ ...doneMatch, note: "抗議あり" }} />);
+  it("メモがあり試合番号もあれば「第N試合のメモ」を読み上げ用ラベルにする", () => {
+    render(
+      <MatchCard
+        match={{ ...doneMatch, note: "抗議あり", matchNumber: "7" }}
+      />,
+    );
     expect(
-      screen.getByRole("button", { name: `${doneMatch.matchNumber ?? doneMatch.id}のメモ` }),
+      screen.getByRole("button", { name: "第7試合のメモ" }),
+    ).toBeInTheDocument();
+  });
+
+  // 試合番号が無いとき、内部 id をそのままラベルに出すと読み上げに適さない
+  // ため、汎用の文言に落とす。
+  it("メモがあり試合番号が無ければ「試合のメモ」を読み上げ用ラベルにする", () => {
+    render(
+      <MatchCard
+        match={{ ...doneMatch, note: "抗議あり", matchNumber: null }}
+      />,
+    );
+    expect(
+      screen.getByRole("button", { name: "試合のメモ" }),
     ).toBeInTheDocument();
   });
 

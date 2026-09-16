@@ -122,7 +122,12 @@ function resolveSlot(
   }
   const winnerId = winnerByMatchId.get(source.matchId);
   if (winnerId === undefined) {
-    return { participant: null, state: "pending", isWinner: false, score: null };
+    return {
+      participant: null,
+      state: "pending",
+      isWinner: false,
+      score: null,
+    };
   }
   return {
     participant: lookupParticipant(participantById, winnerId),

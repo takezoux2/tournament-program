@@ -127,6 +127,24 @@ describe("DivisionBracket", () => {
     ).toBeInTheDocument();
   });
 
+  // resultConfig は表示のフィルタでしかない。壊れていても他の 3 列が
+  // 無事ならブラケットそのものは描けるべきで、/edit ページと同じく
+  // 既定値へ落として描画を続ける（entries/matchingConfig/results の壊れ方
+  // とは扱いを分ける）。
+  it("resultConfig が壊れていても既定値に落として描画する", () => {
+    render(
+      <DivisionBracket
+        division={buildDivision({ resultConfig: { version: 2 } })}
+        participants={participants}
+      />,
+    );
+
+    expect(screen.getByTestId("flow")).toHaveTextContent("1");
+    expect(
+      screen.queryByText("ブラケットのデータを読み込めませんでした"),
+    ).toBeNull();
+  });
+
   // Json は DB の列で、アプリの外から壊れた値が入りうる。ページ全体を
   // 落とさず、この区画だけで受け止める。
   it("Json が壊れていてもページを落とさない", () => {

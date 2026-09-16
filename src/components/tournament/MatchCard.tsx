@@ -36,14 +36,17 @@ function SlotRow({
       <span className="w-5 shrink-0 text-right text-xs text-slate-400">
         {slot.participant ? slot.participant.seed : ""}
       </span>
-      <span className="flex-1 truncate">{slotLabel(slot)}</span>
+      <span className="min-w-0 flex-1 truncate">{slotLabel(slot)}</span>
       {slot.score !== null && (
         <span className="shrink-0 pl-1 text-[10px] text-slate-500">
           {slot.score}
         </span>
       )}
       {winReason !== null && winReason !== undefined && slot.isWinner && (
-        <span className="shrink-0 truncate rounded bg-slate-100 px-1 text-[10px] text-slate-500">
+        <span
+          title={winReason}
+          className="min-w-0 max-w-20 truncate rounded bg-slate-100 px-1 text-[10px] text-slate-500"
+        >
           {winReason}
         </span>
       )}
@@ -91,7 +94,11 @@ export function MatchCard({ match }: { match: ResolvedMatch }) {
       <span className="absolute left-8 top-0 leading-4">
         <MatchNoteButton
           note={match.note}
-          label={`${match.matchNumber ?? match.id}のメモ`}
+          label={
+            match.matchNumber !== null
+              ? `第${match.matchNumber}試合のメモ`
+              : "試合のメモ"
+          }
         />
       </span>
     </div>

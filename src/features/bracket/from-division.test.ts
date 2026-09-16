@@ -241,6 +241,36 @@ describe("fromDivision", () => {
     expect(converted?.results[0]).toEqual({ matchId: "m1", winnerId: "e1" });
   });
 
+  // 全欄が未入力（null）だと集計結果も null になり、表示できるスコアが無い。
+  // scores 自体を省くことで、空バッジが並ぶのを避ける。
+  it("スコアが有効でも全欄未入力なら scores を載せない", () => {
+    const converted = fromDivision(
+      buildInput({
+        resultConfig: {
+          version: 1,
+          winReason: { enabled: false, options: [] },
+          score: { enabled: true, count: 3, aggregation: "sum" },
+          note: { enabled: false },
+        },
+        results: {
+          version: 1,
+          matches: [
+            {
+              matchId: "m1",
+              winnerEntryId: "e1",
+              scores: [
+                { entryId: "e1", values: [null, null, null] },
+                { entryId: "e2", values: [null, null, null] },
+              ],
+            },
+          ],
+        },
+      }),
+    );
+
+    expect(converted?.results[0]).toEqual({ matchId: "m1", winnerId: "e1" });
+  });
+
   it("SINGLE_ELIMINATION 以外は null", () => {
     expect(fromDivision(buildInput({ format: "ROUND_ROBIN" }))).toBeNull();
     expect(

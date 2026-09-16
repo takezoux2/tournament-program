@@ -149,7 +149,10 @@ export function fromDivision(
       result.score = record.score;
     }
     // 無効にした項目は公開側にも出さない。設定は表示のフィルタでもある。
-    if (input.resultConfig.winReason.enabled && record.winReason !== undefined) {
+    if (
+      input.resultConfig.winReason.enabled &&
+      record.winReason !== undefined
+    ) {
       result.winReason = record.winReason;
     }
     if (input.resultConfig.score.enabled && record.scores !== undefined) {
