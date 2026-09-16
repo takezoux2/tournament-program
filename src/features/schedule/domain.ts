@@ -75,10 +75,7 @@ const buildMatchRows = (
           divisionId: division.id,
           divisionName: division.name,
           matchId: match.id,
-          matchName: renderMatchName(match.matchName, {
-            OverallSeq: seq,
-            DivisionSeq: match.sequence + 1,
-          }),
+          matchName: renderMatchName(match.matchName, { OverallSeq: seq }),
           label: matchPositionLabel(match, division.format),
           card: matchCardLabel(match, labelSlot),
         },

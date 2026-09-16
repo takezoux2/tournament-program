@@ -3,18 +3,21 @@ import { overallSeqKey } from "./overall-order";
 import type { MatchingConfig } from "./types";
 
 /**
- * 生成直後の試合名。テンプレートなので、並べ替えて実施順が変わると
- * 表示も自動で追従する。リテラルの連番を振っていたときのように
- * 並べ替えのたびに振り直す必要が無い。
+ * 生成直後の試合名。番号は大会の進行順（/matches）の通し番号で、
+ * 進行順を並べ替えたり区切りを挿したりすると表示も自動で振り直される。
+ * テンプレートなので、振り直しのたびに試合名を書き換える必要が無い。
  */
-export const DEFAULT_MATCH_NAME = "第{{DivisionSeq}}試合";
+export const DEFAULT_MATCH_NAME = "第{{OverallSeq}}試合";
 
-/** 試合名のテンプレートに渡せる変数。名前は mustache のキーそのもの。 */
+/**
+ * 試合名のテンプレートに渡せる変数。名前は mustache のキーそのもの。
+ *
+ * 部門ごとの番号は持たない。試合番号を大会全体の通し番号 1 つに絞ったため。
+ * 旧 {{DivisionSeq}} のような知らない変数は mustache の既定どおり空文字になる。
+ */
 export type MatchNameVars = {
   /** 大会の進行順で何番目の試合か。1 始まり */
   OverallSeq: number;
-  /** 部門の中で何番目の試合か。1 始まり */
-  DivisionSeq: number;
 };
 
 /**
@@ -55,7 +58,6 @@ export const resolveMatchNames = (
       match.id,
       renderMatchName(match.matchName, {
         OverallSeq: overallSeq.get(overallSeqKey(divisionId, match.id)) ?? 0,
-        DivisionSeq: match.sequence + 1,
       }),
     ]),
   );

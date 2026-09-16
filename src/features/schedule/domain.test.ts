@@ -323,8 +323,23 @@ describe("buildScheduleView の試合名", () => {
       order: 0,
       matches: [
         makeMatch({ id: "m1", sequence: 0, matchName: "第{{OverallSeq}}試合" }),
+        makeMatch({ id: "m2", sequence: 1, matchName: "決勝" }),
+      ],
+    });
+
+    const rows = buildScheduleView([division], [], []);
+
+    expect(rows[0]).toMatchObject({ matchId: "m1", matchName: "第1試合" });
+    expect(rows[1]).toMatchObject({ matchId: "m2", matchName: "決勝" });
+  });
+
+  it("部門内の番号（{{DivisionSeq}}）は展開しない", () => {
+    const division = makeDivision({
+      id: "d1",
+      order: 0,
+      matches: [
         makeMatch({
-          id: "m2",
+          id: "m1",
           sequence: 1,
           matchName: "第{{DivisionSeq}}試合",
         }),
@@ -333,8 +348,7 @@ describe("buildScheduleView の試合名", () => {
 
     const rows = buildScheduleView([division], [], []);
 
-    expect(rows[0]).toMatchObject({ matchId: "m1", matchName: "第1試合" });
-    expect(rows[1]).toMatchObject({ matchId: "m2", matchName: "第2試合" });
+    expect(rows[0]).toMatchObject({ matchId: "m1", matchName: "第試合" });
   });
 
   it("OverallSeq は区切りを数えず、保存された進行順に従う", () => {

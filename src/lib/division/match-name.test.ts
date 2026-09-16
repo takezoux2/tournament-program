@@ -1,17 +1,18 @@
 import { describe, expect, it } from "vitest";
-import { overallSeqKey } from "./overall-order";
-import type { BracketMatch, MatchingConfig } from "./types";
 import {
   DEFAULT_MATCH_NAME,
   renderMatchName,
   resolveMatchNames,
 } from "./match-name";
+import { overallSeqKey } from "./overall-order";
+import type { BracketMatch, MatchingConfig } from "./types";
 
-const vars = { OverallSeq: 5, DivisionSeq: 2 };
+const vars = { OverallSeq: 5 };
 
 describe("DEFAULT_MATCH_NAME", () => {
-  it("既定値は部門内の通し番号で「第N試合」になる", () => {
-    expect(renderMatchName(DEFAULT_MATCH_NAME, vars)).toBe("第2試合");
+  it("既定値は大会全体の通し番号で「第N試合」になる", () => {
+    expect(DEFAULT_MATCH_NAME).toBe("第{{OverallSeq}}試合");
+    expect(renderMatchName(DEFAULT_MATCH_NAME, vars)).toBe("第5試合");
   });
 });
 
@@ -20,14 +21,8 @@ describe("renderMatchName", () => {
     expect(renderMatchName("第{{OverallSeq}}試合", vars)).toBe("第5試合");
   });
 
-  it("DivisionSeq を部門内の通し番号に展開する", () => {
-    expect(renderMatchName("{{DivisionSeq}}", vars)).toBe("2");
-  });
-
-  it("1 つの文字列に両方の変数を書ける", () => {
-    expect(renderMatchName("{{OverallSeq}}／{{DivisionSeq}}", vars)).toBe(
-      "5／2",
-    );
+  it("DivisionSeq はもう変数ではないので空文字になる", () => {
+    expect(renderMatchName("第{{DivisionSeq}}試合", vars)).toBe("第試合");
   });
 
   it("変数の内側の空白を許す", () => {
@@ -57,16 +52,12 @@ describe("renderMatchName", () => {
   });
 });
 
-const match = (
-  id: string,
-  sequence: number,
-  matchName: string,
-): BracketMatch => ({
+const match = (id: string, order: number, matchName: string): BracketMatch => ({
   id,
   bracket: "winners",
   round: 1,
-  order: sequence,
-  sequence,
+  order,
+  sequence: order,
   matchName,
   slots: [{ kind: "bye" }, { kind: "bye" }],
 });
@@ -76,7 +67,8 @@ describe("resolveMatchNames", () => {
     version: 1,
     matches: [
       match("m1", 0, "第{{OverallSeq}}試合"),
-      match("m2", 1, "第{{DivisionSeq}}試合"),
+      match("m2", 1, "決勝"),
+      match("m3", 2, "第{{DivisionSeq}}試合"),
     ],
   };
 
@@ -87,17 +79,28 @@ describe("resolveMatchNames", () => {
       new Map([
         [overallSeqKey("d1", "m1"), 7],
         [overallSeqKey("d1", "m2"), 8],
+        [overallSeqKey("d1", "m3"), 9],
       ]),
     );
 
     expect(names.get("m1")).toBe("第7試合");
-    expect(names.get("m2")).toBe("第2試合");
+    expect(names.get("m2")).toBe("決勝");
+  });
+
+  it("部門内の番号は展開しない", () => {
+    const names = resolveMatchNames(
+      config,
+      "d1",
+      new Map([[overallSeqKey("d1", "m3"), 9]]),
+    );
+
+    expect(names.get("m3")).toBe("第試合");
   });
 
   it("通し番号を引けない試合は OverallSeq を 0 にする", () => {
     const names = resolveMatchNames(config, "d1", new Map());
 
     expect(names.get("m1")).toBe("第0試合");
-    expect(names.get("m2")).toBe("第2試合");
+    expect(names.get("m2")).toBe("決勝");
   });
 });

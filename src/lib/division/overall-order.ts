@@ -5,7 +5,10 @@
 export const overallSeqKey = (divisionId: string, matchId: string): string =>
   `${divisionId}:${matchId}`;
 
-/** 通し番号の材料になる部門。matchIds は部門内の実施順（sequence 昇順）で渡す。 */
+/**
+ * 通し番号の材料になる部門。matchIds は部門の matches 配列の順
+ * （parseMatchingConfig が round → order に揃えた順）で渡す。
+ */
 export type OverallOrderDivision = {
   id: string;
   /** 大会内での表示順。行を持たない試合を末尾へ足すときの並び順に使う。 */
@@ -21,7 +24,7 @@ export type OverallOrderItem = { divisionId: string; matchId: string };
  *
  * 並びの規則は進行順の一覧（features/schedule の buildScheduleView）と同じ
  * ——「保存された進行順に並べ、実体の無い行と二重の行は落とし、行を持たない
- * 試合を部門 order → 部門内の実施順で末尾に足す」。同じ規則を 2 箇所に書くと
+ * 試合を部門 order → 部門内の配列の順で末尾に足す」。同じ規則を 2 箇所に書くと
  * 必ずずれるので、順序の決定はこの関数 1 つに集め、進行順の一覧もここから
  * 並びを得る。features どうしは依存できないため下位共通層に置いてある。
  *

@@ -90,4 +90,34 @@ describe("buildOverallSeq", () => {
 
     expect(input.map((division) => division.id)).toEqual(["d2", "d1"]);
   });
+
+  it("保存済みの進行順を並べ替えると番号も振り直される", () => {
+    const before = buildOverallSeq(divisions, [
+      { divisionId: "d1", matchId: "m1" },
+      { divisionId: "d1", matchId: "m2" },
+      { divisionId: "d2", matchId: "n1" },
+    ]);
+    const after = buildOverallSeq(divisions, [
+      { divisionId: "d2", matchId: "n1" },
+      { divisionId: "d1", matchId: "m1" },
+      { divisionId: "d1", matchId: "m2" },
+    ]);
+
+    expect(before.get(overallSeqKey("d1", "m1"))).toBe(1);
+    expect(after.get(overallSeqKey("d1", "m1"))).toBe(2);
+    expect(after.get(overallSeqKey("d2", "n1"))).toBe(1);
+  });
+
+  it("行を持たない試合は、部門の中では matchIds の配列の順で末尾に足す", () => {
+    // id の文字列順でも round 順でもなく、渡された配列の順。配列の順は
+    // parseMatchingConfig が round → order に揃えた順になっている。
+    const seq = buildOverallSeq(
+      [{ id: "d1", order: 0, matchIds: ["m2-0", "m1-0", "m1-1"] }],
+      [],
+    );
+
+    expect(seq.get(overallSeqKey("d1", "m2-0"))).toBe(1);
+    expect(seq.get(overallSeqKey("d1", "m1-0"))).toBe(2);
+    expect(seq.get(overallSeqKey("d1", "m1-1"))).toBe(3);
+  });
 });
