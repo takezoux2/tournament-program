@@ -26,7 +26,7 @@ export function PublishTournamentButton({
   return (
     <ConfirmDialog
       triggerLabel="公開する"
-      triggerClassName="rounded bg-slate-800 px-4 py-2 text-sm font-medium text-white"
+      triggerClassName="rounded bg-slate-800 px-4 py-2 text-sm font-medium text-white cursor-pointer"
       title="大会を公開"
       message={`「${tournamentName}」を公開しますか？公開すると参加者を含む誰でも公開ページを閲覧できるようになります。`}
       confirmLabel="公開する"
