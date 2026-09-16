@@ -50,6 +50,9 @@ const config: MatchingConfig = {
   ],
 };
 
+/** 展開済みの名前を渡さない呼び出し。マスにはテンプレートがそのまま入る。 */
+const noNames = new Map<string, string>();
+
 const results = (
   records: [matchId: string, winnerEntryId: string | null][],
 ): DivisionResults => ({
@@ -85,6 +88,7 @@ describe("toLeagueTableView", () => {
         ["r1-5", "e3"],
       ]),
       participants,
+      noNames,
     );
 
     expect(summary(view)).toEqual([
@@ -108,6 +112,7 @@ describe("toLeagueTableView", () => {
         ["r1-5", "e3"],
       ]),
       participants,
+      noNames,
     );
 
     expect(view.headers).toEqual([
@@ -137,6 +142,7 @@ describe("toLeagueTableView", () => {
       entries,
       results([["r1-0", "e1"]]),
       participants,
+      noNames,
     );
 
     // e2・e3・e4 は勝点も勝ち数も 0 で、直接対決も未実施なので全員 2 位
@@ -159,6 +165,7 @@ describe("toLeagueTableView", () => {
       entries,
       results([["r1-4", null]]),
       participants,
+      noNames,
     );
 
     expect(summary(view)).toEqual([
@@ -194,6 +201,7 @@ describe("toLeagueTableView", () => {
         ["r1-5", "e4"],
       ]),
       participants,
+      noNames,
     );
 
     // シード順なら e1, e2 / e3, e4 だが、直接対決で e2 > e1、e4 > e3
@@ -225,6 +233,7 @@ describe("toLeagueTableView", () => {
         ["r1-5", "e3"],
       ]),
       participants,
+      noNames,
     );
 
     expect(summary(view)).toEqual([
@@ -241,6 +250,7 @@ describe("toLeagueTableView", () => {
       entries,
       results([["r1-0", "e9"]]),
       participants,
+      noNames,
     );
 
     expect(summary(view)).toEqual([
@@ -271,7 +281,13 @@ describe("toLeagueTableView", () => {
       ],
     };
 
-    const view = toLeagueTableView(broken, entries, results([]), participants);
+    const view = toLeagueTableView(
+      broken,
+      entries,
+      results([]),
+      participants,
+      noNames,
+    );
 
     expect(view.rows[2].cells[3]).toEqual({ kind: "none" });
     expect(view.rows[0].cells[1]).toEqual({
@@ -282,9 +298,13 @@ describe("toLeagueTableView", () => {
   });
 
   it("名前を引けないエントリーは（不明な参加者）にする", () => {
-    const view = toLeagueTableView(config, entries, results([]), [
-      participants[0],
-    ]);
+    const view = toLeagueTableView(
+      config,
+      entries,
+      results([]),
+      [participants[0]],
+      noNames,
+    );
 
     expect(view.headers.map((header) => header.label)).toEqual([
       "山田",
@@ -300,8 +320,32 @@ describe("toLeagueTableView", () => {
       { version: 1, entries: [] },
       results([]),
       participants,
+      noNames,
     );
 
     expect(view).toEqual({ headers: [], rows: [] });
+  });
+
+  it("マスの試合名は渡された展開済みの名前を使い、無ければテンプレートのまま出す", () => {
+    const view = toLeagueTableView(
+      config,
+      entries,
+      results([]),
+      participants,
+      new Map([["r1-0", "第7試合"]]),
+    );
+
+    // 全員 0 点で同順位なので行・列ともシード順。e1 vs e4 が r1-0。
+    expect(view.rows[0].cells[3]).toEqual({
+      kind: "match",
+      matchName: "第7試合",
+      outcome: null,
+    });
+    // e1 vs e2（r1-4）は表に無いので、保存されている文字列のまま。
+    expect(view.rows[0].cells[1]).toEqual({
+      kind: "match",
+      matchName: "5",
+      outcome: null,
+    });
   });
 });

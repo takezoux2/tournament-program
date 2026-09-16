@@ -49,6 +49,7 @@ const buildInput = (
   matchingConfig,
   results: emptyResults,
   participants,
+  matchNames: new Map<string, string>(),
   ...overrides,
 });
 
@@ -86,9 +87,17 @@ describe("fromDivision", () => {
     });
   });
 
-  it("matchName を描画側の Match に写す", () => {
+  it("展開済みの名前が引けなければ保存されている試合名を写す", () => {
     const result = fromDivision(buildInput());
     expect(result?.bracket.matches[0].matchName).toBe("1");
+  });
+
+  it("展開済みの試合名があればそれを Match に載せる", () => {
+    const result = fromDivision(
+      buildInput({ matchNames: new Map([["m1", "第9試合"]]) }),
+    );
+
+    expect(result?.bracket.matches[0].matchName).toBe("第9試合");
   });
 
   it("winnerOf と bye はそのまま運ぶ", () => {

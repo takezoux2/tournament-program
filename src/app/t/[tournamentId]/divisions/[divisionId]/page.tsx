@@ -5,7 +5,9 @@ import { PublicHeader } from "@/components/public/PublicHeader";
 import { PublicPreviewNotice } from "@/components/public/PublicPreviewNotice";
 import { needsParticipants } from "@/features/division/format";
 import {
+  type DivisionParticipant,
   findDivisionInTournament,
+  listOverallOrderSources,
   listParticipantsInTournament,
 } from "@/features/division/repository";
 import { formatPublicTitle } from "@/features/tournament/format";
@@ -72,13 +74,15 @@ export default async function PublicDivisionPage({
   }
 
   // 描画に参加者名を使わない形式では参加者一覧を引かない。
-  // 管理画面の部門詳細と同じ条件を needsParticipants で共有する。
-  const participants = needsParticipants(division.format)
-    ? await listParticipantsInTournament(
-        tournament.organizationId,
-        tournament.id,
-      )
-    : [];
+  // 管理画面の部門詳細と同じ条件を needsParticipants で共有する。通し番号は
+  // 公開ゲートと部門の絞り込みを通ったあとに読む。番号は部門ではなく
+  // 大会全体の進行順から作るので、大会 id で引く。
+  const [participants, overallSeq] = await Promise.all([
+    needsParticipants(division.format)
+      ? listParticipantsInTournament(tournament.organizationId, tournament.id)
+      : Promise.resolve<DivisionParticipant[]>([]),
+    listOverallOrderSources(tournament.id),
+  ]);
 
   return (
     <main className="min-h-screen bg-slate-50">
@@ -103,6 +107,7 @@ export default async function PublicDivisionPage({
         <DivisionMatchingView
           division={division}
           participants={participants}
+          overallSeq={overallSeq}
           heightClassName="h-[calc(100dvh-11rem)]"
         />
       </div>

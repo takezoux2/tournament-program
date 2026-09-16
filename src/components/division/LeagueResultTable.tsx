@@ -28,9 +28,11 @@ const CellContent = ({ cell }: { cell: LeagueTableCell }) => {
     case "none":
       return null;
     case "match": {
+      // 展開は toLeagueTableView の上（DivisionMatchingView）で済んでいる。
+      // 「第◯試合」の形は試合名そのものが決めるので、ここでは飾りを足さない。
       const number = (
         <span className="block text-[10px] text-slate-400">
-          第{cell.matchName}試合
+          {cell.matchName}
         </span>
       );
       if (cell.outcome === null) {

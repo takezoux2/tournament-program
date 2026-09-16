@@ -8,6 +8,7 @@ import type {
   DivisionDetail,
   DivisionParticipant,
 } from "@/features/division/repository";
+import { resolveMatchNames } from "@/lib/division/match-name";
 import {
   parseDivisionEntries,
   parseDivisionResults,
@@ -18,10 +19,13 @@ import { Notice } from "./Notice";
 export function DivisionBracket({
   division,
   participants,
+  overallSeq,
   heightClassName = "h-[28rem]",
 }: {
   division: DivisionDetail;
   participants: DivisionParticipant[];
+  /** 大会全体の通し番号。試合名の {{OverallSeq}} の展開に使う */
+  overallSeq: ReadonlyMap<string, number>;
   /**
    * 描画枠の高さ。既定は管理画面の詳細ページ向け。公開のブラケットページは
    * ブラケット専用の画面なので、dvh 基準の高さを渡して画面を占有させる。
@@ -68,6 +72,11 @@ export function DivisionBracket({
     matchingConfig: parsed.matchingConfig,
     results: parsed.results,
     participants,
+    matchNames: resolveMatchNames(
+      parsed.matchingConfig,
+      division.id,
+      overallSeq,
+    ),
   });
   if (converted === null) {
     return <Notice>この組み合わせはまだ表示に対応していません</Notice>;

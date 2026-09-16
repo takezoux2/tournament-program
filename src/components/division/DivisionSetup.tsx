@@ -185,7 +185,11 @@ export function DivisionSetup({
 
       <section className="space-y-3">
         <h2 className="text-sm font-bold text-slate-700">プレビュー</h2>
-        <DivisionBracket division={division} participants={participants} />
+        <DivisionBracket
+          division={division}
+          participants={participants}
+          overallSeq={overallSeq}
+        />
       </section>
     </div>
   );

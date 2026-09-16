@@ -71,6 +71,7 @@ const flip = (outcome: LeagueOutcome): LeagueOutcome => {
 const readMatches = (
   config: MatchingConfig,
   results: DivisionResults,
+  matchNames: ReadonlyMap<string, string>,
 ): PlayedMatch[] => {
   const recorded = new Map(
     results.matches.map((record) => [record.matchId, record.winnerEntryId]),
@@ -91,7 +92,9 @@ const readMatches = (
       outcome = "loss";
     }
     played.push({
-      matchName: match.matchName,
+      // 展開に失敗する経路は無いが、引けなければテンプレートをそのまま出す
+      // （round-robin/view.ts の星取表と同じ倒し方）。
+      matchName: matchNames.get(match.id) ?? match.matchName,
       left: first.entryId,
       right: second.entryId,
       outcome,
@@ -224,6 +227,8 @@ export const toLeagueTableView = (
   entries: DivisionEntries,
   results: DivisionResults,
   participants: { id: string; name: string }[],
+  /** 展開済みの試合名。{{OverallSeq}} は大会全体を見ないと決まらないので上で作って渡す */
+  matchNames: ReadonlyMap<string, string>,
 ): LeagueTableView => {
   const nameById = new Map(
     participants.map((participant) => [participant.id, participant.name]),
@@ -238,7 +243,7 @@ export const toLeagueTableView = (
     ]),
   );
 
-  const matches = readMatches(config, results);
+  const matches = readMatches(config, results, matchNames);
   const standings = rankStandings(
     sortedBySeed.map((entry) => ({ entryId: entry.id, seed: entry.seed })),
     matches,
