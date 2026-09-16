@@ -125,8 +125,8 @@ export function MatchResultDetailForm({
                 スコア
               </th>
               {Array.from({ length: config.score.count }, (_, index) => (
-                // biome-ignore lint/suspicious/noArrayIndexKey: 欄の数は設定で決まり、並べ替えも削除もされないので index を鍵にしてよい
                 <th
+                  // biome-ignore lint/suspicious/noArrayIndexKey: 欄の数は設定で決まり、並べ替えも削除もされないので index を鍵にしてよい
                   key={index}
                   className="px-1 py-1 font-medium text-slate-500"
                 >
