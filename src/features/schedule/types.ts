@@ -49,7 +49,7 @@ export type ScheduleRowView =
        * 全部門を見ている buildScheduleView だけ。
        */
       matchName: string;
-      /** 「1回戦 第1試合」 */
+      /** 「1回戦 (1)」。リーグは位置を持たないので空文字 */
       label: string;
       /** 「山田 vs 第3試合の勝者」 */
       card: string;

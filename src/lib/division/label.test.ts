@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { createSlotLabeler, matchCardLabel, matchPositionLabel } from "./label";
+import {
+  createSlotLabeler,
+  formatDivisionPosition,
+  matchCardLabel,
+  matchPositionLabel,
+} from "./label";
 import type { BracketMatch, DivisionEntries, MatchingConfig } from "./types";
 
 const config: MatchingConfig = {
@@ -77,7 +82,7 @@ describe("matchCardLabel", () => {
 describe("matchPositionLabel", () => {
   it("round と order から構造上の位置を作る", () => {
     expect(matchPositionLabel(config.matches[1], "SINGLE_ELIMINATION")).toBe(
-      "2回戦 第1試合",
+      "2回戦 (1)",
     );
   });
 
@@ -97,15 +102,28 @@ describe("matchPositionLabel", () => {
       ],
     };
 
-    it("トーナメントは回戦で表す", () => {
-      expect(matchPositionLabel(match, "SINGLE_ELIMINATION")).toBe(
-        "2回戦 第2試合",
-      );
+    it("トーナメントは「N回戦 (ラウンド内の位置)」で表す", () => {
+      // 「第 M 試合」と書くと、試合名の既定値（第{{OverallSeq}}試合）と
+      // 見分けが付かなくなる。
+      expect(matchPositionLabel(match, "SINGLE_ELIMINATION")).toBe("2回戦 (2)");
     });
 
-    it("リーグは実施順の通し番号で表す", () => {
-      // リーグに節は無い。round は常に 1 なので「1回戦」と出すと嘘になる。
-      expect(matchPositionLabel(match, "ROUND_ROBIN")).toBe("第2試合");
+    it("リーグは位置の文言を出さない", () => {
+      // リーグに節は無い。round は常に 1 なので「1回戦」と出すと嘘になり、
+      // 通し番号を出すと試合番号と紛らわしい。
+      expect(matchPositionLabel(match, "ROUND_ROBIN")).toBe("");
     });
+  });
+});
+
+describe("formatDivisionPosition", () => {
+  it("部門名と位置を「 / 」でつなぐ", () => {
+    expect(formatDivisionPosition("男子", "1回戦 (1)")).toBe(
+      "男子 / 1回戦 (1)",
+    );
+  });
+
+  it("位置が空文字なら部門名だけにする", () => {
+    expect(formatDivisionPosition("女子リーグ", "")).toBe("女子リーグ");
   });
 });

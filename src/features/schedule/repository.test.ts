@@ -94,7 +94,7 @@ describe("loadScheduleView", () => {
         divisionName: "男子",
         matchId: "m1-0",
         matchName: "1",
-        label: "1回戦 第1試合",
+        label: "1回戦 (1)",
         card: "山田 vs 佐藤",
       },
     ]);
@@ -130,7 +130,7 @@ describe("loadResultRows", () => {
         divisionName: "男子",
         matchId: "m1-0",
         matchName: "1",
-        label: "1回戦 第1試合",
+        label: "1回戦 (1)",
         slots: [
           { label: "山田", entryId: "e1" },
           { label: "佐藤", entryId: "e2" },

@@ -16,7 +16,7 @@ export type MatchNameRowView = {
   /** BracketMatch.id。保存時にこの id を送る */
   matchId: string;
   matchName: string;
-  /** 「1回戦 第1試合」（リーグは「第1試合」）のような構造上の位置 */
+  /** 「1回戦 (1)」のような構造上の位置。リーグは空文字 */
   label: string;
   /** 「山田 vs 佐藤」のような対戦の表示 */
   card: string;

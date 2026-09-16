@@ -194,7 +194,7 @@ describe("buildScheduleView", () => {
       divisionName: "男子",
       matchId: "m1-0",
       matchName: "1",
-      label: "1回戦 第1試合",
+      label: "1回戦 (1)",
       card: "山田 vs 佐藤",
     });
   });
@@ -261,7 +261,7 @@ describe("buildScheduleView", () => {
     ]);
   });
 
-  it("リーグの部門は実施順の通し番号で並べる", () => {
+  it("リーグの部門は位置の文言を空にする", () => {
     const league: ScheduleDivision = {
       id: "dL",
       name: "リーグ",
@@ -298,7 +298,7 @@ describe("buildScheduleView", () => {
 
     expect(rows).toHaveLength(1);
     expect(rows[0].kind).toBe("match");
-    expect(rows[0].kind === "match" && rows[0].label).toBe("第1試合");
+    expect(rows[0].kind === "match" && rows[0].label).toBe("");
   });
 });
 

@@ -67,7 +67,7 @@ describe("LeagueSetup", () => {
     // 星取表のみが描かれた場合と試合名の一覧まで描かれた場合を区別できない。
     // 試合名の一覧にしか無い試合名の入力欄（MatchNameRow の aria-label）を
     // 見て、本物の toMatchOrderView / MatchOrderList が描かれたことを確かめる。
-    expect(screen.getByLabelText("第1試合の試合名")).toHaveValue("1");
+    expect(screen.getByLabelText("山田 vs 田中の試合名")).toHaveValue("1");
   });
 
   it("リーグ以外の形式は案内だけを出す", () => {

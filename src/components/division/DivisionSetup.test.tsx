@@ -164,9 +164,7 @@ describe("DivisionSetup", () => {
       />,
     );
 
-    expect(screen.getByLabelText("1回戦 第1試合の試合名")).toHaveValue(
-      "第3試合",
-    );
+    expect(screen.getByLabelText("1回戦 (1)の試合名")).toHaveValue("第3試合");
   });
 
   it("Json が壊れていてもページを落とさない", () => {

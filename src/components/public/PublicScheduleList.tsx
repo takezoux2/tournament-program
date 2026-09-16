@@ -1,5 +1,6 @@
 import type { ScheduleRowView } from "@/features/schedule/types";
 import { formatStartsAt } from "@/features/tournament/format";
+import { formatDivisionPosition } from "@/lib/division/label";
 
 /**
  * 公開ページの試合一覧。既存の ScheduleList は dnd と Server Action を前提にした
@@ -47,7 +48,7 @@ export function PublicScheduleList({ rows }: { rows: ScheduleRowView[] }) {
               </span>
             </p>
             <p className="mt-1 text-xs text-slate-500">
-              {row.divisionName} / {row.label}
+              {formatDivisionPosition(row.divisionName, row.label)}
             </p>
           </li>
         ),

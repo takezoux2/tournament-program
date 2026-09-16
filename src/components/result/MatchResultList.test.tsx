@@ -224,6 +224,13 @@ describe("MatchResultList", () => {
 
     expect(screen.getByText("まだ試合がありません")).toBeInTheDocument();
   });
+
+  it("位置の文言が空の行（リーグ）は部門名だけを出す", () => {
+    renderList([matchRow({ divisionName: "女子リーグ", label: "" })]);
+
+    expect(screen.getByText("女子リーグ")).toBeInTheDocument();
+    expect(screen.queryByText(/女子リーグ \//)).toBeNull();
+  });
 });
 
 describe("MatchResultList の GA イベント", () => {

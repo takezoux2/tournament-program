@@ -59,8 +59,15 @@ export const matchCardLabel = (
 ): string => `${labelSlot(match.slots[0])} vs ${labelSlot(match.slots[1])}`;
 
 /**
- * 「1回戦 第1試合」のような構造上の位置。
- * リーグには節も回戦も無いので、実施順の通し番号だけで表す。
+ * 「1回戦 (1)」のような構造上の位置。
+ *
+ * 「第 N 試合」と書かないのは、試合名の既定値（第{{OverallSeq}}試合）と同じ形に
+ * なり、大会の通し番号と取り違えるため。括弧の数字はラウンド内の上からの位置
+ * （order + 1）で、試合の番号ではない。
+ *
+ * リーグは節も回戦も持たないので位置の文言を出さない（空文字）。表示側は
+ * formatDivisionPosition を通して、空文字なら区切りごと描かない。
+ *
  * 形式を引数に取るのは、この関数が大会の進行順（複数の部門が混ざる）でも
  * 使われるため。呼び出し側がその試合の部門の形式を知っている。
  */
@@ -68,6 +75,15 @@ export const matchPositionLabel = (
   match: BracketMatch,
   format: DivisionFormat,
 ): string =>
-  format === "ROUND_ROBIN"
-    ? `第${match.sequence + 1}試合`
-    : `${match.round}回戦 第${match.order + 1}試合`;
+  format === "ROUND_ROBIN" ? "" : `${match.round}回戦 (${match.order + 1})`;
+
+/**
+ * 「男子 / 1回戦 (1)」のような、部門名と位置を並べた 1 行。
+ * 位置が空文字（リーグ）のときは部門名だけにして、「男子 / 」のように
+ * 区切りだけが残るのを防ぐ。進行順・公開の進行順・結果入力の 3 画面が
+ * 同じ見せ方をするため、ここに 1 つだけ置く。
+ */
+export const formatDivisionPosition = (
+  divisionName: string,
+  label: string,
+): string => (label === "" ? divisionName : `${divisionName} / ${label}`);

@@ -90,7 +90,11 @@ function SortableRow({
  */
 const rowName = (row: ScheduleRowView, position: number): string =>
   row.kind === "match"
-    ? `${position}行目 ${row.divisionName} ${row.label}`
+    ? // リーグの行は位置の文言が空文字。空の部分を詰めて、名前の中に
+      // 余計な空白を残さない。
+      [`${position}行目`, row.divisionName, row.label]
+        .filter((part) => part !== "")
+        .join(" ")
     : `${position}行目 区切り「${row.label}」`;
 
 export function ScheduleList({

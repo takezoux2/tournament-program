@@ -34,10 +34,16 @@ export function MatchNameRow({
     INITIAL_DIVISION_FORM_STATE,
   );
 
+  // リーグの行は位置の文言を持たない（空文字）。入力欄の名前には対戦カードを
+  // 使い、支援技術に「の試合名」という同じ名前の欄が並ばないようにする。
+  const rowName = row.label === "" ? row.card : row.label;
+
   return (
     <div className="flex flex-1 items-center justify-between gap-4">
       <div className="min-w-0">
-        <p className="text-sm font-medium text-slate-800">{row.label}</p>
+        {row.label !== "" && (
+          <p className="text-sm font-medium text-slate-800">{row.label}</p>
+        )}
         <p className="truncate text-xs text-slate-500">{row.card}</p>
       </div>
 
@@ -50,7 +56,7 @@ export function MatchNameRow({
           type="text"
           name="matchName"
           defaultValue={row.matchName}
-          aria-label={`${row.label}の試合名`}
+          aria-label={`${rowName}の試合名`}
           className="w-20 rounded border border-slate-300 px-2 py-1 text-sm"
         />
         <button

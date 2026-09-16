@@ -1,6 +1,7 @@
 "use client";
 
 import type { ScheduleRowView } from "@/features/schedule/types";
+import { formatDivisionPosition } from "@/lib/division/label";
 
 type MatchRow = Extract<ScheduleRowView, { kind: "match" }>;
 
@@ -14,7 +15,7 @@ export function ScheduleMatchRow({ row }: { row: MatchRow }) {
         <span className="truncate font-medium">{row.card}</span>
       </p>
       <p className="truncate text-xs text-slate-500">
-        {row.divisionName} / {row.label}
+        {formatDivisionPosition(row.divisionName, row.label)}
       </p>
     </div>
   );

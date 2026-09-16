@@ -73,7 +73,9 @@ describe("PublicScheduleList", () => {
   it("部門名とラウンドを出す", () => {
     render(<PublicScheduleList rows={rows} />);
 
-    expect(screen.getByText("男子シングルス / 1回戦 第1試合")).toBeInTheDocument();
+    expect(
+      screen.getByText("男子シングルス / 1回戦 第1試合"),
+    ).toBeInTheDocument();
   });
 
   it("渡された順序のまま並べる", () => {
@@ -97,5 +99,27 @@ describe("PublicScheduleList", () => {
     render(<PublicScheduleList rows={[]} />);
 
     expect(screen.getByText("まだ試合がありません")).toBeInTheDocument();
+  });
+
+  it("位置の文言が空の試合行（リーグ）は部門名だけを出す", () => {
+    render(
+      <PublicScheduleList
+        rows={[
+          {
+            kind: "match",
+            key: "match:dL:r1-0",
+            divisionId: "dL",
+            divisionName: "女子リーグ",
+            matchId: "r1-0",
+            matchName: "第3試合",
+            label: "",
+            card: "高橋 vs 伊藤",
+          },
+        ]}
+      />,
+    );
+
+    expect(screen.getByText("女子リーグ")).toBeInTheDocument();
+    expect(screen.queryByText(/女子リーグ \//)).toBeNull();
   });
 });

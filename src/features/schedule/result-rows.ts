@@ -35,7 +35,7 @@ export type ResultRowView =
       divisionName: string;
       matchId: string;
       matchName: string;
-      /** 「1回戦 第1試合」 */
+      /** 「1回戦 (1)」。リーグは位置を持たないので空文字 */
       label: string;
       slots: [ResultSlotView, ResultSlotView];
       /** BYE の自動勝ち上がりを含む。決まっていなければ null */

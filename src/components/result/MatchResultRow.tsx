@@ -10,6 +10,7 @@ import type {
   ResultRowView,
   ResultSlotView,
 } from "@/features/schedule/result-rows";
+import { formatDivisionPosition } from "@/lib/division/label";
 import { trackEvent } from "@/shared/lib/analytics/events";
 
 type MatchRow = Extract<ResultRowView, { kind: "match" }>;
@@ -118,7 +119,7 @@ export function MatchResultRow({
               {row.matchName}
             </span>
             <span className="truncate text-xs text-slate-500">
-              {row.divisionName} / {row.label}
+              {formatDivisionPosition(row.divisionName, row.label)}
             </span>
           </p>
         </div>

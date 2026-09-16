@@ -54,7 +54,7 @@ describe("toMatchOrderView", () => {
     expect(row).toEqual({
       matchId: "m1-0",
       matchName: "1",
-      label: "1回戦 第1試合",
+      label: "1回戦 (1)",
       card: "山田 vs 佐藤",
     });
   });

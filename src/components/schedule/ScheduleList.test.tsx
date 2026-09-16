@@ -428,4 +428,26 @@ describe("ScheduleList", () => {
       "区切りを追加できませんでした",
     );
   });
+
+  it("位置の文言が空の試合行（リーグ）は部門名だけを出し、操作の名前にも空白を残さない", () => {
+    const leagueRow: ScheduleRowView = {
+      kind: "match",
+      key: "match:dL:r1-0",
+      divisionId: "dL",
+      divisionName: "女子リーグ",
+      matchId: "r1-0",
+      matchName: "第3試合",
+      label: "",
+      card: "高橋 vs 伊藤",
+    };
+    renderList({ rows: [leagueRow] });
+
+    expect(screen.getByText("女子リーグ")).toBeInTheDocument();
+    expect(screen.queryByText(/女子リーグ \//)).toBeNull();
+    expect(
+      screen.getByRole("button", {
+        name: "1行目 女子リーグをドラッグして並べ替え",
+      }),
+    ).toBeInTheDocument();
+  });
 });

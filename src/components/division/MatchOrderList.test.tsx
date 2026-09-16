@@ -99,4 +99,19 @@ describe("MatchOrderList", () => {
     expect(screen.getByText("まだ組み合わせがありません")).toBeInTheDocument();
     expect(screen.queryAllByRole("listitem")).toHaveLength(0);
   });
+
+  it("位置の文言が空の行（リーグ）は対戦カードで入力欄を名付け、位置の行を出さない", () => {
+    renderList([
+      {
+        matchId: "r1-0",
+        matchName: "1",
+        label: "",
+        card: "山田 vs 田中",
+      },
+    ]);
+
+    expect(screen.getByLabelText("山田 vs 田中の試合名")).toHaveValue("1");
+    // 行の中の段落は対戦カードの 1 つだけ（空の位置の段落を描かない）。
+    expect(screen.getByRole("listitem").querySelectorAll("p")).toHaveLength(1);
+  });
 });
