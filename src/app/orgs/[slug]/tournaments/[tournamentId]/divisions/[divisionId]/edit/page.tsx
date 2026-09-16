@@ -6,6 +6,7 @@ import { deleteDivisionAction } from "@/features/division/delete/handler";
 import { findDivisionInTournament } from "@/features/division/repository";
 import { updateDivisionAction } from "@/features/division/update/handler";
 import { findTournamentInOrganization } from "@/features/tournament/repository";
+import { parseDivisionResultConfigOrDefault } from "@/lib/division/parse";
 import { requireOrganization } from "@/shared/middleware/require-organization";
 
 export default async function EditDivisionPage({
@@ -21,6 +22,12 @@ export default async function EditDivisionPage({
   if (!tournament || !division) {
     notFound();
   }
+
+  // Json は DB の列で、アプリの外から壊れた値が入りうる。編集画面まで落とさず、
+  // 読めないときは既定値を出して直せるようにする。
+  const resultConfig = parseDivisionResultConfigOrDefault(
+    division.resultConfig,
+  );
 
   return (
     <main className="min-h-screen bg-slate-50">
@@ -53,6 +60,7 @@ export default async function EditDivisionPage({
             defaultName={division.name}
             defaultFormat={division.format}
             divisionId={division.id}
+            defaultResultConfig={resultConfig}
           />
         </div>
 

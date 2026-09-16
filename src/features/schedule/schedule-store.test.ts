@@ -71,6 +71,12 @@ beforeEach(() => {
       entries,
       matchingConfig,
       results: { version: 1, matches: [] },
+      resultConfig: {
+        version: 1,
+        winReason: { enabled: false, options: [] },
+        score: { enabled: false, count: 3, aggregation: "sum" },
+        note: { enabled: false },
+      },
     },
   ]);
   participantFindMany.mockResolvedValue([

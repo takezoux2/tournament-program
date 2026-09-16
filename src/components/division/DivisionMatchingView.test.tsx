@@ -55,6 +55,7 @@ const buildDivision = (
     ],
   },
   results: { version: 1, matches: [{ matchId: "r1-0", winnerEntryId: "e2" }] },
+  resultConfig: null,
   createdAt: new Date("2026-08-01T00:00:00Z"),
   ...overrides,
 });

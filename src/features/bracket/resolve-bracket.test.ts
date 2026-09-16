@@ -167,6 +167,37 @@ describe("resolveBracket", () => {
     expect(() => resolveBracket(participants, bracket, results)).toThrow(/p9/);
   });
 
+  it("スコアをスロットに配り、勝因とメモを試合に載せる", () => {
+    const resolved = resolveBracket(participants, bracket, [
+      {
+        matchId: "m2",
+        winnerId: "p2",
+        winReason: "一本勝ち",
+        scores: [
+          { participantId: "p2", score: "21" },
+          { participantId: "p3", score: "20" },
+        ],
+        note: "抗議あり",
+      },
+    ]);
+
+    const match = byId(resolved, "m2");
+    expect(match.winReason).toBe("一本勝ち");
+    expect(match.note).toBe("抗議あり");
+    expect(match.slots[0].score).toBe("21");
+    expect(match.slots[1].score).toBe("20");
+  });
+
+  it("スコアが無いスロットは null", () => {
+    const resolved = resolveBracket(participants, bracket, [
+      { matchId: "m2", winnerId: "p2" },
+    ]);
+    const match = byId(resolved, "m2");
+    expect(match.slots[0].score).toBeNull();
+    expect(match.winReason).toBeNull();
+    expect(match.note).toBeNull();
+  });
+
   it("matchName を ResolvedMatch へ通す。無ければ null", () => {
     const bracketWithName: Bracket = {
       ...bracket,

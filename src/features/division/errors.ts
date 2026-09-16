@@ -91,6 +91,24 @@ export class DivisionSlotNotDecidedError extends Data.TaggedError(
   readonly matchId: string;
 }> {}
 
+/** 勝敗が未記録の試合に詳細（勝因・スコア・メモ）を入れようとしたことを表す。 */
+export class DivisionResultNotRecordedError extends Data.TaggedError(
+  "DivisionResultNotRecordedError",
+)<{
+  readonly matchId: string;
+}> {}
+
+/**
+ * 選択肢にも現在の記録にも無い勝因を保存しようとしたことを表す。
+ * 判定には DB 側の options と現在の記録の両方が要るので Zod では書けず、
+ * repository で見る。したがって入力エラーではなくドメインエラーになる。
+ */
+export class DivisionWinReasonNotAllowedError extends Data.TaggedError(
+  "DivisionWinReasonNotAllowedError",
+)<{
+  readonly winReason: string;
+}> {}
+
 export type DivisionError =
   | DivisionOrderConflictError
   | UnexpectedDivisionError
@@ -103,7 +121,9 @@ export type DivisionError =
   | DivisionMatchNotFoundError
   | DivisionParticipantNotFoundError
   | DivisionRevisionConflictError
-  | DivisionSlotNotDecidedError;
+  | DivisionSlotNotDecidedError
+  | DivisionResultNotRecordedError
+  | DivisionWinReasonNotAllowedError;
 
 /**
  * DivisionError の全タグをコンパイラに列挙させるための対照表。
@@ -127,6 +147,8 @@ const divisionErrorTags: Record<DivisionError["_tag"], true> = {
   DivisionParticipantNotFoundError: true,
   DivisionRevisionConflictError: true,
   DivisionSlotNotDecidedError: true,
+  DivisionResultNotRecordedError: true,
+  DivisionWinReasonNotAllowedError: true,
 };
 
 /**

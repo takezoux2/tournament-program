@@ -3,9 +3,17 @@ import { DEFAULT_MATCH_NAME } from "./match-name";
 import {
   DivisionJsonError,
   parseDivisionEntries,
+  parseDivisionResultConfig,
+  parseDivisionResultConfigOrDefault,
   parseDivisionResults,
   parseMatchingConfig,
 } from "./parse";
+import {
+  DEFAULT_DIVISION_RESULT_CONFIG,
+  MAX_NOTE_LENGTH,
+  MAX_WIN_REASON_LENGTH,
+  MAX_WIN_REASON_OPTIONS,
+} from "./types";
 
 describe("parseDivisionEntries", () => {
   it("妥当な値をそのまま返す", () => {
@@ -344,5 +352,189 @@ describe("parseDivisionResults", () => {
     expect(() =>
       parseDivisionResults({ version: 1, matches: { m1: "e1" } }),
     ).toThrow(DivisionJsonError);
+  });
+});
+
+describe("parseDivisionResultConfigOrDefault", () => {
+  it("正しい設定はそのまま返す", () => {
+    const valid = {
+      version: 1,
+      winReason: { enabled: true, options: ["一本勝ち"] },
+      score: { enabled: true, count: 2, aggregation: "sum" },
+      note: { enabled: true },
+    };
+    expect(parseDivisionResultConfigOrDefault(valid)).toEqual(valid);
+  });
+
+  it("壊れた設定は既定値に落とす", () => {
+    expect(parseDivisionResultConfigOrDefault({ version: 2 })).toBe(
+      DEFAULT_DIVISION_RESULT_CONFIG,
+    );
+    expect(parseDivisionResultConfigOrDefault(null)).toBe(
+      DEFAULT_DIVISION_RESULT_CONFIG,
+    );
+  });
+
+  // Json の形の誤り以外（プログラムの不具合など）まで既定値で覆い隠さない。
+  it("DivisionJsonError 以外の例外はそのまま投げる", () => {
+    const broken = {
+      version: 1,
+      get winReason(): unknown {
+        throw new TypeError("boom");
+      },
+    };
+    expect(() => parseDivisionResultConfigOrDefault(broken)).toThrow(TypeError);
+  });
+});
+
+describe("parseDivisionResultConfig", () => {
+  const valid = {
+    version: 1,
+    winReason: { enabled: true, options: ["一本勝ち", "判定勝ち"] },
+    score: { enabled: true, count: 3, aggregation: "average" },
+    note: { enabled: false },
+  };
+
+  it("正しい設定をそのまま返す", () => {
+    expect(parseDivisionResultConfig(valid)).toEqual(valid);
+  });
+
+  it("count が範囲外なら弾く", () => {
+    expect(() =>
+      parseDivisionResultConfig({
+        ...valid,
+        score: { ...valid.score, count: 9 },
+      }),
+    ).toThrow(DivisionJsonError);
+    expect(() =>
+      parseDivisionResultConfig({
+        ...valid,
+        score: { ...valid.score, count: 0 },
+      }),
+    ).toThrow(DivisionJsonError);
+  });
+
+  it("aggregation が未知の値なら弾く", () => {
+    expect(() =>
+      parseDivisionResultConfig({
+        ...valid,
+        score: { ...valid.score, aggregation: "median" },
+      }),
+    ).toThrow(DivisionJsonError);
+  });
+
+  it("enabled が真偽値でなければ弾く", () => {
+    expect(() =>
+      parseDivisionResultConfig({ ...valid, note: { enabled: "yes" } }),
+    ).toThrow(DivisionJsonError);
+  });
+
+  it("winReason.options が上限件数を超えたら弾く", () => {
+    const tooMany = Array.from(
+      { length: MAX_WIN_REASON_OPTIONS + 1 },
+      (_, index) => `理由${index}`,
+    );
+    expect(() =>
+      parseDivisionResultConfig({
+        ...valid,
+        winReason: { ...valid.winReason, options: tooMany },
+      }),
+    ).toThrow(DivisionJsonError);
+  });
+
+  it("winReason.options の 1 件が上限文字数を超えたら弾く", () => {
+    const tooLong = "あ".repeat(MAX_WIN_REASON_LENGTH + 1);
+    expect(() =>
+      parseDivisionResultConfig({
+        ...valid,
+        winReason: { ...valid.winReason, options: [tooLong] },
+      }),
+    ).toThrow(DivisionJsonError);
+  });
+});
+
+describe("parseDivisionResults の詳細項目", () => {
+  const base = {
+    version: 1,
+    matches: [
+      {
+        matchId: "m1",
+        winnerEntryId: "e1",
+        winReason: "一本勝ち",
+        scores: [
+          { entryId: "e1", values: [7, 6.8, null] },
+          { entryId: "e2", values: [6.5, 6.9, 6.6] },
+        ],
+        note: "主審の判定に抗議あり",
+      },
+    ],
+  };
+
+  it("勝因・スコア・メモを読む", () => {
+    expect(parseDivisionResults(base)).toEqual(base);
+  });
+
+  it("詳細項目を持たない旧データもそのまま読める", () => {
+    const old = {
+      version: 1,
+      matches: [{ matchId: "m1", winnerEntryId: "e1" }],
+    };
+    expect(parseDivisionResults(old)).toEqual(old);
+  });
+
+  it("スコアが範囲外なら弾く", () => {
+    const over = {
+      version: 1,
+      matches: [
+        {
+          matchId: "m1",
+          winnerEntryId: "e1",
+          scores: [{ entryId: "e1", values: [1000] }],
+        },
+      ],
+    };
+    expect(() => parseDivisionResults(over)).toThrow(DivisionJsonError);
+  });
+
+  it("スコアが数値でも null でもなければ弾く", () => {
+    const bad = {
+      version: 1,
+      matches: [
+        {
+          matchId: "m1",
+          winnerEntryId: "e1",
+          scores: [{ entryId: "e1", values: ["7"] }],
+        },
+      ],
+    };
+    expect(() => parseDivisionResults(bad)).toThrow(DivisionJsonError);
+  });
+
+  it("winReason が上限文字数を超えたら弾く", () => {
+    const tooLong = {
+      version: 1,
+      matches: [
+        {
+          matchId: "m1",
+          winnerEntryId: "e1",
+          winReason: "あ".repeat(MAX_WIN_REASON_LENGTH + 1),
+        },
+      ],
+    };
+    expect(() => parseDivisionResults(tooLong)).toThrow(DivisionJsonError);
+  });
+
+  it("note が上限文字数を超えたら弾く", () => {
+    const tooLong = {
+      version: 1,
+      matches: [
+        {
+          matchId: "m1",
+          winnerEntryId: "e1",
+          note: "あ".repeat(MAX_NOTE_LENGTH + 1),
+        },
+      ],
+    };
+    expect(() => parseDivisionResults(tooLong)).toThrow(DivisionJsonError);
   });
 });

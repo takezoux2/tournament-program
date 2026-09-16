@@ -6,6 +6,11 @@ import {
   resolveMatchSlots,
 } from "@/lib/division/resolve";
 import type {
+  DivisionResultConfig,
+  MatchResultRecord,
+  MatchScoreEntry,
+} from "@/lib/division/types";
+import type {
   ScheduleDivision,
   ScheduleParticipant,
   ScheduleRowView,
@@ -27,7 +32,17 @@ export type ResultRowState = "ready" | "recorded" | "waiting" | "bye";
  * 参照できないため。結果の入力に時刻は要らない。
  */
 export type ResultRowView =
-  | { kind: "divider"; key: string; label: string }
+  | {
+      kind: "divider";
+      key: string;
+      label: string;
+      /**
+       * 区切りの開始予定時刻。書式化は画面側の仕事なので Date のまま運ぶ
+       * （features/schedule からは同列の features/tournament を参照できない）。
+       * 公開の試合一覧がこの型を使うため、結果入力には要らないが載せている。
+       */
+      startsAt: Date | null;
+    }
   | {
       kind: "match";
       key: string;
@@ -43,6 +58,14 @@ export type ResultRowView =
       state: ResultRowState;
       /** 上書き・取り消しで消える下流の記録の件数。0 なら確認を出さない */
       downstreamRecordedCount: number;
+      /** この試合が属する部門の結果入力の設定 */
+      resultConfig: DivisionResultConfig;
+      /** 記録済みの勝因。未設定は null */
+      winReason: string | null;
+      /** 記録済みの採点。未設定は空配列 */
+      scores: MatchScoreEntry[];
+      /** 記録済みのメモ。未設定は null */
+      note: string | null;
     };
 
 /**
@@ -102,8 +125,9 @@ export const buildResultRows = (
           division.entries,
           participants,
         ),
-        recorded: new Set(
-          division.results.matches.map((record) => record.matchId),
+        // 記録の有無だけでなく中身も要るので、id から記録を引く表にする。
+        recordById: new Map<string, MatchResultRecord>(
+          division.results.matches.map((record) => [record.matchId, record]),
         ),
         // id から試合を引く表。行ごとに matches を線形探索しないための Map。
         matchById: new Map(
@@ -118,7 +142,14 @@ export const buildResultRows = (
 
   return rows.flatMap((row): ResultRowView[] => {
     if (row.kind === "divider") {
-      return [{ kind: "divider", key: row.key, label: row.label }];
+      return [
+        {
+          kind: "divider",
+          key: row.key,
+          label: row.label,
+          startsAt: row.startsAt,
+        },
+      ];
     }
 
     const current = context.get(row.divisionId);
@@ -148,6 +179,8 @@ export const buildResultRows = (
       current.dependents,
     );
 
+    const record = current.recordById.get(row.matchId);
+
     return [
       {
         kind: "match",
@@ -159,10 +192,14 @@ export const buildResultRows = (
         label: row.label,
         slots: [slotView(0), slotView(1)],
         winnerEntryId: resolved.winnerEntryId,
-        state: rowState(resolved, current.recorded.has(row.matchId)),
+        state: rowState(resolved, record !== undefined),
         downstreamRecordedCount: [...downstream].filter((id) =>
-          current.recorded.has(id),
+          current.recordById.has(id),
         ).length,
+        resultConfig: current.division.resultConfig,
+        winReason: record?.winReason ?? null,
+        scores: record?.scores ?? [],
+        note: record?.note ?? null,
       },
     ];
   });

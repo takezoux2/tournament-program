@@ -4,6 +4,7 @@ import type {
   DivisionResults,
   MatchingConfig,
 } from "@/lib/division/types";
+import { DEFAULT_DIVISION_RESULT_CONFIG } from "@/lib/division/types";
 import { fromDivision } from "./from-division";
 
 const entries: DivisionEntries = {
@@ -47,6 +48,7 @@ const buildInput = (
   entries,
   matchingConfig,
   results: emptyResults,
+  resultConfig: DEFAULT_DIVISION_RESULT_CONFIG,
   participants,
   matchNames: new Map<string, string>(),
   ...overrides,
@@ -177,6 +179,102 @@ describe("fromDivision", () => {
         ],
       },
     ]);
+  });
+
+  it("勝因・集計済みスコア・メモを結果に載せる", () => {
+    const converted = fromDivision(
+      buildInput({
+        resultConfig: {
+          version: 1,
+          winReason: { enabled: true, options: ["一本勝ち"] },
+          score: { enabled: true, count: 3, aggregation: "average" },
+          note: { enabled: true },
+        },
+        results: {
+          version: 1,
+          matches: [
+            {
+              matchId: "m1",
+              winnerEntryId: "e1",
+              winReason: "一本勝ち",
+              scores: [
+                { entryId: "e1", values: [7, 6, 5] },
+                { entryId: "e2", values: [6, 6, null] },
+              ],
+              note: "抗議あり",
+            },
+          ],
+        },
+      }),
+    );
+
+    expect(converted?.results[0]).toEqual({
+      matchId: "m1",
+      winnerId: "e1",
+      winReason: "一本勝ち",
+      scores: [
+        { participantId: "e1", score: "6" },
+        { participantId: "e2", score: "6" },
+      ],
+      note: "抗議あり",
+    });
+  });
+
+  it("無効な項目は載せない", () => {
+    const converted = fromDivision(
+      buildInput({
+        resultConfig: {
+          version: 1,
+          winReason: { enabled: false, options: [] },
+          score: { enabled: false, count: 3, aggregation: "sum" },
+          note: { enabled: false },
+        },
+        results: {
+          version: 1,
+          matches: [
+            {
+              matchId: "m1",
+              winnerEntryId: "e1",
+              winReason: "一本勝ち",
+              scores: [{ entryId: "e1", values: [7] }],
+              note: "抗議あり",
+            },
+          ],
+        },
+      }),
+    );
+
+    expect(converted?.results[0]).toEqual({ matchId: "m1", winnerId: "e1" });
+  });
+
+  // 全欄が未入力（null）だと集計結果も null になり、表示できるスコアが無い。
+  // scores 自体を省くことで、空バッジが並ぶのを避ける。
+  it("スコアが有効でも全欄未入力なら scores を載せない", () => {
+    const converted = fromDivision(
+      buildInput({
+        resultConfig: {
+          version: 1,
+          winReason: { enabled: false, options: [] },
+          score: { enabled: true, count: 3, aggregation: "sum" },
+          note: { enabled: false },
+        },
+        results: {
+          version: 1,
+          matches: [
+            {
+              matchId: "m1",
+              winnerEntryId: "e1",
+              scores: [
+                { entryId: "e1", values: [null, null, null] },
+                { entryId: "e2", values: [null, null, null] },
+              ],
+            },
+          ],
+        },
+      }),
+    );
+
+    expect(converted?.results[0]).toEqual({ matchId: "m1", winnerId: "e1" });
   });
 
   it("SINGLE_ELIMINATION 以外は null", () => {

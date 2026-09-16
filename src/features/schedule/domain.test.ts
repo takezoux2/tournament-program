@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import type { BracketMatch, MatchingConfig } from "@/lib/division/types";
+import {
+  type BracketMatch,
+  DEFAULT_DIVISION_RESULT_CONFIG,
+  type MatchingConfig,
+} from "@/lib/division/types";
 import { buildScheduleView, dividerKey, matchKey, toSaveItems } from "./domain";
 import type { ScheduleDivision, ScheduleItemRecord } from "./types";
 
@@ -31,6 +35,7 @@ const makeDivision = (overrides: {
   entries: { version: 1, entries: [] },
   matchingConfig: { version: 1, matches: overrides.matches },
   results: { version: 1, matches: [] },
+  resultConfig: DEFAULT_DIVISION_RESULT_CONFIG,
 });
 
 const config = (
@@ -75,6 +80,7 @@ const divisionA: ScheduleDivision = {
   },
   matchingConfig: config(["e1", "e2"], ["1", "2"]),
   results: { version: 1, matches: [] },
+  resultConfig: DEFAULT_DIVISION_RESULT_CONFIG,
 };
 
 const divisionB: ScheduleDivision = {
@@ -91,6 +97,7 @@ const divisionB: ScheduleDivision = {
   },
   matchingConfig: config(["f1", "f2"], ["1", "2"]),
   results: { version: 1, matches: [] },
+  resultConfig: DEFAULT_DIVISION_RESULT_CONFIG,
 };
 
 const participants = [
@@ -154,6 +161,7 @@ const outOfOrderDivision: ScheduleDivision = {
     ],
   },
   results: { version: 1, matches: [] },
+  resultConfig: DEFAULT_DIVISION_RESULT_CONFIG,
 };
 
 describe("buildScheduleView", () => {
@@ -285,6 +293,7 @@ describe("buildScheduleView", () => {
         ],
       },
       results: { version: 1, matches: [] },
+      resultConfig: DEFAULT_DIVISION_RESULT_CONFIG,
     };
 
     const rows = buildScheduleView([league], participants, []);

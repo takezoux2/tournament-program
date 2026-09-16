@@ -11,6 +11,7 @@ import type {
 import { resolveMatchNames } from "@/lib/division/match-name";
 import {
   parseDivisionEntries,
+  parseDivisionResultConfigOrDefault,
   parseDivisionResults,
   parseMatchingConfig,
 } from "@/lib/division/parse";
@@ -51,6 +52,13 @@ export function DivisionBracket({
     return <Notice>ブラケットのデータを読み込めませんでした</Notice>;
   }
 
+  // resultConfig は表示のフィルタでしかない。壊れていてもブラケットそのものは
+  // 描けるはずなので、他の 3 列とは別に受け止めて既定値へ落とす
+  // （/edit ページの読み出しと同じ方針）。
+  const resultConfig = parseDivisionResultConfigOrDefault(
+    division.resultConfig,
+  );
+
   if (parsed.matchingConfig.matches.length === 0) {
     return <Notice>組み合わせが未作成です</Notice>;
   }
@@ -71,6 +79,7 @@ export function DivisionBracket({
     entries: parsed.entries,
     matchingConfig: parsed.matchingConfig,
     results: parsed.results,
+    resultConfig,
     participants,
     matchNames: resolveMatchNames(
       parsed.matchingConfig,

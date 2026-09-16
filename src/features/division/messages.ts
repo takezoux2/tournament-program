@@ -55,5 +55,13 @@ export const divisionErrorMessage: (error: DivisionError) => string =
       "DivisionSlotNotDecidedError",
       () => "対戦相手がまだ決まっていません。画面を再読み込みしてください",
     ),
+    Match.tag(
+      "DivisionResultNotRecordedError",
+      () => "先に勝敗を記録してください",
+    ),
+    Match.tag(
+      "DivisionWinReasonNotAllowedError",
+      () => "その勝因は選べません。画面を再読み込みしてください",
+    ),
     Match.exhaustive,
   );

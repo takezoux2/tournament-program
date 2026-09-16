@@ -5,7 +5,18 @@ import { UnexpectedDivisionError } from "../errors";
 import type { UpdateDivisionPort } from "./repository";
 import { updateDivision } from "./usecase";
 
-const input = { name: "男子シングルス", format: "ROUND_ROBIN" as const };
+const resultConfig = {
+  version: 1 as const,
+  winReason: { enabled: false, options: [] as string[] },
+  score: { enabled: false, count: 3, aggregation: "sum" as const },
+  note: { enabled: false },
+};
+
+const input = {
+  name: "男子シングルス",
+  format: "ROUND_ROBIN" as const,
+  resultConfig,
+};
 
 describe("updateDivision", () => {
   it("組織 id・大会 id・部門 id をすべて port に渡す", async () => {
@@ -26,6 +37,7 @@ describe("updateDivision", () => {
       divisionId: "d1",
       name: "男子シングルス",
       format: "ROUND_ROBIN",
+      resultConfig,
     });
   });
 
@@ -38,5 +50,29 @@ describe("updateDivision", () => {
     );
 
     expect(failureTag(exit)).toBe("UnexpectedDivisionError");
+  });
+
+  it("resultConfig を port へそのまま渡す", async () => {
+    const resultConfig = {
+      version: 1 as const,
+      winReason: { enabled: false, options: [] as string[] },
+      score: { enabled: true, count: 5, aggregation: "average" as const },
+      note: { enabled: false },
+    };
+    const port = vi.fn(() => Effect.succeed({ updated: 1 }));
+
+    await Effect.runPromise(
+      updateDivision(
+        port,
+        { name: "男子", format: "SINGLE_ELIMINATION", resultConfig },
+        "o1",
+        "t1",
+        "d1",
+      ),
+    );
+
+    expect(port).toHaveBeenCalledWith(
+      expect.objectContaining({ resultConfig }),
+    );
   });
 });

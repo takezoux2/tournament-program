@@ -15,13 +15,14 @@ export type DivisionSummary = {
 };
 
 /**
- * Json 3 列は Prisma が JsonValue で返す。ここでは形を保証せず unknown として運び、
+ * Json 4 列は Prisma が JsonValue で返す。ここでは形を保証せず unknown として運び、
  * 検証は lib/division の parse 関数に任せる。
  */
 export type DivisionDetail = DivisionSummary & {
   entries: unknown;
   matchingConfig: unknown;
   results: unknown;
+  resultConfig: unknown;
   createdAt: Date;
 };
 
@@ -70,6 +71,7 @@ export const findDivisionInTournament = (
       entries: true,
       matchingConfig: true,
       results: true,
+      resultConfig: true,
       createdAt: true,
     },
   });

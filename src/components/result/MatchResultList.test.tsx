@@ -6,6 +6,9 @@ import type { ResultRowView } from "@/features/schedule/result-rows";
 import { MatchResultList } from "./MatchResultList";
 
 const action = vi.fn<DivisionFormAction>(async () => ({ error: null }));
+// 詳細フォームの配線は MatchResultDetailForm.test.tsx 側で見るので、
+// ここでは呼ばれないことだけ確認できれば十分なダミーにする。
+const detailAction = vi.fn<DivisionFormAction>(async () => ({ error: null }));
 
 const trackEvent = vi.fn();
 
@@ -30,6 +33,15 @@ const matchRow = (
   winnerEntryId: null,
   state: "ready",
   downstreamRecordedCount: 0,
+  resultConfig: {
+    version: 1,
+    winReason: { enabled: false, options: [] },
+    score: { enabled: false, count: 3, aggregation: "sum" },
+    note: { enabled: false },
+  },
+  winReason: null,
+  scores: [],
+  note: null,
   ...overrides,
 });
 
@@ -40,6 +52,7 @@ const renderList = (rows: ResultRowView[]) =>
       slug="tennis"
       tournamentId="t1"
       action={action}
+      detailAction={detailAction}
     />,
   );
 
@@ -189,6 +202,7 @@ describe("MatchResultList", () => {
         slug="tennis"
         tournamentId="t1"
         action={pendingAction}
+        detailAction={detailAction}
       />,
     );
 
@@ -212,7 +226,7 @@ describe("MatchResultList", () => {
 
   it("区切りは見出しとして出す", () => {
     renderList([
-      { kind: "divider", key: "divider:x1", label: "午前の部" },
+      { kind: "divider", key: "divider:x1", label: "午前の部", startsAt: null },
       matchRow(),
     ]);
 
@@ -251,6 +265,7 @@ describe("MatchResultList の GA イベント", () => {
         slug="tennis"
         tournamentId="t1"
         action={rowAction}
+        detailAction={detailAction}
       />,
     );
 

@@ -4,10 +4,21 @@ import type {
   BracketSide,
   DivisionEntries,
   DivisionEntry,
+  DivisionResultConfig,
   DivisionResults,
   MatchingConfig,
   MatchResultRecord,
+  MatchScoreEntry,
+  ScoreAggregation,
   SlotSource,
+} from "./types";
+import {
+  DEFAULT_DIVISION_RESULT_CONFIG,
+  MAX_NOTE_LENGTH,
+  MAX_SCORE_COUNT,
+  MAX_SCORE_VALUE,
+  MAX_WIN_REASON_LENGTH,
+  MAX_WIN_REASON_OPTIONS,
 } from "./types";
 
 /** Json が想定の形をしていないことを表す。呼び出し元は入力エラーとして扱う。 */
@@ -44,6 +55,60 @@ const asArray = (value: unknown, path: string): unknown[] =>
 
 const asVersion1 = (value: unknown, path: string): 1 =>
   value === 1 ? 1 : fail(path, "version 1");
+
+const asBoolean = (value: unknown, path: string): boolean =>
+  typeof value === "boolean" ? value : fail(path, "真偽値");
+
+/**
+ * スコア 1 つぶん。未入力の null は呼び出し側で先に弾く。
+ * 範囲をここで見るのは、壊れた値が集計や画面に流れ込むのを入口で止めるため。
+ */
+const asScoreValue = (value: unknown, path: string): number => {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    return fail(path, "数値または null");
+  }
+  if (value < 0 || value > MAX_SCORE_VALUE) {
+    return fail(path, `0 以上 ${MAX_SCORE_VALUE} 以下の数値`);
+  }
+  return value;
+};
+
+const asScoreAggregation = (value: unknown, path: string): ScoreAggregation => {
+  const raw = asString(value, path);
+  return raw === "sum" || raw === "average"
+    ? raw
+    : fail(path, '"sum" または "average"');
+};
+
+/** 勝因ラベル 1 件。選択肢・記録の両方で使う。 */
+const asWinReasonLabel = (value: unknown, path: string): string => {
+  const raw = asString(value, path);
+  if (raw.length > MAX_WIN_REASON_LENGTH) {
+    return fail(path, `${MAX_WIN_REASON_LENGTH} 文字以内の文字列`);
+  }
+  return raw;
+};
+
+const asNote = (value: unknown, path: string): string => {
+  const raw = asString(value, path);
+  if (raw.length > MAX_NOTE_LENGTH) {
+    return fail(path, `${MAX_NOTE_LENGTH} 文字以内の文字列`);
+  }
+  return raw;
+};
+
+const parseMatchScoreEntry = (
+  value: unknown,
+  path: string,
+): MatchScoreEntry => {
+  const record = asRecord(value, path);
+  return {
+    entryId: asString(record.entryId, `${path}.entryId`),
+    values: asArray(record.values, `${path}.values`).map((item, index) =>
+      item === null ? null : asScoreValue(item, `${path}.values[${index}]`),
+    ),
+  };
+};
 
 const parseDivisionEntry = (value: unknown, path: string): DivisionEntry => {
   const record = asRecord(value, path);
@@ -168,6 +233,17 @@ const parseMatchResultRecord = (
   if (record.finishedAt !== undefined) {
     parsed.finishedAt = asString(record.finishedAt, `${path}.finishedAt`);
   }
+  if (record.winReason !== undefined) {
+    parsed.winReason = asWinReasonLabel(record.winReason, `${path}.winReason`);
+  }
+  if (record.scores !== undefined) {
+    parsed.scores = asArray(record.scores, `${path}.scores`).map(
+      (item, index) => parseMatchScoreEntry(item, `${path}.scores[${index}]`),
+    );
+  }
+  if (record.note !== undefined) {
+    parsed.note = asNote(record.note, `${path}.note`);
+  }
   return parsed;
 };
 
@@ -206,4 +282,71 @@ export const parseDivisionResults = (value: unknown): DivisionResults => {
       parseMatchResultRecord(item, `results.matches[${index}]`),
     ),
   };
+};
+
+/** Division.resultConfig の Json を検証して返す。不正なら DivisionJsonError。 */
+export const parseDivisionResultConfig = (
+  value: unknown,
+): DivisionResultConfig => {
+  const record = asRecord(value, "resultConfig");
+  const winReason = asRecord(record.winReason, "resultConfig.winReason");
+  const score = asRecord(record.score, "resultConfig.score");
+  const note = asRecord(record.note, "resultConfig.note");
+
+  const count = asInt(score.count, "resultConfig.score.count");
+  if (count < 1 || count > MAX_SCORE_COUNT) {
+    fail("resultConfig.score.count", `1 以上 ${MAX_SCORE_COUNT} 以下の整数`);
+  }
+
+  const winReasonOptions = asArray(
+    winReason.options,
+    "resultConfig.winReason.options",
+  );
+  if (winReasonOptions.length > MAX_WIN_REASON_OPTIONS) {
+    fail(
+      "resultConfig.winReason.options",
+      `${MAX_WIN_REASON_OPTIONS} 件以内の配列`,
+    );
+  }
+
+  return {
+    version: asVersion1(record.version, "resultConfig.version"),
+    winReason: {
+      enabled: asBoolean(winReason.enabled, "resultConfig.winReason.enabled"),
+      options: winReasonOptions.map((item, index) =>
+        asWinReasonLabel(item, `resultConfig.winReason.options[${index}]`),
+      ),
+    },
+    score: {
+      enabled: asBoolean(score.enabled, "resultConfig.score.enabled"),
+      count,
+      aggregation: asScoreAggregation(
+        score.aggregation,
+        "resultConfig.score.aggregation",
+      ),
+    },
+    note: { enabled: asBoolean(note.enabled, "resultConfig.note.enabled") },
+  };
+};
+
+/**
+ * Division.resultConfig を読み、形が壊れていれば既定値に落とす。
+ *
+ * resultConfig は表示と入力欄の出し分けにしか使わないので、壊れていても
+ * 画面（公開の試合一覧・ブラケット・編集画面）まで落とす理由が無い。
+ * 既定値は 3 項目とも無効なので、設定が無かったころの見え方に戻るだけで済む。
+ * 保存の経路では使わないこと（壊れた設定のまま書き込むのを見逃すため）。
+ * DivisionJsonError 以外の例外は不具合なので、握りつぶさずにそのまま投げる。
+ */
+export const parseDivisionResultConfigOrDefault = (
+  value: unknown,
+): DivisionResultConfig => {
+  try {
+    return parseDivisionResultConfig(value);
+  } catch (error) {
+    if (error instanceof DivisionJsonError) {
+      return DEFAULT_DIVISION_RESULT_CONFIG;
+    }
+    throw error;
+  }
 };
