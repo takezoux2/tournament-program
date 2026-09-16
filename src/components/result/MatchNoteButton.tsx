@@ -37,11 +37,14 @@ export function MatchNoteButton({
         ブロック要素が入り、無効なネスト（hydration mismatch）になる。
         span に block 相当のスタイルを当てて、インラインの文脈でも
         安全に使えるようにしている（公開ページでも使う想定）。
+        block は開いているときだけ当てる。素の block は UA の
+        [popover]:not(:popover-open){display:none} より優先され、
+        閉じていても常に表示されてしまう。
       */}
       <span
         id={id}
         popover="auto"
-        className="block max-w-xs rounded border border-slate-300 bg-white px-3 py-2 text-xs whitespace-pre-wrap text-slate-700 shadow-lg"
+        className="max-w-xs [&:popover-open]:block rounded border border-slate-300 bg-white px-3 py-2 text-xs whitespace-pre-wrap text-slate-700 shadow-lg"
       >
         {note}
       </span>
