@@ -12,12 +12,20 @@ vi.mock("@/shared/db/prisma", () => ({
 
 const { updateDivisionInDb } = await import("./repository");
 
+const resultConfig = {
+  version: 1 as const,
+  winReason: { enabled: false, options: [] as string[] },
+  score: { enabled: false, count: 3, aggregation: "sum" as const },
+  note: { enabled: false },
+};
+
 const input = {
   organizationId: "o1",
   tournamentId: "t1",
   divisionId: "d1",
   name: "男子ダブルス",
   format: "ROUND_ROBIN",
+  resultConfig,
 } as const;
 
 beforeEach(() => {
@@ -34,7 +42,7 @@ describe("updateDivisionInDb", () => {
 
     expect(updateMany).toHaveBeenCalledWith({
       where: { id: "d1", tournament: { id: "t1", organizationId: "o1" } },
-      data: { name: "男子ダブルス", format: "ROUND_ROBIN" },
+      data: { name: "男子ダブルス", format: "ROUND_ROBIN", resultConfig },
     });
     expect(Exit.isSuccess(exit)).toBe(true);
     if (Exit.isSuccess(exit)) {
@@ -70,5 +78,34 @@ describe("updateDivisionInDb", () => {
     const exit = await Effect.runPromiseExit(updateDivisionInDb({ ...input }));
 
     expect(failureTag(exit)).toBe("UnexpectedDivisionError");
+  });
+
+  it("resultConfig を書き、results には触れない", async () => {
+    updateMany.mockResolvedValue({ count: 1 });
+    const resultConfig = {
+      version: 1 as const,
+      winReason: { enabled: true, options: ["一本勝ち"] },
+      score: { enabled: false, count: 3, aggregation: "sum" as const },
+      note: { enabled: true },
+    };
+
+    await Effect.runPromise(
+      updateDivisionInDb({
+        organizationId: "o1",
+        tournamentId: "t1",
+        divisionId: "d1",
+        name: "男子",
+        format: "SINGLE_ELIMINATION",
+        resultConfig,
+      }),
+    );
+
+    const [call] = updateMany.mock.calls;
+    expect(call[0].data).toEqual({
+      name: "男子",
+      format: "SINGLE_ELIMINATION",
+      resultConfig,
+    });
+    expect(call[0].data).not.toHaveProperty("results");
   });
 });

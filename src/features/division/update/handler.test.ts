@@ -46,6 +46,12 @@ const buildFormData = (
   data.set("divisionId", "d1");
   data.set("name", name);
   data.set("format", format);
+  // resultConfig は checkbox 未設定（= 無効）のまま、スコア欄の数と集計方法だけ
+  // 有効な値を入れておく。この 2 つは coerce/enum で必ず検証されるため、
+  // 値が無いと resultConfig 側の失敗で name のエラーを隠してしまう。
+  data.set("winReasonOptions", "");
+  data.set("scoreCount", "3");
+  data.set("scoreAggregation", "sum");
   return data;
 };
 
