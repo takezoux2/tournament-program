@@ -43,6 +43,11 @@ const toJsonInput = (results: DivisionResults): Prisma.InputJsonValue =>
  * 勝者が変わると、その勝者が進む先（下流）の記録は矛盾する。承認済みの仕様に
  * 従い、下流をまとめて消してから書く。同じ勝者の押し直しは変更なしとして
  * 何も書かない（下流も残る）。
+ *
+ * 記録済みの試合で勝者だけを変えたときは、スコアとメモを引き継ぎ、勝因は消す。
+ * スコアとメモは勝者が誰かに依らず意味を保つので、勝者の付け直しで黙って
+ * 失わせない。勝因は前の勝者に付けたものなので、残すと新しい勝者の勝因として
+ * 表示されてしまう。取り消し（空文字）は従来どおり記録ごと消す。
  */
 export const recordResultInDb: RecordResultPort = (ids, input) =>
   Effect.tryPromise({
@@ -125,6 +130,12 @@ export const recordResultInDb: RecordResultPort = (ids, input) =>
               : applyMatchResult(cleared, {
                   matchId: input.matchId,
                   winnerEntryId: nextWinner,
+                  ...(existing?.scores !== undefined
+                    ? { scores: existing.scores }
+                    : {}),
+                  ...(existing?.note !== undefined
+                    ? { note: existing.note }
+                    : {}),
                 });
 
           // setup-store の save と同じく、書く直前に反映後の全体を検証する。

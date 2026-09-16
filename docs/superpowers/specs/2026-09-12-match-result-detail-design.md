@@ -151,12 +151,22 @@ export const formatScore = (value: number | null): string | null;
 
 ### 詳細の保存: 新スライス `features/division/update-result-detail/`
 
-`record-result` は一切変更しない。別スライスにする理由は 2 つ。
+詳細の保存は `record-result` に同居させず、別スライスにする。理由は 2 つ。
 
 1. **下流を消す条件が違う。** `record-result` は勝者が変わったら下流の記録を消す。詳細の
    保存は勝者を変えないので、下流を消してはならない。同じ Server Action に同居させると
    「何を送ったときに何が消えるか」が読めなくなる。
 2. **入力の形が違う。** 勝敗はボタン 1 タップで即保存、詳細は複数欄をまとめて保存ボタンで送る。
+
+### 勝敗の付け直し: `record-result` の変更
+
+`record-result` 側は 1 点だけ変える。記録済みの試合で勝者を変えたとき、これまでは記録を
+丸ごと置き換えていたため、入力済みの勝因・スコア・メモが黙って消えていた。
+
+- 勝者が変わったら **`scores` と `note` は引き継ぎ、`winReason` は消す。** スコアとメモは
+  勝者が誰かに依らず意味を保つ。勝因は前の勝者に付けたものなので、残すと新しい勝者の
+  勝因として表示されてしまう。
+- 取り消し（空文字）は従来どおり記録ごと消す。下流の記録を消す挙動も変えない。
 
 構成は既存スライスと同じ 4 ファイル（`schema.ts` / `usecase.ts` / `repository.ts` /
 `handler.ts`）。`repository.ts` は `record-result` と同じく `$transaction` + `revision` の
