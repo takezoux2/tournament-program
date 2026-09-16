@@ -92,6 +92,12 @@ DB への読み書きが責務であり、描画には関わらない。
 試合として保存しない（保存すると `features/schedule` が実在しない試合の行を
 出してしまう）。誰が休みかは `round-robin/view.ts` が節ごとの差分から算出する。
 
+リーグの勝敗込み星取表と順位表は `round-robin/standings.ts` が組み立てる。
+勝点は勝 3・分 1・負 0 で、勝点 → 勝ち数 → 同点者どうしの直接対決 → 同順位の順に
+決める。閲覧ページ（管理画面の部門詳細と公開の部門ページ）は形式で描画を振り分ける
+`components/division/DivisionMatchingView.tsx` を通してこれを使う。編集画面の
+`LeagueCrossTable` は試合名だけを出す別物で、閲覧用と役割を分けている。
+
 `setup-store.ts` は全スライス共通の read-modify-write を持つ。所有権つきの読み出し、
 Json のパース、勝敗が記録済みかの確認、保存前の検証、`updateMany` での書き戻しを
 1 つのトランザクションにまとめる。形式の判定もここに置き、編集画面を持たない形式は
@@ -141,7 +147,7 @@ Json のパース、勝敗が記録済みかの確認、保存前の検証、`up
 `features/division/record-result` は、5 つの編集スライスと違って `setup-store.ts` を
 **意図的に使わない**。`setup-store.ts` の読み出しは「`results` が 1 件でもあれば
 部門の編集を拒否する」作りだが、このスライスが書き換えたいのはまさに `results` 列
-そのものだから、この読み出しには乗れない。先例は `set-match-number` と同じ形の
+そのものだから、この読み出しには乗れない。先例は `set-match-name` と同じ形の
 専用トランザクション（所有権つきの読み出し・パース・検証・`updateMany` での
 書き戻しをスライス自身の `repository.ts` に持つ）である。
 

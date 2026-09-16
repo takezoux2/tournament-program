@@ -166,10 +166,47 @@ describe("PublicDivisionPage", () => {
     );
   });
 
-  it("SINGLE_ELIMINATION 以外では参加者を引かない", async () => {
+  it("ROUND_ROBIN の部門では参加者一覧を引いて結果表を描く", async () => {
     findDivisionInTournament.mockResolvedValue({
       ...division,
       format: "ROUND_ROBIN" as const,
+      matchingConfig: {
+        version: 1,
+        matches: [
+          {
+            id: "r1-0",
+            bracket: "winners",
+            round: 1,
+            order: 0,
+            sequence: 0,
+            matchName: "1",
+            slots: [
+              { kind: "entry", entryId: "e1" },
+              { kind: "entry", entryId: "e2" },
+            ],
+          },
+        ],
+      },
+      results: {
+        version: 1,
+        matches: [{ matchId: "r1-0", winnerEntryId: "e1" }],
+      },
+    });
+
+    render(await Page(pageProps("t1", "d1")));
+
+    expect(listParticipantsInTournament).toHaveBeenCalledWith("o1", "t1");
+    expect(
+      screen.getByRole("columnheader", { name: "順位" }),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText("勝ち")).toBeInTheDocument();
+    expect(screen.queryByTestId("flow")).toBeNull();
+  });
+
+  it("描画に参加者を使わない形式では参加者を引かない", async () => {
+    findDivisionInTournament.mockResolvedValue({
+      ...division,
+      format: "DOUBLE_ELIMINATION_GRAND_FINAL" as const,
     });
 
     await Page(pageProps("t1", "d1"));
