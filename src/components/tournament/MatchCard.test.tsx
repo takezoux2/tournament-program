@@ -207,8 +207,9 @@ describe("MatchCard", () => {
   // ノードのドラッグ・パンに取られる。
   it("メモボタンは React Flow のドラッグ・パンから外す", () => {
     render(<MatchCard match={{ ...doneMatch, note: "抗議あり" }} />);
-    const wrapper = screen.getByRole("button", { name: "試合のメモ" })
-      .parentElement;
+    const wrapper = screen.getByRole("button", {
+      name: "試合のメモ",
+    }).parentElement;
     expect(wrapper).toHaveClass("nodrag", "nopan");
   });
 

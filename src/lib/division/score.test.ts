@@ -1,9 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  aggregateScore,
-  formatMatchScoreSummary,
-  formatScore,
-} from "./score";
+import { aggregateScore, formatMatchScoreSummary, formatScore } from "./score";
 
 describe("aggregateScore", () => {
   it("合計を出す", () => {
