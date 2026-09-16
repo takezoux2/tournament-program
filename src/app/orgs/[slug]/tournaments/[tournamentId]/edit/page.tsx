@@ -2,8 +2,10 @@ import { notFound } from "next/navigation";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { DeleteTournamentForm } from "@/components/tournament/DeleteTournamentForm";
 import { TournamentForm } from "@/components/tournament/TournamentForm";
+import { UnpublishTournamentForm } from "@/components/tournament/UnpublishTournamentForm";
 import { deleteTournamentAction } from "@/features/tournament/delete/handler";
 import { findTournamentInOrganization } from "@/features/tournament/repository";
+import { unpublishTournamentAction } from "@/features/tournament/unpublish/handler";
 import { updateTournamentAction } from "@/features/tournament/update/handler";
 import { toDateTimeLocalValue } from "@/lib/datetime/local";
 import { requireOrganization } from "@/shared/middleware/require-organization";
@@ -51,6 +53,15 @@ export default async function EditTournamentPage({
             tournamentId={tournament.id}
           />
         </div>
+
+        {tournament.status !== "DRAFT" && (
+          <UnpublishTournamentForm
+            action={unpublishTournamentAction}
+            slug={slug}
+            tournamentId={tournament.id}
+            tournamentName={tournament.name}
+          />
+        )}
 
         <DeleteTournamentForm
           action={deleteTournamentAction}
