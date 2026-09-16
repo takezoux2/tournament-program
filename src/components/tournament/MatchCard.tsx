@@ -12,7 +12,7 @@ function isLoser(slot: ResolvedSlot, decided: boolean): boolean {
 }
 
 function slotTone(slot: ResolvedSlot, decided: boolean): string {
-  if (slot.isWinner) return "bg-green-100 font-bold text-slate-900";
+  if (slot.isWinner) return "bg-green-200 font-bold text-green-900";
   if (isLoser(slot, decided)) return "bg-slate-100 text-slate-400";
   if (slot.state === "confirmed") return "text-slate-700";
   return "text-slate-400";

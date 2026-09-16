@@ -83,7 +83,7 @@ describe("MatchCard", () => {
     render(<MatchCard match={doneMatch} />);
     const winner = screen.getByTestId("slot-r2-m1-0");
     const loser = screen.getByTestId("slot-r2-m1-1");
-    expect(winner).toHaveClass("bg-green-100", "font-bold");
+    expect(winner).toHaveClass("bg-green-200", "font-bold");
     expect(loser).toHaveClass("bg-slate-100", "text-slate-400");
     expect(loser).not.toHaveClass("font-bold");
   });
