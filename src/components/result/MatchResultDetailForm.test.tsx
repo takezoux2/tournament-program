@@ -56,7 +56,17 @@ describe("MatchResultDetailForm", () => {
 
     expect(screen.getByRole("combobox", { name: "勝因" })).toBeInTheDocument();
     expect(screen.queryByLabelText("メモ")).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("メモは公開ページにも表示されます"),
+    ).not.toBeInTheDocument();
     expect(screen.queryByRole("table")).not.toBeInTheDocument();
+  });
+
+  it("メモが公開ページにも出ることを伝える", () => {
+    renderForm();
+    expect(screen.getByLabelText("メモ")).toHaveAccessibleDescription(
+      "メモは公開ページにも表示されます",
+    );
   });
 
   it("記録済みの値を初期値にする", () => {

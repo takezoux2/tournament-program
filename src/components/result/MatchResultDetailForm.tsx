@@ -126,7 +126,10 @@ export function MatchResultDetailForm({
               </th>
               {Array.from({ length: config.score.count }, (_, index) => (
                 // biome-ignore lint/suspicious/noArrayIndexKey: 欄の数は設定で決まり、並べ替えも削除もされないので index を鍵にしてよい
-                <th key={index} className="px-1 py-1 font-medium text-slate-500">
+                <th
+                  key={index}
+                  className="px-1 py-1 font-medium text-slate-500"
+                >
                   {index + 1}
                 </th>
               ))}
@@ -144,7 +147,11 @@ export function MatchResultDetailForm({
                 >
                   {slot.label}
                   {/* 欄名は score_<entryId>。サーバは getAll の順を index として読む。 */}
-                  <input type="hidden" name="scoreEntryId" value={slot.entryId} />
+                  <input
+                    type="hidden"
+                    name="scoreEntryId"
+                    value={slot.entryId}
+                  />
                 </th>
                 {Array.from({ length: config.score.count }, (_, index) => (
                   // biome-ignore lint/suspicious/noArrayIndexKey: 欄の数は設定で決まり、並べ替えも削除もされないので index を鍵にしてよい
@@ -193,9 +200,16 @@ export function MatchResultDetailForm({
             type="text"
             defaultValue={row.note ?? ""}
             maxLength={MAX_NOTE_LENGTH}
+            aria-describedby={`note-hint-${row.key}`}
             className="min-w-0 flex-1 rounded border border-slate-300 px-2 py-1 text-sm"
           />
         </div>
+      )}
+      {/* 書く直前にも伝える。部門の設定画面を見た人と入力する人は別のことが多い。 */}
+      {config.note.enabled && (
+        <p id={`note-hint-${row.key}`} className="-mt-2 text-xs text-slate-500">
+          メモは公開ページにも表示されます
+        </p>
       )}
 
       <div className="flex items-center justify-end gap-2">

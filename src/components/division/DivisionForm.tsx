@@ -183,9 +183,20 @@ export function DivisionForm({
               type="checkbox"
               name="noteEnabled"
               defaultChecked={defaultResultConfig.note.enabled}
+              aria-describedby="note-enabled-hint"
             />
             メモを記録する
           </label>
+          {/*
+            メモは運営の内部向けに見えるが、公開の試合一覧・ブラケットにも出る。
+            書いてから気付くと取り返しが付かないので、有効にする場所で先に伝える。
+          */}
+          <p
+            id="note-enabled-hint"
+            className="-mt-2 pl-6 text-xs text-slate-500"
+          >
+            メモは公開ページにも表示されます
+          </p>
 
           <p className="text-xs text-slate-500">
             チェックを外しても記録済みの内容は消えません。画面に出なくなるだけで、

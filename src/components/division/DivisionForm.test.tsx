@@ -110,4 +110,26 @@ describe("DivisionForm", () => {
       screen.getByRole("checkbox", { name: "メモを記録する" }),
     ).toBeChecked();
   });
+
+  it("メモが公開ページにも出ることを伝える", () => {
+    render(
+      <DivisionForm
+        action={noopAction}
+        slug="acme"
+        tournamentId="t1"
+        submitLabel="保存する"
+        divisionId="d1"
+        defaultResultConfig={{
+          version: 1,
+          winReason: { enabled: false, options: [] },
+          score: { enabled: false, count: 3, aggregation: "sum" },
+          note: { enabled: false },
+        }}
+      />,
+    );
+
+    expect(
+      screen.getByRole("checkbox", { name: "メモを記録する" }),
+    ).toHaveAccessibleDescription("メモは公開ページにも表示されます");
+  });
 });
