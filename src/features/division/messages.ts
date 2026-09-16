@@ -21,7 +21,7 @@ export const divisionErrorMessage: (error: DivisionError) => string =
     ),
     Match.tag(
       "DivisionNotEnoughEntriesError",
-      () => "組み合わせを作るにはエントリーが2人以上必要です",
+      (error) => `組み合わせを作るにはエントリーが${error.minimum}人以上必要です`,
     ),
     Match.tag(
       "DivisionDataError",

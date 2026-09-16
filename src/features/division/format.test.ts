@@ -33,10 +33,10 @@ describe("DIVISION_FORMAT_LABELS", () => {
 });
 
 describe("needsParticipants", () => {
-  it("参加者一覧が要るのはブラケットと結果表を描く 2 形式", () => {
+  it("参加者一覧が要るのはブラケットと結果表を描く全形式", () => {
     expect(needsParticipants("SINGLE_ELIMINATION")).toBe(true);
     expect(needsParticipants("ROUND_ROBIN")).toBe(true);
-    expect(needsParticipants("DOUBLE_ELIMINATION_GRAND_FINAL")).toBe(false);
-    expect(needsParticipants("DOUBLE_ELIMINATION_THIRD_PLACE")).toBe(false);
+    expect(needsParticipants("DOUBLE_ELIMINATION_GRAND_FINAL")).toBe(true);
+    expect(needsParticipants("DOUBLE_ELIMINATION_THIRD_PLACE")).toBe(true);
   });
 });

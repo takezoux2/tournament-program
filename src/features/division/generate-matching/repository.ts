@@ -5,7 +5,11 @@ import {
   type DivisionError,
   DivisionNotEnoughEntriesError,
 } from "../errors";
-import { maxEntries, regenerateMatching } from "../matching-strategy";
+import {
+  maxEntries,
+  minEntries,
+  regenerateMatching,
+} from "../matching-strategy";
 import {
   type DivisionIds,
   type DivisionSetupOutcome,
@@ -31,10 +35,13 @@ export const generateMatchingInDb: GenerateMatchingPort = (ids) =>
       current.format,
       current.entries.entries,
     );
-    // 2 人未満だと組み合わせが作れない。黙って空を書くと「生成した」と
-    // 読めてしまうので弾く。この判定は両形式で共通。
+    // 必要人数に満たないと組み合わせが作れない（builder が空を返す）。
+    // 黙って空を書くと「生成した」と読めてしまうので弾く。
     if (matchingConfig.matches.length === 0) {
-      throw new DivisionNotEnoughEntriesError({ divisionId: ids.divisionId });
+      throw new DivisionNotEnoughEntriesError({
+        divisionId: ids.divisionId,
+        minimum: minEntries(current.format),
+      });
     }
 
     return {

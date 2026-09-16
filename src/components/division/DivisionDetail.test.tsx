@@ -39,7 +39,7 @@ describe("DivisionDetailView", () => {
     ).toHaveAttribute("href", "/orgs/acme/tournaments/t1/divisions/d1/league");
   });
 
-  it("編集画面の無い形式ではボタンを出さない", () => {
+  it("ダブルエリミネーションも /setup へ送る", () => {
     render(
       <DivisionDetailView
         {...props}
@@ -48,8 +48,8 @@ describe("DivisionDetailView", () => {
     );
 
     expect(
-      screen.queryByRole("link", { name: /エントリー/ }),
-    ).not.toBeInTheDocument();
+      screen.getByRole("link", { name: "エントリー・組み合わせ" }),
+    ).toHaveAttribute("href", "/orgs/acme/tournaments/t1/divisions/d1/setup");
     // 部門の編集は形式に関わらず開ける。
     expect(
       screen.getByRole("link", { name: "部門を編集" }),

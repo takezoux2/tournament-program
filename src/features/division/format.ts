@@ -26,8 +26,8 @@ export const DIVISION_FORMATS = Object.values(DivisionFormat);
 const USES_PARTICIPANTS: Record<DivisionFormat, boolean> = {
   SINGLE_ELIMINATION: true,
   ROUND_ROBIN: true,
-  DOUBLE_ELIMINATION_GRAND_FINAL: false,
-  DOUBLE_ELIMINATION_THIRD_PLACE: false,
+  DOUBLE_ELIMINATION_GRAND_FINAL: true,
+  DOUBLE_ELIMINATION_THIRD_PLACE: true,
 };
 
 export const needsParticipants = (format: DivisionFormat): boolean =>

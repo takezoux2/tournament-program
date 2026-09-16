@@ -4,7 +4,10 @@ import type {
   DivisionDetail,
   DivisionParticipant,
 } from "@/features/division/repository";
-import { isSingleEliminationShape } from "@/features/division/single-elimination/build";
+import {
+  isSlotBracketFormat,
+  matchesSlotBracketShape,
+} from "@/features/division/matching-strategy";
 import { toSetupView } from "@/features/division/single-elimination/view";
 import type { DivisionFormAction } from "@/features/division/state";
 import type { MemberSummary } from "@/features/organization/repository";
@@ -51,7 +54,8 @@ export function DivisionSetup({
   // トーナメント専用であることを型より外でも守っておく。リーグの
   // エントリー編集は /league に既にあるので「対応していない」は事実と
   // 違う。LeagueSetup.tsx の同種の案内と同じ言い回しにする。
-  if (division.format !== "SINGLE_ELIMINATION") {
+  const format = division.format;
+  if (!isSlotBracketFormat(format)) {
     return (
       <Notice>
         「{DIVISION_FORMAT_LABELS[division.format]}
@@ -88,7 +92,7 @@ export function DivisionSetup({
   // /edit は format を無条件に書き換えられるので、リーグの星取表を
   // 持ったままトーナメントになった部門が存在しうる。その星取表を
   // D&D エディタに通すと 1 回戦以外が消えるため、作り直しを促すだけにする。
-  const mismatched = !isSingleEliminationShape(parsed.matchingConfig);
+  const mismatched = !matchesSlotBracketShape(format, parsed.matchingConfig);
 
   return (
     <div className="space-y-6">

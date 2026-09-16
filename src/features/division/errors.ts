@@ -26,11 +26,12 @@ export class DivisionResultsRecordedError extends Data.TaggedError(
   readonly divisionId: string;
 }> {}
 
-/** 組み合わせを作るにはエントリーが足りないことを表す。 */
+/** 組み合わせを作るにはエントリーが足りないことを表す。minimum は形式ごとの必要人数。 */
 export class DivisionNotEnoughEntriesError extends Data.TaggedError(
   "DivisionNotEnoughEntriesError",
 )<{
   readonly divisionId: string;
+  readonly minimum: number;
 }> {}
 
 /**

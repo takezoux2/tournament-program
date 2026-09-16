@@ -3,6 +3,7 @@ import { DivisionSetup } from "@/components/division/DivisionSetup";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { addEntryAction } from "@/features/division/add-entry/handler";
 import { generateMatchingAction } from "@/features/division/generate-matching/handler";
+import { isSlotBracketFormat } from "@/features/division/matching-strategy";
 import { removeEntryAction } from "@/features/division/remove-entry/handler";
 import { reorderEntryAction } from "@/features/division/reorder-entry/handler";
 import { reorderMatchesAction } from "@/features/division/reorder-matches/handler";
@@ -24,7 +25,7 @@ export default async function DivisionSetupPage({
   const { session, organization } = await requireOrganization(slug);
 
   // 詳細ページと違い、参加者とメンバーを常に引く。この画面は
-  // SINGLE_ELIMINATION を編集するために開くもので、どちらも必ず使うため。
+  // トーナメント形式（SE・DE）を編集するために開くもので、どちらも必ず使うため。
   const [tournament, division, participants, members] = await Promise.all([
     findTournamentInOrganization(organization.id, tournamentId),
     findDivisionInTournament(organization.id, tournamentId, divisionId),
@@ -35,7 +36,7 @@ export default async function DivisionSetupPage({
     notFound();
   }
   // リーグには専用画面（/league）がある。案内を出すより 404 に倒す。
-  if (division.format !== "SINGLE_ELIMINATION") {
+  if (!isSlotBracketFormat(division.format)) {
     notFound();
   }
 

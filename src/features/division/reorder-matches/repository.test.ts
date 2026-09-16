@@ -94,8 +94,8 @@ describe("reorderMatchesInDb", () => {
     expect(divisionUpdateMany).not.toHaveBeenCalled();
   });
 
-  it("編集画面を持たない形式なら found: false", async () => {
-    // Server Action はページを経由せず叩けるので、形式もここで確かめる。
+  it("ダブルエリミネーションも編集画面を持つので found: true", async () => {
+    // 全形式が編集画面を持つようになったので、found: false に倒れる形式は無い。
     divisionFindFirst.mockResolvedValue({
       format: "DOUBLE_ELIMINATION_GRAND_FINAL",
       entries,
@@ -106,8 +106,8 @@ describe("reorderMatchesInDb", () => {
       reorderMatchesInDb(ids, { matchIds: ["m1-0", "m1-1", "m2-0"] }),
     );
 
-    expect(outcome).toEqual({ found: false });
-    expect(divisionUpdateMany).not.toHaveBeenCalled();
+    expect(outcome).toEqual({ found: true, value: null });
+    expect(divisionUpdateMany).toHaveBeenCalled();
   });
 
   it("並びが現在の組み合わせと合わなければ DivisionMatchOrderError で何も書かない", async () => {

@@ -39,6 +39,10 @@ const entries = (count: number) => ({
 const participants = (count: number) =>
   Array.from({ length: count }, (_, index) => ({ id: `p${index + 1}` }));
 
+/** 失敗した Exit から DivisionNotEnoughEntriesError.minimum を取り出す。 */
+const minimumOf = (exit: unknown): number =>
+  (exit as { cause: { error: { minimum: number } } }).cause.error.minimum;
+
 beforeEach(() => {
   divisionFindFirst.mockReset();
   divisionUpdateMany.mockReset();
@@ -92,6 +96,7 @@ describe("generateMatchingInDb", () => {
     const exit = await Effect.runPromiseExit(generateMatchingInDb(ids));
 
     expect(failureTag(exit)).toBe("DivisionNotEnoughEntriesError");
+    expect(minimumOf(exit)).toBe(2);
     expect(divisionUpdateMany).not.toHaveBeenCalled();
   });
 
@@ -141,6 +146,7 @@ describe("generateMatchingInDb", () => {
     const exit = await Effect.runPromiseExit(generateMatchingInDb(ids));
 
     expect(failureTag(exit)).toBe("DivisionNotEnoughEntriesError");
+    expect(minimumOf(exit)).toBe(2);
     expect(divisionUpdateMany).not.toHaveBeenCalled();
   });
 

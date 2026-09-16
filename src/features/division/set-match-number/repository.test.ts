@@ -165,18 +165,19 @@ describe("setMatchNumberInDb", () => {
     expect(divisionUpdateMany).toHaveBeenCalled();
   });
 
-  it("編集画面の無い形式は found: false を返す", async () => {
+  it("ダブルエリミネーションの部門でも試合番号を変えられる", async () => {
+    // 全形式が編集画面を持つようになったので、found: false に倒れる形式は無い。
     divisionFindFirst.mockResolvedValue({
       format: "DOUBLE_ELIMINATION_GRAND_FINAL",
-      entries: { version: 1, entries: [] },
-      matchingConfig: { version: 1, matches: [] },
+      entries,
+      matchingConfig: config,
     });
 
     const result = await Effect.runPromise(
-      setMatchNumberInDb(ids, { matchId: "m1-0", matchNumber: "2" }),
+      setMatchNumberInDb(ids, { matchId: "m1-0", matchNumber: "A" }),
     );
 
-    expect(result).toEqual({ found: false });
-    expect(divisionUpdateMany).not.toHaveBeenCalled();
+    expect(result).toEqual({ found: true, value: null });
+    expect(divisionUpdateMany).toHaveBeenCalled();
   });
 });
