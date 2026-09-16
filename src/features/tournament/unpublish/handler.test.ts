@@ -30,7 +30,7 @@ vi.mock("../repository", () => ({
 }));
 
 vi.mock("next/cache", () => ({
-  revalidatePath: (path: string) => revalidatePath(path),
+  revalidatePath: (...args: unknown[]) => revalidatePath(...args),
 }));
 
 vi.mock("next/navigation", () => ({
@@ -104,7 +104,7 @@ describe("unpublishTournamentAction", () => {
     expect(revalidatePath).toHaveBeenCalledWith(
       "/orgs/tennis-club/tournaments/t1",
     );
-    expect(revalidatePath).toHaveBeenCalledWith("/t/t1");
+    expect(revalidatePath).toHaveBeenCalledWith("/t/t1", "layout");
     expect(redirect).toHaveBeenCalledWith("/orgs/tennis-club/tournaments/t1");
   });
 
@@ -132,5 +132,9 @@ describe("unpublishTournamentAction", () => {
 
     expect(state).toEqual({ error: "この大会はすでに非公開です" });
     expect(redirect).not.toHaveBeenCalled();
+    // 更新は 0 件でも、古い画面が非公開ボタンを出したままにならないよう再検証する。
+    expect(revalidatePath).toHaveBeenCalledWith(
+      "/orgs/tennis-club/tournaments/t1",
+    );
   });
 });

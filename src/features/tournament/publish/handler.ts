@@ -11,6 +11,14 @@ import { publishTournamentInDb } from "./repository";
 import { publishTournamentSchema } from "./schema";
 import { publishTournament } from "./usecase";
 
+// /t/[id] 配下は layout で組織名などを出しており、"page" 既定の再検証では
+// /t/[id]/schedule 等の子ページが古いままになる。
+const revalidateTournamentPaths = (slug: string, tournamentId: string) => {
+  revalidatePath(`/orgs/${slug}`);
+  revalidatePath(`/orgs/${slug}/tournaments/${tournamentId}`);
+  revalidatePath(`/t/${tournamentId}`, "layout");
+};
+
 export const publishTournamentAction = async (
   _prevState: TournamentFormState,
   formData: FormData,
@@ -44,11 +52,11 @@ export const publishTournamentAction = async (
     if (!tournament) {
       notFound();
     }
+    // 更新 0 件でも再検証する。古い画面がボタンを出したままにならないように。
+    revalidateTournamentPaths(slug, tournamentId);
     return { error: "この大会はすでに公開されています" };
   }
 
-  revalidatePath(`/orgs/${slug}`);
-  revalidatePath(`/orgs/${slug}/tournaments/${tournamentId}`);
-  revalidatePath(`/t/${tournamentId}`);
+  revalidateTournamentPaths(slug, tournamentId);
   return { error: null };
 };

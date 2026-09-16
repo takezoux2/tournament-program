@@ -27,7 +27,7 @@ vi.mock("../repository", () => ({
 }));
 
 vi.mock("next/cache", () => ({
-  revalidatePath: (path: string) => revalidatePath(path),
+  revalidatePath: (...args: unknown[]) => revalidatePath(...args),
 }));
 
 vi.mock("next/navigation", () => ({
@@ -103,7 +103,7 @@ describe("publishTournamentAction", () => {
     expect(revalidatePath).toHaveBeenCalledWith(
       "/orgs/tennis-club/tournaments/t1",
     );
-    expect(revalidatePath).toHaveBeenCalledWith("/t/t1");
+    expect(revalidatePath).toHaveBeenCalledWith("/t/t1", "layout");
   });
 
   it("0 件で大会が組織内に無ければ notFound", async () => {
@@ -129,6 +129,9 @@ describe("publishTournamentAction", () => {
     );
 
     expect(state).toEqual({ error: "この大会はすでに公開されています" });
-    expect(revalidatePath).not.toHaveBeenCalled();
+    // 更新は 0 件でも、古い画面が公開ボタンを出したままにならないよう再検証する。
+    expect(revalidatePath).toHaveBeenCalledWith(
+      "/orgs/tennis-club/tournaments/t1",
+    );
   });
 });
