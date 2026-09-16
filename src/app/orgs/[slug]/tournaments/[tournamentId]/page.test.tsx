@@ -223,4 +223,25 @@ describe("TournamentPage", () => {
       ).not.toBeInTheDocument();
     },
   );
+
+  it("tournament.edit を持たなければ、準備中でも公開ボタンを出さない", async () => {
+    const codes = PERMISSION_CODES.filter((code) => code !== "tournament.edit");
+    requireOrganization.mockResolvedValue({
+      session,
+      organization,
+      permissionCodes: codes,
+      ability: defineAbilityFor(codes),
+    });
+    findTournamentInOrganization.mockResolvedValue({
+      ...tournament,
+      status: "DRAFT",
+    });
+
+    const element = await Page(pageProps("tennis", "t1"));
+    render(element);
+
+    expect(
+      screen.queryByRole("button", { name: "公開する" }),
+    ).not.toBeInTheDocument();
+  });
 });

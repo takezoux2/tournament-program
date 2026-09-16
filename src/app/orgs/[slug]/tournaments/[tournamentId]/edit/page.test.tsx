@@ -157,4 +157,25 @@ describe("EditTournamentPage", () => {
       screen.queryByRole("button", { name: "非公開にする" }),
     ).not.toBeInTheDocument();
   });
+
+  it("tournament.edit を持たなければ、公開中でも非公開ボタンを出さない", async () => {
+    const codes = PERMISSION_CODES.filter((code) => code !== "tournament.edit");
+    requireOrganization.mockResolvedValue({
+      session,
+      organization,
+      permissionCodes: codes,
+      ability: defineAbilityFor(codes),
+    });
+    findTournamentInOrganization.mockResolvedValue({
+      ...tournament,
+      status: "IN_PROGRESS",
+    });
+
+    const element = await EditTournamentPage(pageProps("tennis", "t1"));
+    render(element);
+
+    expect(
+      screen.queryByRole("button", { name: "非公開にする" }),
+    ).not.toBeInTheDocument();
+  });
 });
