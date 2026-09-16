@@ -61,13 +61,27 @@ export const matchCardLabel = (
 /**
  * 「1回戦 第1試合」のような構造上の位置。
  * リーグには節も回戦も無いので、実施順の通し番号だけで表す。
+ * ダブルエリミでは勝者側・敗者側・決勝でそれぞれ異なるラベルを出す。
  * 形式を引数に取るのは、この関数が大会の進行順（複数の部門が混ざる）でも
  * 使われるため。呼び出し側がその試合の部門の形式を知っている。
  */
 export const matchPositionLabel = (
   match: BracketMatch,
   format: DivisionFormat,
-): string =>
-  format === "ROUND_ROBIN"
-    ? `第${match.sequence + 1}試合`
-    : `${match.round}回戦 第${match.order + 1}試合`;
+): string => {
+  if (format === "ROUND_ROBIN") {
+    return `第${match.sequence + 1}試合`;
+  }
+  if (format === "SINGLE_ELIMINATION") {
+    return `${match.round}回戦 第${match.order + 1}試合`;
+  }
+  // ダブルエリミの round は全ブラケット通しの番号（敗者側 L は L + 1）。
+  switch (match.bracket) {
+    case "winners":
+      return `勝者側${match.round}回戦 第${match.order + 1}試合`;
+    case "losers":
+      return `敗者側${match.round - 1}回戦 第${match.order + 1}試合`;
+    case "final":
+      return "決勝";
+  }
+};

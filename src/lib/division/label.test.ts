@@ -107,5 +107,23 @@ describe("matchPositionLabel", () => {
       // リーグに節は無い。round は常に 1 なので「1回戦」と出すと嘘になる。
       expect(matchPositionLabel(match, "ROUND_ROBIN")).toBe("第2試合");
     });
+
+    it("ダブルエリミネーションはブラケットごとの回戦で表す", () => {
+      expect(matchPositionLabel(match, "DOUBLE_ELIMINATION_GRAND_FINAL")).toBe(
+        "勝者側2回戦 第2試合",
+      );
+      expect(
+        matchPositionLabel(
+          { ...match, bracket: "losers", round: 3, order: 0 },
+          "DOUBLE_ELIMINATION_THIRD_PLACE",
+        ),
+      ).toBe("敗者側2回戦 第1試合");
+      expect(
+        matchPositionLabel(
+          { ...match, bracket: "final", round: 6, order: 0 },
+          "DOUBLE_ELIMINATION_GRAND_FINAL",
+        ),
+      ).toBe("決勝");
+    });
   });
 });
