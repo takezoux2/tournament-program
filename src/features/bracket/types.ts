@@ -61,7 +61,7 @@ export type MatchStatus = "done" | "ready" | "waiting" | "bye";
 export type ResolvedMatch = {
   id: string;
   /** 所属ブラケット。resolveBracket は常に埋める */
-  bracket?: BracketSide;
+  bracket: BracketSide;
   round: number;
   order: number;
   /** 表示用の試合番号。元データに無ければ null */

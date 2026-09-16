@@ -265,12 +265,49 @@ describe("removeEntryInDb", () => {
 
     expect(result).toEqual({
       found: true,
-      value: { removed: true, matching: "clearedOverCap" },
+      value: { removed: true, matching: "clearedOverCap", limit: 16 },
     });
     const written = divisionUpdateMany.mock.calls[0][0].data;
     expect(written.matchingConfig.matches).toEqual([]);
     // 削除そのものは反映されている（運営者が上限以下まで減らしていける）。
     expect(written.entries.entries).toHaveLength(127);
+  });
+
+  it("ダブルエリミネーションの上限を超えたエントリーが残っていれば、削除しても組み合わせは空のまま", async () => {
+    // SINGLE_ELIMINATION（128 人まで）を /edit で DOUBLE_ELIMINATION_GRAND_FINAL
+    // （64 人まで）に切り替えた直後の部門は、生成ボタンを経由していない
+    // 上限超過のエントリーと肥大化したブラケット形の matchingConfig を持ちうる。
+    // 1 人消しても 69 人でまだ上限（64 人）を超えているため、
+    // regenerateMatching は空を返し、リーグと同じく clearedOverCap になる。
+    const entries = Array.from({ length: 70 }, (_, index) => ({
+      id: `e${index + 1}`,
+      participantId: `p${index + 1}`,
+      seed: index,
+    }));
+    divisionFindFirst.mockResolvedValue({
+      format: "DOUBLE_ELIMINATION_GRAND_FINAL",
+      entries: { version: 1, entries },
+      matchingConfig: buildDoubleElimination(
+        generateSlots(entries),
+        "grandFinal",
+      ),
+      results: { version: 1, matches: [] },
+    });
+    participantFindMany.mockResolvedValue(
+      entries.map((e) => ({ id: e.participantId })),
+    );
+
+    const result = await Effect.runPromise(
+      removeEntryInDb(ids, { entryId: "e1" }),
+    );
+
+    expect(result).toEqual({
+      found: true,
+      value: { removed: true, matching: "clearedOverCap", limit: 64 },
+    });
+    const written = divisionUpdateMany.mock.calls[0][0].data;
+    expect(written.matchingConfig.matches).toEqual([]);
+    expect(written.entries.entries).toHaveLength(69);
   });
 
   it("リーグでも残りが 2 人未満なら組み合わせを空にする", async () => {

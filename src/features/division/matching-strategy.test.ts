@@ -280,6 +280,27 @@ describe("ダブルエリミネーションの組み合わせ", () => {
       ),
     ).toBe(current);
   });
+
+  it("regenerateMatching は上限（64人）を超えたエントリー数だと空を返す", () => {
+    // /edit は format を無条件に書き換えられるため、SINGLE_ELIMINATION（128人まで）の
+    // 部門がそのまま DOUBLE_ELIMINATION_GRAND_FINAL になり、生成ボタンを経由せず
+    // remove-entry / reorder から regenerateMatching が呼ばれることがある。
+    // ROUND_ROBIN と同じく、DE でも上限超過なら空を返して肥大化した
+    // ブラケットの再構築を防ぐ。
+    expect(
+      regenerateMatching("DOUBLE_ELIMINATION_GRAND_FINAL", entriesOf(65)),
+    ).toEqual(EMPTY);
+    expect(
+      regenerateMatching("DOUBLE_ELIMINATION_THIRD_PLACE", entriesOf(65)),
+    ).toEqual(EMPTY);
+  });
+
+  it("regenerateMatching は上限ちょうどの 64 人なら通常どおり作る", () => {
+    const slots = generateSlots(entriesOf(64));
+    expect(
+      regenerateMatching("DOUBLE_ELIMINATION_GRAND_FINAL", entriesOf(64)),
+    ).toEqual(buildDoubleElimination(slots, "grandFinal"));
+  });
 });
 
 describe("スロット型ブラケットのディスパッチ", () => {

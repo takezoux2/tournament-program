@@ -18,6 +18,7 @@ const match = (
   winnerId: string | null,
 ): ResolvedMatch => ({
   id,
+  bracket: "winners",
   round,
   order,
   matchNumber: null,

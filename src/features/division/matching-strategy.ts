@@ -125,9 +125,28 @@ const buildRoundRobinWithinCap = (entries: DivisionEntry[]): MatchingConfig =>
     : buildRoundRobin(entries);
 
 /**
+ * ダブルエリミネーションの組み合わせを上限内でだけ組み立てる。
+ *
+ * buildRoundRobinWithinCap と同じ理由（/edit は format を無条件に書き換えられ、
+ * 生成ボタンを経由しない remove-entry / reorder からも regenerateMatching が
+ * 呼ばれる）で、SINGLE_ELIMINATION（128 人まで）の部門がそのまま
+ * DOUBLE_ELIMINATION_*（64 人まで）になっていることがある。buildDoubleElimination
+ * 自身は上限を知らず、65〜128 人でも黙って肥大化したブラケットを組み立てて
+ * しまうため、ここで弾く。SINGLE_ELIMINATION は上限が生成の唯一の経路である
+ * ことに変わりがないため、この cap は掛けない。
+ */
+const buildSlotBracketWithinCap = (
+  format: Exclude<SlotBracketFormat, "SINGLE_ELIMINATION">,
+  entries: DivisionEntry[],
+): MatchingConfig =>
+  entries.length > MAX_ENTRIES[format]
+    ? { version: 1, matches: [] }
+    : buildSlotBracket(format, generateSlots(entries));
+
+/**
  * エントリーのシード順から組み合わせを丸ごと作り直す。
  * 必要人数に満たなければどの形式でも空を返す（スロット型は builder 自身が、
- * リーグは buildRoundRobinWithinCap の手前で buildRoundRobin が空を返す）。
+ * リーグ・ダブルエリミは各 WithinCap 関数の手前で builder が空を返す）。
  */
 export const regenerateMatching = (
   format: EditableFormat,
@@ -135,9 +154,10 @@ export const regenerateMatching = (
 ): MatchingConfig => {
   switch (format) {
     case "SINGLE_ELIMINATION":
+      return buildSlotBracket(format, generateSlots(entries));
     case "DOUBLE_ELIMINATION_GRAND_FINAL":
     case "DOUBLE_ELIMINATION_THIRD_PLACE":
-      return buildSlotBracket(format, generateSlots(entries));
+      return buildSlotBracketWithinCap(format, entries);
     case "ROUND_ROBIN":
       return buildRoundRobinWithinCap(entries);
   }

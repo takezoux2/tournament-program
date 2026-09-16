@@ -28,6 +28,7 @@ const bye: ResolvedSlot = {
 
 const doneMatch: ResolvedMatch = {
   id: "r2-m1",
+  bracket: "winners",
   round: 2,
   order: 0,
   slots: [
