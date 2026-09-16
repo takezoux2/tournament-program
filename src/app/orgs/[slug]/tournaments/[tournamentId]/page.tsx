@@ -3,9 +3,11 @@ import { notFound } from "next/navigation";
 import { TrackCreated } from "@/components/analytics/TrackCreated";
 import { DivisionList } from "@/components/division/DivisionList";
 import { AppHeader } from "@/components/layout/AppHeader";
+import { PublishTournamentButton } from "@/components/tournament/PublishTournamentButton";
 import { TournamentDetailView } from "@/components/tournament/TournamentDetail";
 import { reorderDivisionAction } from "@/features/division/reorder/handler";
 import { listDivisionsInTournament } from "@/features/division/repository";
+import { publishTournamentAction } from "@/features/tournament/publish/handler";
 import { findTournamentInOrganization } from "@/features/tournament/repository";
 import { requireOrganization } from "@/shared/middleware/require-organization";
 
@@ -49,6 +51,16 @@ export default async function TournamentPage({
         <TournamentDetailView slug={slug} tournament={tournament} />
 
         <div className="flex flex-wrap gap-2">
+          {/* 公開後は status が DRAFT でなくなり、revalidate でボタンが消える。 */}
+          {tournament.status === "DRAFT" && (
+            <PublishTournamentButton
+              action={publishTournamentAction}
+              slug={slug}
+              tournamentId={tournament.id}
+              tournamentName={tournament.name}
+            />
+          )}
+
           <Link
             href={`/orgs/${slug}/tournaments/${tournament.id}/matches`}
             className="rounded border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-800"

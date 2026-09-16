@@ -46,6 +46,10 @@ vi.mock("@/features/division/reorder/handler", () => ({
   reorderDivisionAction: async () => ({ error: null }),
 }));
 
+vi.mock("@/features/tournament/publish/handler", () => ({
+  publishTournamentAction: async () => ({ error: null }),
+}));
+
 const { default: Page } = await import("./page");
 
 const pageProps = (slug: string, tournamentId: string) => ({
@@ -190,4 +194,33 @@ describe("TournamentPage", () => {
       "/orgs/tennis/tournaments/t1/divisions/new",
     );
   });
+
+  it("準備中の大会には公開ボタンを出す", async () => {
+    findTournamentInOrganization.mockResolvedValue({
+      ...tournament,
+      status: "DRAFT",
+    });
+
+    const element = await Page(pageProps("tennis", "t1"));
+    render(element);
+
+    expect(screen.getByRole("button", { name: "公開する" })).toBeInTheDocument();
+  });
+
+  it.each(["IN_PROGRESS", "COMPLETED"] as const)(
+    "公開済み（%s）の大会には公開ボタンを出さない",
+    async (status) => {
+      findTournamentInOrganization.mockResolvedValue({
+        ...tournament,
+        status,
+      });
+
+      const element = await Page(pageProps("tennis", "t1"));
+      render(element);
+
+      expect(
+        screen.queryByRole("button", { name: "公開する" }),
+      ).not.toBeInTheDocument();
+    },
+  );
 });
