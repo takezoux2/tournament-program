@@ -1,7 +1,7 @@
 import { MatchNoteButton } from "@/components/result/MatchNoteButton";
 import type { ResultRowView } from "@/features/schedule/result-rows";
 import { formatStartsAt } from "@/features/tournament/format";
-import { aggregateScore, formatScore } from "@/lib/division/score";
+import { formatMatchScoreSummary } from "@/lib/division/score";
 
 type MatchRow = Extract<ResultRowView, { kind: "match" }>;
 
@@ -21,26 +21,16 @@ const resultParts = (row: MatchRow): string[] => {
       ? "引き分け"
       : `${row.slots.find((slot) => slot.entryId === row.winnerEntryId)?.label ?? ""}の勝ち`;
 
-  const scores = row.slots
-    .map((slot) =>
-      slot.entryId === null
-        ? null
-        : formatScore(
-            aggregateScore(
-              row.scores.find((entry) => entry.entryId === slot.entryId)
-                ?.values ?? [],
-              row.resultConfig.score.aggregation,
-            ),
-          ),
-    )
-    .filter((value): value is string => value !== null);
+  const scores = formatMatchScoreSummary(
+    row.slots.map((slot) => slot.entryId),
+    row.scores,
+    row.resultConfig.score.aggregation,
+  );
 
   return [
     winner,
     row.resultConfig.winReason.enabled ? row.winReason : null,
-    row.resultConfig.score.enabled && scores.length === 2
-      ? scores.join(" - ")
-      : null,
+    row.resultConfig.score.enabled ? scores : null,
   ].filter((value): value is string => value !== null);
 };
 

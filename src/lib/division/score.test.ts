@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { aggregateScore, formatScore } from "./score";
+import {
+  aggregateScore,
+  formatMatchScoreSummary,
+  formatScore,
+} from "./score";
 
 describe("aggregateScore", () => {
   it("合計を出す", () => {
@@ -45,5 +49,39 @@ describe("formatScore", () => {
   it("浮動小数の誤差を画面に出さない", () => {
     expect(formatScore(0.1 + 0.2)).toBe("0.3");
     expect(formatScore(aggregateScore([7, 6.8, 7.2], "sum"))).toBe("21");
+  });
+});
+
+describe("formatMatchScoreSummary", () => {
+  const scores = [
+    { entryId: "e1", values: [7, 6.8, 7.2] },
+    { entryId: "e2", values: [6, 7, null] },
+  ];
+
+  it("スロットの並びで両者の集計を「 - 」でつなぐ", () => {
+    expect(formatMatchScoreSummary(["e1", "e2"], scores, "sum")).toBe(
+      "21 - 13",
+    );
+    // 入力の並びではなくスロットの並びに従う。
+    expect(formatMatchScoreSummary(["e2", "e1"], scores, "average")).toBe(
+      "6.5 - 7",
+    );
+  });
+
+  it("片方にしか値が無ければ null（片側だけの表示は対戦の要約にならない）", () => {
+    expect(
+      formatMatchScoreSummary(["e1", "e2"], [scores[0]], "sum"),
+    ).toBeNull();
+    expect(
+      formatMatchScoreSummary(
+        ["e1", "e2"],
+        [scores[0], { entryId: "e2", values: [null] }],
+        "sum",
+      ),
+    ).toBeNull();
+  });
+
+  it("参加者が未確定のスロットがあれば null", () => {
+    expect(formatMatchScoreSummary(["e1", null], scores, "sum")).toBeNull();
   });
 });

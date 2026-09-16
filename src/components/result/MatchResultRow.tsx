@@ -10,7 +10,7 @@ import type {
   ResultRowView,
   ResultSlotView,
 } from "@/features/schedule/result-rows";
-import { aggregateScore, formatScore } from "@/lib/division/score";
+import { formatMatchScoreSummary } from "@/lib/division/score";
 import { trackEvent } from "@/shared/lib/analytics/events";
 import { MatchNoteButton } from "./MatchNoteButton";
 import { MatchResultDetailForm } from "./MatchResultDetailForm";
@@ -88,24 +88,14 @@ export function MatchResultRow({
   // 勝敗より先に詳細だけを入れる場面は無い。記録済みの行にだけ出す。
   const detailAvailable = row.state === "recorded" && hasDetailFields;
 
-  const scoreSummary = row.slots
-    .map((slot) =>
-      slot.entryId === null
-        ? null
-        : formatScore(
-            aggregateScore(
-              row.scores.find((entry) => entry.entryId === slot.entryId)
-                ?.values ?? [],
-              config.score.aggregation,
-            ),
-          ),
-    )
-    .filter((value): value is string => value !== null);
+  const scoreSummary = formatMatchScoreSummary(
+    row.slots.map((slot) => slot.entryId),
+    row.scores,
+    config.score.aggregation,
+  );
   const summaryParts = [
     config.winReason.enabled ? row.winReason : null,
-    config.score.enabled && scoreSummary.length === 2
-      ? scoreSummary.join(" - ")
-      : null,
+    config.score.enabled ? scoreSummary : null,
   ].filter((value): value is string => value !== null);
 
   // recordResultAction は成功時も { error: null } を返し、初期状態と
