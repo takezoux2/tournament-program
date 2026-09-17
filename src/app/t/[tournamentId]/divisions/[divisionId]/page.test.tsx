@@ -215,7 +215,7 @@ describe("PublicDivisionPage", () => {
     expect(screen.queryByTestId("flow")).toBeNull();
   });
 
-  it("描画に参加者を使わない形式では参加者を引かない", async () => {
+  it("ダブルエリミネーションもブラケット描画に参加者名を使うので参加者を引く", async () => {
     findDivisionInTournament.mockResolvedValue({
       ...division,
       format: "DOUBLE_ELIMINATION_GRAND_FINAL" as const,
@@ -223,7 +223,7 @@ describe("PublicDivisionPage", () => {
 
     await Page(pageProps("t1", "d1"));
 
-    expect(listParticipantsInTournament).not.toHaveBeenCalled();
+    expect(listParticipantsInTournament).toHaveBeenCalledWith("o1", "t1");
   });
 
   it("title は「部門名 | 大会名 | 組織名」にする", async () => {

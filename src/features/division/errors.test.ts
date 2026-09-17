@@ -88,7 +88,7 @@ describe("toDivisionError（タグ判定の網羅性）", () => {
     ],
     [
       "DivisionNotEnoughEntriesError",
-      new DivisionNotEnoughEntriesError({ divisionId: "d1" }),
+      new DivisionNotEnoughEntriesError({ divisionId: "d1", minimum: 2 }),
     ],
     ["DivisionDataError", new DivisionDataError({ reason: "broken" })],
     [

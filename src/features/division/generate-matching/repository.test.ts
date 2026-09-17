@@ -1,6 +1,7 @@
-import { Effect } from "effect";
+import { Cause, Effect, Exit, Option } from "effect";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { failureTag } from "@/shared/testing/exit";
+import type { DivisionError } from "../errors";
 
 const divisionFindFirst = vi.fn();
 const divisionUpdateMany = vi.fn();
@@ -38,6 +39,24 @@ const entries = (count: number) => ({
 
 const participants = (count: number) =>
   Array.from({ length: count }, (_, index) => ({ id: `p${index + 1}` }));
+
+/** 失敗した Exit から DivisionNotEnoughEntriesError.minimum を取り出す。 */
+const minimumOf = (exit: Exit.Exit<unknown, DivisionError>): number => {
+  if (Exit.isSuccess(exit)) {
+    throw new Error("失敗を期待したが成功した");
+  }
+  const error = Cause.failureOption(exit.cause);
+  if (Option.isNone(error)) {
+    throw new Error("Fail を期待したが原因が無かった");
+  }
+  const value = error.value;
+  if (value._tag !== "DivisionNotEnoughEntriesError") {
+    throw new Error(
+      `DivisionNotEnoughEntriesError を期待したが ${value._tag} だった`,
+    );
+  }
+  return value.minimum;
+};
 
 beforeEach(() => {
   divisionFindFirst.mockReset();
@@ -92,6 +111,25 @@ describe("generateMatchingInDb", () => {
     const exit = await Effect.runPromiseExit(generateMatchingInDb(ids));
 
     expect(failureTag(exit)).toBe("DivisionNotEnoughEntriesError");
+    expect(minimumOf(exit)).toBe(2);
+    expect(divisionUpdateMany).not.toHaveBeenCalled();
+  });
+
+  it("ダブルエリミネーションは 3 人未満なら拒否する", async () => {
+    // ダブルエリミは敗者側を組むのに 3 人必要（2 人だと敗者側が作れない）。
+    // SINGLE_ELIMINATION/ROUND_ROBIN と下限が違うことを、失敗理由に乗る
+    // minimum で確かめる。
+    divisionFindFirst.mockResolvedValue({
+      format: "DOUBLE_ELIMINATION_GRAND_FINAL",
+      entries: entries(2),
+      matchingConfig: { version: 1, matches: [] },
+      results: { version: 1, matches: [] },
+    });
+
+    const exit = await Effect.runPromiseExit(generateMatchingInDb(ids));
+
+    expect(failureTag(exit)).toBe("DivisionNotEnoughEntriesError");
+    expect(minimumOf(exit)).toBe(3);
     expect(divisionUpdateMany).not.toHaveBeenCalled();
   });
 
@@ -141,6 +179,7 @@ describe("generateMatchingInDb", () => {
     const exit = await Effect.runPromiseExit(generateMatchingInDb(ids));
 
     expect(failureTag(exit)).toBe("DivisionNotEnoughEntriesError");
+    expect(minimumOf(exit)).toBe(2);
     expect(divisionUpdateMany).not.toHaveBeenCalled();
   });
 

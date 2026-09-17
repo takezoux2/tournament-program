@@ -111,6 +111,81 @@ describe("resolveMatchSlots", () => {
       ).get("mL")?.slots[0],
     ).toEqual({ state: "entry", entryId: "e2" });
   });
+
+  describe("BYE の伝播", () => {
+    const byeConfig: MatchingConfig = {
+      version: 1,
+      matches: [
+        match("m1-0", 1, 0, [
+          { kind: "entry", entryId: "e1" },
+          { kind: "entry", entryId: "e2" },
+        ]),
+        match("m1-1", 1, 1, [
+          { kind: "entry", entryId: "e3" },
+          { kind: "bye" },
+        ]),
+        match("m1-2", 1, 2, [{ kind: "bye" }, { kind: "bye" }]),
+        match("l1-0", 2, 0, [
+          { kind: "loserOf", matchId: "m1-0" },
+          { kind: "loserOf", matchId: "m1-1" },
+        ]),
+        match("m2-0", 2, 1, [
+          { kind: "winnerOf", matchId: "m1-1" },
+          { kind: "winnerOf", matchId: "m1-2" },
+        ]),
+        match("l1-1", 2, 2, [
+          { kind: "loserOf", matchId: "m1-2" },
+          { kind: "entry", entryId: "e4" },
+        ]),
+      ],
+    };
+    const noResults: DivisionResults = { version: 1, matches: [] };
+
+    it("BYE を含む試合の敗者は bye になる", () => {
+      const resolved = resolveMatchSlots(byeConfig, noResults);
+      expect(resolved.get("l1-0")?.slots[1]).toEqual({ state: "bye" });
+      expect(resolved.get("l1-1")?.slots[0]).toEqual({ state: "bye" });
+    });
+
+    it("BYE どうしの試合の勝者は bye になる", () => {
+      const resolved = resolveMatchSlots(byeConfig, noResults);
+      expect(resolved.get("m2-0")?.slots[1]).toEqual({ state: "bye" });
+      // 相手が bye なので e3 が自動で勝ち上がる
+      expect(resolved.get("m2-0")?.winnerEntryId).toBe("e3");
+    });
+
+    it("伝播した bye の相手は、相手が決まれば自動で勝ち上がる", () => {
+      const resolved = resolveMatchSlots(byeConfig, {
+        version: 1,
+        matches: [{ matchId: "m1-0", winnerEntryId: "e1" }],
+      });
+      expect(resolved.get("l1-0")?.slots).toEqual([
+        { state: "entry", entryId: "e2" },
+        { state: "bye" },
+      ]);
+      expect(resolved.get("l1-0")?.winnerEntryId).toBe("e2");
+      expect(resolved.get("l1-1")?.winnerEntryId).toBe("e4");
+    });
+
+    it("BYE 試合の相手が未確定でも敗者は bye と分かる", () => {
+      const pendingConfig: MatchingConfig = {
+        version: 1,
+        matches: [
+          ...byeConfig.matches.slice(0, 2),
+          match("m2-0", 2, 0, [
+            { kind: "winnerOf", matchId: "m1-0" },
+            { kind: "bye" },
+          ]),
+          match("l2-0", 3, 0, [
+            { kind: "loserOf", matchId: "m2-0" },
+            { kind: "entry", entryId: "e4" },
+          ]),
+        ],
+      };
+      const resolved = resolveMatchSlots(pendingConfig, noResults);
+      expect(resolved.get("l2-0")?.slots[0]).toEqual({ state: "bye" });
+    });
+  });
 });
 
 describe("downstreamMatchIds", () => {

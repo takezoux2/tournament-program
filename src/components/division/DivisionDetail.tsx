@@ -5,7 +5,9 @@ import { formatStartsAt } from "@/features/tournament/format";
 import type { DivisionFormat } from "@/generated/prisma/enums";
 
 /**
- * 形式ごとのエントリー編集画面。null は編集画面を持たない形式。
+ * 形式ごとのエントリー編集画面。現行の全形式が編集画面を持つため null は
+ * 今のところ出現しないが、将来編集画面の無い形式が増えても対応を書き
+ * 忘れずに済むよう型は null を許容したままにしてある。
  * Record のキーを DivisionFormat に固定しているので、enum に値を足して
  * 行き先を書き忘れるとコンパイルエラーになる。
  */
@@ -15,8 +17,14 @@ const SETUP_LINKS: Record<
 > = {
   SINGLE_ELIMINATION: { segment: "setup", label: "エントリー・組み合わせ" },
   ROUND_ROBIN: { segment: "league", label: "エントリー・対戦表" },
-  DOUBLE_ELIMINATION_GRAND_FINAL: null,
-  DOUBLE_ELIMINATION_THIRD_PLACE: null,
+  DOUBLE_ELIMINATION_GRAND_FINAL: {
+    segment: "setup",
+    label: "エントリー・組み合わせ",
+  },
+  DOUBLE_ELIMINATION_THIRD_PLACE: {
+    segment: "setup",
+    label: "エントリー・組み合わせ",
+  },
 };
 
 export function DivisionDetailView({

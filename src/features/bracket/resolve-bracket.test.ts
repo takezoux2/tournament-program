@@ -229,3 +229,111 @@ describe("resolveBracket", () => {
     expect(withoutName[0].matchName).toBeNull();
   });
 });
+
+describe("resolveBracket（敗者側）", () => {
+  const players: Participant[] = [
+    { id: "a", name: "A", seed: 0 },
+    { id: "b", name: "B", seed: 1 },
+    { id: "c", name: "C", seed: 2 },
+  ];
+  const bracket: Bracket = {
+    id: "b1",
+    name: "DE",
+    matches: [
+      {
+        id: "m1-0",
+        bracket: "winners",
+        round: 1,
+        order: 0,
+        matchName: "第1試合",
+        slots: [
+          { kind: "participant", participantId: "a" },
+          { kind: "participant", participantId: "b" },
+        ],
+      },
+      {
+        id: "m1-1",
+        bracket: "winners",
+        round: 1,
+        order: 1,
+        matchName: "第2試合",
+        slots: [{ kind: "participant", participantId: "c" }, { kind: "bye" }],
+      },
+      {
+        id: "l1-0",
+        bracket: "losers",
+        round: 2,
+        order: 0,
+        matchName: "第3試合",
+        slots: [
+          { kind: "loserOf", matchId: "m1-0" },
+          { kind: "loserOf", matchId: "m1-1" },
+        ],
+      },
+    ],
+  };
+  const find = (matches: ReturnType<typeof resolveBracket>, id: string) => {
+    const found = matches.find((match) => match.id === id);
+    if (!found) throw new Error(id);
+    return found;
+  };
+
+  it("bracket を引き継ぐ（省略時は winners）", () => {
+    const resolved = resolveBracket(players, bracket, []);
+    expect(find(resolved, "l1-0").bracket).toBe("losers");
+  });
+
+  it("敗者が決まる前は pending で「（展開済みの試合名）の敗者」を持つ", () => {
+    const slot = find(resolveBracket(players, bracket, []), "l1-0").slots[0];
+    expect(slot).toMatchObject({
+      state: "pending",
+      pendingLabel: "第1試合の敗者",
+    });
+  });
+
+  it("BYE 試合の敗者は bye になり、相手が決まれば自動で勝ち上がる", () => {
+    const resolved = resolveBracket(players, bracket, [
+      { matchId: "m1-0", winnerId: "a" },
+    ]);
+    const losers = find(resolved, "l1-0");
+    expect(losers.slots[0]).toMatchObject({
+      state: "confirmed",
+      participant: { id: "b" },
+      isWinner: true,
+    });
+    expect(losers.slots[1].state).toBe("bye");
+    expect(losers.winnerId).toBe("b");
+    expect(losers.status).toBe("bye");
+  });
+
+  it("BYE どうしの試合の勝者は bye になる", () => {
+    const resolved = resolveBracket(
+      players,
+      {
+        id: "b2",
+        name: "x",
+        matches: [
+          {
+            id: "m1-0",
+            round: 1,
+            order: 0,
+            slots: [{ kind: "bye" }, { kind: "bye" }],
+          },
+          {
+            id: "m2-0",
+            round: 2,
+            order: 0,
+            slots: [
+              { kind: "winnerOf", matchId: "m1-0" },
+              { kind: "participant", participantId: "a" },
+            ],
+          },
+        ],
+      },
+      [],
+    );
+    const next = find(resolved, "m2-0");
+    expect(next.slots[0].state).toBe("bye");
+    expect(next.winnerId).toBe("a");
+  });
+});

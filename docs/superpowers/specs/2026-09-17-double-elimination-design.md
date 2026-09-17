@@ -35,7 +35,7 @@
 | 最大エントリー数 | 64 |
 | 編集画面 | SE の `setup` ページ・`DivisionSetup`・各スライスを形式ディスパッチで再利用 |
 | 描画 | 1 キャンバスに勝者側（上）、敗者側（下）、決勝（右） |
-| 接続線 | `winnerOf` のみ。`loserOf` はスロット表示の「第N試合の敗者」で表す |
+| 接続線 | `winnerOf` のみ。`loserOf` はスロット表示の「{展開済みの試合名}の敗者」（既定なら「第N試合の敗者」）で表す |
 
 ## 組み合わせ生成
 
@@ -52,7 +52,7 @@ function isDoubleEliminationShape(config: MatchingConfig, variant: DoubleElimina
 
 ### 勝者側（`bracket: "winners"`）
 
-SE の `buildFromSlots` と同じ木。id は `w{round}-{order}`、`round` は 1..k。
+SE の `buildFromSlots` と同じ木。id は `m{round}-{order}`（`buildFromSlots` が振る id をそのまま再利用するため）、`round` は 1..k。
 
 ### 敗者側（`bracket: "losers"`）
 
@@ -89,10 +89,18 @@ resolver の「round → order 順の 1 パス解決」をそのまま使うた�
 
 描画や表示でのラウンド名は、ブラケットごとの相対番号（勝者側 r、敗者側 L = round − 1）から求める。
 
-### 試合番号・`sequence`
+### 試合名・並び順
 
-勝者側 → 敗者側 → 決勝、各ブラケット内は round → order の順に `"1"`, `"2"`, … と `0`, `1`, … を振る。
-SE と同じく、再生成すると手動変更した番号・順序はリセットされる。
+SE の `buildFromSlots` と同じく、全試合の `matchName` を既定のテンプレート `第{{OverallSeq}}試合`
+（`DEFAULT_MATCH_NAME`）にする。部門内の実施順（`sequence`）は持たない。試合の番号は大会の進行順
+（`ScheduleItem`）から求める大会全体の通し番号（`buildOverallSeq`）だけが決める。
+SE と同じく、再生成すると手動変更した試合名はリセットされる。
+
+進行順に行を持たない試合は、`parseMatchingConfig` が揃えた配列の順で末尾に足される。
+DE の `round` は全ブラケット通しなので、round → order だけで並べると勝者側と敗者側が交互に混ざる。
+そのため `parseMatchingConfig` の並びは「ブラケット（勝者側 → 敗者側 → 決勝）→ round → order」とし、
+通し番号の既定の並びを勝者側 → 敗者側 → 決勝にする（SE・リーグは全試合 `winners` なので並びは変わらない）。
+builder が返す配列も同じ順。
 
 ## BYE の伝播（resolver 修正）
 
@@ -124,7 +132,15 @@ SE でも、入れ替え操作で作られた BYE 対 BYE の試合の先が永�
 * `setup/page.tsx` と `DivisionSetup.tsx` の形式ガードを SE + DE 2 形式に広げ、
   形状チェック（`mismatched`）と builder を形式でディスパッチする。
   組み合わせ編集（`MatchingSection`）は勝者側 1 回戦だけを対象にする
-* ロック（結果が 1 件でもあれば構造編集を拒否、番号・順序は編集可）は既存どおり
+* ロック（結果が 1 件でもあれば構造編集を拒否、試合名は編集可）は既存どおり。
+  `isDoubleEliminationShape` は構造（id・bracket・round・order・スロット）だけを比べ、試合名と配列の順は無視する
+* エントリー不足エラーは形式ごとの最小人数（`minEntries`。DE 2 形式は 3）を文言に出す。
+  「組み合わせを作るにはエントリーが{minimum}人以上必要です」（`DivisionNotEnoughEntriesError`、生成時）。
+  エントリー削除で残数が `minEntries` を下回り組み合わせが空になったときも、同じ `minimum` を使った
+  通知文言を返す（`remove-entry/repository.ts` の `matching: "cleared"`）
+* 位置ラベル（`matchPositionLabel`）: `勝者側N回戦 (M)` / `敗者側L回戦 (M)` / `決勝`
+  （M はラウンド内の位置 `order + 1`。SE の `N回戦 (M)` と同じ形で、試合名の既定値と紛れないよう「第M試合」とは書かない。
+  リーグは空文字のまま）。`round` は全ブラケット通しの番号なので、敗者側の表示上のラウンド番号は `round − 1`
 
 ## ブラケット描画
 
@@ -142,16 +158,21 @@ SE でも、入れ替え操作で作られた BYE 対 BYE の試合の先が永�
 ### レイアウト（`layout-bracket.ts`）
 
 * 勝者側: 現行と同じ（列 = r − 1、y は参照元の平均、参照元が無ければ order から）
-* 敗者側: 勝者側の最下端 + 区切り余白 から開始。列 = L − 1、y は同じブラケット内の `winnerOf` 参照元の平均。
+* 敗者側: 勝者側の最下端 + 区切り余白（`SECTION_GAP` = 72px。ラベルが収まる高さ）から開始。
+  列 = L − 1、y は同じブラケット内の `winnerOf` 参照元の平均。
   合流ラウンドの `loserOf` 側は y 計算に使わない。参照元が無い（L = 1）試合は order から
 * 決勝: 列 = 勝者側・敗者側の最終列の大きい方 + 1。y は勝者側決勝と敗者側決勝の中点
-* 各エリアの左上に「勝者側」「敗者側」「決勝」のラベルノードを置く（DE のときのみ）
+* 各エリアの左上に「勝者側」「敗者側」「決勝」のラベルノード（`SectionNode`、`layoutBracket` の
+  `sectionLabels()` が返す）を置く。勝者側しか無い（SE）ときは出さない
 * SE のレイアウト結果は変えない
 
 ### 表示
 
 * `DivisionMatchingView.tsx`: DE 2 形式の「未対応」表示を削除し、`DivisionBracket` を表示する
-* `loserOf` スロットの未確定表示は既存ラベル「第N試合の敗者」を使う
+* `loserOf` の未確定スロットは `ResolvedSlot.pendingLabel`（`{展開済みの試合名}の敗者`）で表示する。
+  `resolve-bracket.ts` が、`from-division.ts` から渡された展開済みの `Match.matchName` を使って作る。
+  `createSlotLabeler` の `loserOf` の文言（`{試合名}の敗者`）と同じ形。試合名が無ければ付けず「未定」になる。
+  参照試合の勝者が決まり、かつ敗者がエントリーとして確定した時点で `confirmed` に切り替わる
 * 勝者・敗者のスタイル（`MatchCard`）は既存のまま
 
 ## テスト

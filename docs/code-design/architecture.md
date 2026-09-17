@@ -121,7 +121,7 @@ Json のパース、勝敗が記録済みかの確認、保存前の検証、`up
 このずれは読み出しの純粋関数 `buildScheduleView` が吸収する。保存された行を
 `order` 昇順に並べ、実体の無い行と二重の行を落とし、行を持たない試合を
 「部門の order 昇順 → 部門内の `matches` 配列の順（`parseMatchingConfig` が
-round → order に揃えた順）」で末尾へ足す。この並びの規則は
+bracket → round → order に揃えた順）」で末尾へ足す。この並びの規則は
 `src/lib/division/overall-order.ts` の `buildOverallSeq` 1 つにまとめてあり、
 `buildScheduleView` もそこから並びを得る。読み出しは副作用を持たず、DB の掃除は
 次の保存（全行の書き直し）でまとめて片付く。

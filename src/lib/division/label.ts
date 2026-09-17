@@ -65,14 +65,32 @@ export const matchCardLabel = (
  * リーグは節も回戦も持たないので位置の文言を出さない（空文字）。表示側は
  * formatDivisionPosition を通して、空文字なら区切りごと描かない。
  *
+ * ダブルエリミは勝者側・敗者側・決勝を書き分ける（「勝者側2回戦 (1)」
+ * 「敗者側1回戦 (2)」「決勝」）。
+ *
  * 形式を引数に取るのは、この関数が大会の進行順（複数の部門が混ざる）でも
  * 使われるため。呼び出し側がその試合の部門の形式を知っている。
  */
 export const matchPositionLabel = (
   match: BracketMatch,
   format: DivisionFormat,
-): string =>
-  format === "ROUND_ROBIN" ? "" : `${match.round}回戦 (${match.order + 1})`;
+): string => {
+  if (format === "ROUND_ROBIN") {
+    return "";
+  }
+  if (format === "SINGLE_ELIMINATION") {
+    return `${match.round}回戦 (${match.order + 1})`;
+  }
+  // ダブルエリミの round は全ブラケット通しの番号（敗者側 L は L + 1）。
+  switch (match.bracket) {
+    case "winners":
+      return `勝者側${match.round}回戦 (${match.order + 1})`;
+    case "losers":
+      return `敗者側${match.round - 1}回戦 (${match.order + 1})`;
+    case "final":
+      return "決勝";
+  }
+};
 
 /**
  * 「男子 / 1回戦 (1)」のような、部門名と位置を並べた 1 行。

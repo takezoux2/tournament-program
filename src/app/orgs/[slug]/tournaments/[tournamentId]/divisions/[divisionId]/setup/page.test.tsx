@@ -179,7 +179,7 @@ describe("DivisionSetupPage", () => {
     );
   });
 
-  it("シングルエリミネーション以外は 404 に倒す", async () => {
+  it("リーグは 404 に倒す", async () => {
     // リーグには専用画面（/league）があるので、この画面では扱わない。
     findDivisionInTournament.mockResolvedValue({
       ...division,
@@ -188,6 +188,17 @@ describe("DivisionSetupPage", () => {
     await expect(DivisionSetupPage(pageProps())).rejects.toThrow(
       "NEXT_NOT_FOUND",
     );
+  });
+
+  it("ダブルエリミネーションも 404 にせず描く", async () => {
+    findDivisionInTournament.mockResolvedValue({
+      ...division,
+      format: "DOUBLE_ELIMINATION_GRAND_FINAL",
+    });
+
+    render(await DivisionSetupPage(pageProps()));
+
+    expect(screen.getByText("setup")).toBeInTheDocument();
   });
 
   it("大会 id で通し番号を読み、DivisionSetup にそのまま渡す", async () => {

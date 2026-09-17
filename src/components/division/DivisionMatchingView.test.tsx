@@ -154,20 +154,19 @@ describe("DivisionMatchingView", () => {
     ).toBeInTheDocument();
   });
 
-  it("対応していない形式は形式名を添えて案内する", () => {
+  it.each([
+    "DOUBLE_ELIMINATION_GRAND_FINAL",
+    "DOUBLE_ELIMINATION_THIRD_PLACE",
+  ] as const)("%s はブラケットを描く", (format) => {
     render(
       <DivisionMatchingView
-        division={buildDivision({ format: "DOUBLE_ELIMINATION_GRAND_FINAL" })}
+        division={buildDivision({ format })}
         participants={participants}
+        heightClassName="h-[60dvh]"
         overallSeq={noSeq}
       />,
     );
-
-    expect(
-      screen.getByText(
-        "「ダブルエリミネーション（優勝決定戦あり）」のブラケット表示はまだ対応していません",
-      ),
-    ).toBeInTheDocument();
+    expect(screen.getByTestId("bracket")).toHaveTextContent("h-[60dvh]");
   });
 
   it("SINGLE_ELIMINATION は大会全体の通し番号をブラケットへそのまま渡す", () => {

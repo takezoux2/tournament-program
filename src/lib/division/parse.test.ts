@@ -253,6 +253,41 @@ describe("parseMatchingConfig", () => {
     ]);
   });
 
+  it("ブラケットは勝者側 → 敗者側 → 決勝の順に並べる", () => {
+    const match = (
+      id: string,
+      bracket: string,
+      round: number,
+      order: number,
+    ) => ({
+      id,
+      bracket,
+      round,
+      order,
+      matchName: id,
+      slots: [{ kind: "bye" }, { kind: "bye" }],
+    });
+    const config = parseMatchingConfig({
+      version: 1,
+      // ダブルエリミの round は全ブラケット通し（敗者側 L1 は round 2）。
+      matches: [
+        match("f", "final", 4, 0),
+        match("l1-0", "losers", 2, 0),
+        match("m2-0", "winners", 2, 0),
+        match("m1-1", "winners", 1, 1),
+        match("m1-0", "winners", 1, 0),
+      ],
+    });
+
+    expect(config.matches.map((match) => match.id)).toEqual([
+      "m1-0",
+      "m1-1",
+      "m2-0",
+      "l1-0",
+      "f",
+    ]);
+  });
+
   it("保存済みの sequence は読まずに捨て、並びにも使わない", () => {
     // 部門内の並べ替えで sequence を書いていた旧データ。
     const config = parseMatchingConfig({

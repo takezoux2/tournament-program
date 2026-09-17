@@ -48,8 +48,8 @@ describe("divisionErrorMessage（追加分）", () => {
     ],
     [
       "DivisionNotEnoughEntriesError",
-      new DivisionNotEnoughEntriesError({ divisionId: "d1" }),
-      "組み合わせを作るにはエントリーが2人以上必要です",
+      new DivisionNotEnoughEntriesError({ divisionId: "d1", minimum: 3 }),
+      "組み合わせを作るにはエントリーが3人以上必要です",
     ],
     [
       "DivisionDataError",

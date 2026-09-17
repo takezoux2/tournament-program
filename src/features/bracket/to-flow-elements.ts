@@ -1,9 +1,12 @@
 import type { Edge, Node } from "@xyflow/react";
-import type { Position } from "./layout-bracket";
+import type { Position, SectionLabel } from "./layout-bracket";
 import type { ResolvedMatch } from "./types";
 
 export type MatchNodeData = { match: ResolvedMatch };
 export type MatchFlowNode = Node<MatchNodeData, "match">;
+export type SectionNodeData = { label: string };
+export type SectionFlowNode = Node<SectionNodeData, "section">;
+export type BracketFlowNode = MatchFlowNode | SectionFlowNode;
 
 const DECIDED_STROKE = "#475569";
 const UNDECIDED_STROKE = "#cbd5e1";
@@ -12,7 +15,8 @@ const UNDECIDED_STROKE = "#cbd5e1";
 export function toFlowElements(
   matches: ResolvedMatch[],
   positions: Map<string, Position>,
-): { nodes: MatchFlowNode[]; edges: Edge[] } {
+  labels: SectionLabel[] = [],
+): { nodes: BracketFlowNode[]; edges: Edge[] } {
   const decidedMatchIds = new Set(
     matches.filter((match) => match.winnerId !== null).map((match) => match.id),
   );
@@ -47,5 +51,14 @@ export function toFlowElements(
       })),
   );
 
-  return { nodes, edges };
+  const sectionNodes: SectionFlowNode[] = labels.map((label) => ({
+    id: label.id,
+    type: "section",
+    position: label.position,
+    data: { label: label.label },
+    draggable: false,
+    selectable: false,
+  }));
+
+  return { nodes: [...sectionNodes, ...nodes], edges };
 }

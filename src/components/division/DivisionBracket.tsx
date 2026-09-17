@@ -1,6 +1,9 @@
 import { TournamentFlow } from "@/components/tournament/TournamentFlow";
 import { fromDivision } from "@/features/bracket/from-division";
-import { layoutBracket } from "@/features/bracket/layout-bracket";
+import {
+  layoutBracket,
+  sectionLabels,
+} from "@/features/bracket/layout-bracket";
 import { resolveBracket } from "@/features/bracket/resolve-bracket";
 import { toFlowElements } from "@/features/bracket/to-flow-elements";
 import { DIVISION_FORMAT_LABELS } from "@/features/division/format";
@@ -63,7 +66,8 @@ export function DivisionBracket({
     return <Notice>組み合わせが未作成です</Notice>;
   }
 
-  if (division.format !== "SINGLE_ELIMINATION") {
+  // リーグは星取表で描く（DivisionMatchingView）。ここへ来るのは誤用。
+  if (division.format === "ROUND_ROBIN") {
     return (
       <Notice>
         「{DIVISION_FORMAT_LABELS[division.format]}
@@ -100,7 +104,12 @@ export function DivisionBracket({
       converted.bracket,
       converted.results,
     );
-    elements = toFlowElements(resolved, layoutBracket(resolved));
+    const positions = layoutBracket(resolved);
+    elements = toFlowElements(
+      resolved,
+      positions,
+      sectionLabels(resolved, positions),
+    );
   } catch {
     return <Notice>ブラケットを組み立てられませんでした</Notice>;
   }

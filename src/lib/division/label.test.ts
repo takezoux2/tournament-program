@@ -121,6 +121,24 @@ describe("matchPositionLabel", () => {
       // 通し番号を出すと試合番号と紛らわしい。
       expect(matchPositionLabel(match, "ROUND_ROBIN")).toBe("");
     });
+
+    it("ダブルエリミネーションはブラケットごとの回戦で表す", () => {
+      expect(matchPositionLabel(match, "DOUBLE_ELIMINATION_GRAND_FINAL")).toBe(
+        "勝者側2回戦 (2)",
+      );
+      expect(
+        matchPositionLabel(
+          { ...match, bracket: "losers", round: 3, order: 0 },
+          "DOUBLE_ELIMINATION_THIRD_PLACE",
+        ),
+      ).toBe("敗者側2回戦 (1)");
+      expect(
+        matchPositionLabel(
+          { ...match, bracket: "final", round: 6, order: 0 },
+          "DOUBLE_ELIMINATION_GRAND_FINAL",
+        ),
+      ).toBe("決勝");
+    });
   });
 });
 

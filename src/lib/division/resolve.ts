@@ -68,18 +68,32 @@ export const resolveMatchSlots = (
       case "entry":
         return { state: "entry", entryId: source.entryId };
       case "winnerOf": {
-        const winner = resolved.get(source.matchId)?.winnerEntryId ?? null;
-        return winner === null
+        const origin = resolved.get(source.matchId);
+        if (origin === undefined) {
+          return { state: "pending" };
+        }
+        // BYE どうしの試合からは誰も勝ち上がってこない。pending にすると
+        // 次の試合が永久に進まないため、空き枠として扱う。
+        if (origin.slots.every((slot) => slot.state === "bye")) {
+          return { state: "bye" };
+        }
+        return origin.winnerEntryId === null
           ? { state: "pending" }
-          : { state: "entry", entryId: winner };
+          : { state: "entry", entryId: origin.winnerEntryId };
       }
       case "loserOf": {
         const origin = resolved.get(source.matchId);
-        if (origin === undefined || origin.winnerEntryId === null) {
+        if (origin === undefined) {
           return { state: "pending" };
         }
-        // 勝者が決まっていても、敗者側が entry として確定しているとは限らない
-        // （BYE 相手の不戦勝など）。その場合は pending のままにする。
+        // BYE を含む試合は不戦勝なので敗者が生まれない。ダブルエリミの
+        // 敗者側で pending のまま止まらないよう、空き枠として扱う。
+        if (origin.slots.some((slot) => slot.state === "bye")) {
+          return { state: "bye" };
+        }
+        if (origin.winnerEntryId === null) {
+          return { state: "pending" };
+        }
         const loser = origin.slots
           .filter(isEntry)
           .find((slot) => slot.entryId !== origin.winnerEntryId);

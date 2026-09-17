@@ -2,16 +2,17 @@
 
 import { Background, Controls, type Edge, ReactFlow } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
-import type { MatchFlowNode } from "@/features/bracket/to-flow-elements";
+import type { BracketFlowNode } from "@/features/bracket/to-flow-elements";
 import { MatchNode } from "./MatchNode";
+import { SectionNode } from "./SectionNode";
 
-const nodeTypes = { match: MatchNode };
+const nodeTypes = { match: MatchNode, section: SectionNode };
 
 export function TournamentFlow({
   nodes,
   edges,
 }: {
-  nodes: MatchFlowNode[];
+  nodes: BracketFlowNode[];
   edges: Edge[];
 }) {
   return (

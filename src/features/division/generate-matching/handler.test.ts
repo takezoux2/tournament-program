@@ -91,7 +91,9 @@ describe("generateMatchingAction", () => {
 
   it("エントリー不足は文言にして返す", async () => {
     generateMatchingInDb.mockReturnValue(
-      Effect.fail(new DivisionNotEnoughEntriesError({ divisionId: "d1" })),
+      Effect.fail(
+        new DivisionNotEnoughEntriesError({ divisionId: "d1", minimum: 2 }),
+      ),
     );
 
     const state = await generateMatchingAction(

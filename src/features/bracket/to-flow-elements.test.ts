@@ -19,6 +19,7 @@ const match = (
   winnerId: string | null,
 ): ResolvedMatch => ({
   id,
+  bracket: "winners",
   round,
   order,
   matchName: null,
@@ -53,6 +54,7 @@ describe("toFlowElements", () => {
     expect(node.id).toBe("m3");
     expect(node.type).toBe("match");
     expect(node.position).toEqual({ x: 300, y: 50 });
+    if (node.type !== "match") throw new Error("match ノードのはず");
     expect(node.data.match.id).toBe("m3");
   });
 
@@ -79,5 +81,21 @@ describe("toFlowElements", () => {
 
   it("座標が無い試合があれば例外を投げる", () => {
     expect(() => toFlowElements(matches, new Map())).toThrow(/m1/);
+  });
+
+  it("セクションラベルを section ノードとして足す", () => {
+    const { nodes } = toFlowElements([], new Map(), [
+      { id: "section-losers", label: "敗者側", position: { x: 0, y: 100 } },
+    ]);
+    expect(nodes).toEqual([
+      {
+        id: "section-losers",
+        type: "section",
+        position: { x: 0, y: 100 },
+        data: { label: "敗者側" },
+        draggable: false,
+        selectable: false,
+      },
+    ]);
   });
 });

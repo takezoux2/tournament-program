@@ -7,7 +7,7 @@ export const overallSeqKey = (divisionId: string, matchId: string): string =>
 
 /**
  * 通し番号の材料になる部門。matchIds は部門の matches 配列の順
- * （parseMatchingConfig が round → order に揃えた順）で渡す。
+ * （parseMatchingConfig が bracket → round → order に揃えた順）で渡す。
  */
 export type OverallOrderDivision = {
   id: string;

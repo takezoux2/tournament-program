@@ -200,16 +200,31 @@ const fillMatchNames = (matches: ParsedBracketMatch[]): BracketMatch[] =>
       : (match as BracketMatch),
   );
 
+/** ブラケットの並び。勝者側 → 敗者側 → 決勝。 */
+const BRACKET_RANK: Record<BracketMatch["bracket"], number> = {
+  winners: 0,
+  losers: 1,
+  final: 2,
+};
+
 /**
- * round → order の順に並べる。
+ * ブラケット（勝者側 → 敗者側 → 決勝）→ round → order の順に並べる。
  *
  * Json の配列順は当てにできない（旧データは部門内の並べ替えで sequence 順に
  * 並んでいる）ので、読み出しで構造上の順に揃える。下流（試合名の一覧、
  * 進行順に行を持たない試合の末尾追加）は並べ直さずに配列の順を読む。
+ *
+ * ブラケットを先に見るのはダブルエリミのため。round は全ブラケット通しの
+ * 番号（敗者側 L は L + 1）なので、round だけで並べると勝者側と敗者側が
+ * 交互に混ざり、通し番号も飛び飛びになる。シングルエリミとリーグは
+ * 全試合が winners なので並びは変わらない。
  */
 const sortByPosition = (matches: BracketMatch[]): BracketMatch[] =>
   [...matches].sort(
-    (left, right) => left.round - right.round || left.order - right.order,
+    (left, right) =>
+      BRACKET_RANK[left.bracket] - BRACKET_RANK[right.bracket] ||
+      left.round - right.round ||
+      left.order - right.order,
   );
 
 const parseMatchResultRecord = (

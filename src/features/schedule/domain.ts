@@ -115,7 +115,8 @@ export const buildScheduleView = (
       (division): OverallOrderDivision => ({
         id: division.id,
         order: division.order,
-        // parseMatchingConfig が round → order の順に揃えて返すので、配列の順をそのまま使う。
+        // parseMatchingConfig が bracket → round → order の順に揃えて返すので、
+        // 配列の順をそのまま使う。
         matchIds: division.matchingConfig.matches.map((match) => match.id),
       }),
     ),

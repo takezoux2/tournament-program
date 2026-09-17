@@ -31,6 +31,7 @@ const bye: ResolvedSlot = {
 
 const doneMatch: ResolvedMatch = {
   id: "r2-m1",
+  bracket: "winners",
   round: 2,
   order: 0,
   slots: [
@@ -181,6 +182,35 @@ describe("MatchCard", () => {
     expect(
       screen.queryByTestId(`match-name-${doneMatch.id}`),
     ).not.toBeInTheDocument();
+  });
+
+  it("pending のスロットに説明があればそれを出す", () => {
+    render(
+      <MatchCard
+        match={{
+          ...doneMatch,
+          slots: [
+            {
+              participant: null,
+              state: "pending",
+              isWinner: false,
+              score: null,
+              pendingLabel: "第3試合の敗者",
+            },
+            {
+              participant: null,
+              state: "pending",
+              isWinner: false,
+              score: null,
+            },
+          ],
+          winnerId: null,
+          status: "waiting",
+        }}
+      />,
+    );
+    expect(screen.getByText("第3試合の敗者")).toBeInTheDocument();
+    expect(screen.getByText("未定")).toBeInTheDocument();
   });
 
   it("スロットにスコアがあれば各行に表示する", () => {

@@ -257,6 +257,34 @@ describe("buildResultRows", () => {
     expect(row).toMatchObject({ winReason: null, scores: [], note: null });
   });
 
+  it("BYE の伝播で bye になったスロットは、敗者の文言ではなく BYE と表示する", () => {
+    const configWithLoserSlot: MatchingConfig = {
+      version: 1,
+      matches: [
+        ...matchingConfig.matches,
+        match("m3-0", 3, 0, "4", [
+          { kind: "loserOf", matchId: "m1-1" },
+          { kind: "entry", entryId: "e1" },
+        ]),
+      ],
+    };
+    const byeDivision: ScheduleDivision = {
+      ...division({ version: 1, matches: [] }),
+      matchingConfig: configWithLoserSlot,
+    };
+    const rowsWithLoser: ScheduleRowView[] = [
+      ...rows,
+      matchRow("m3-0", "第4試合"),
+    ];
+
+    const result = buildResultRows(rowsWithLoser, [byeDivision], participants);
+
+    expect(asMatch(result[3]).slots[0]).toEqual({
+      label: "BYE",
+      entryId: null,
+    });
+  });
+
   it("未確定のスロットは、行が持つ展開済みの試合名で「◯◯の勝者」と書く", () => {
     const named: ScheduleRowView[] = [
       matchRow("m1-0", "準決勝A"),

@@ -133,6 +133,6 @@ export const isSingleEliminationShape = (config: MatchingConfig): boolean => {
  */
 export const toSlots = (config: MatchingConfig): SlotSource[] =>
   config.matches
-    .filter((match) => match.round === 1)
+    .filter((match) => match.bracket === "winners" && match.round === 1)
     .sort((left, right) => left.order - right.order)
     .flatMap((match) => [match.slots[0], match.slots[1]]);

@@ -83,21 +83,21 @@ describe("runDivisionSetup", () => {
     );
   });
 
-  it("編集画面の無い形式は found: false を返し mutate を呼ばない", async () => {
-    // Server Action は画面を経由せず直接叩けるので、対象外の形式の部門へ
-    // 組み合わせを書き込まれないことをこの層で保証する。
+  it("ダブルエリミネーションも編集できる形式なので mutate を呼び、形式を渡す", async () => {
+    // 全形式が編集画面を持つようになったので、found: false に倒れる形式は無い。
     divisionFindFirst.mockResolvedValue({
       ...emptyRow,
       format: "DOUBLE_ELIMINATION_GRAND_FINAL",
     });
-    // 素通りしたときに mutate 側で落ちるのではなく assertion で落ちるよう、
-    // 呼ばれれば成立する戻り値を持たせておく。
     const mutate = vi.fn(async () => ({ next: null, value: null }));
 
     const result = await Effect.runPromise(runDivisionSetup(ids, mutate));
 
-    expect(result).toEqual({ found: false });
-    expect(mutate).not.toHaveBeenCalled();
+    expect(result).toEqual({ found: true, value: null });
+    expect(mutate).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ format: "DOUBLE_ELIMINATION_GRAND_FINAL" }),
+    );
   });
 
   it("書き戻しでは format を更新しない", async () => {

@@ -1,4 +1,3 @@
-import { DIVISION_FORMAT_LABELS } from "@/features/division/format";
 import type {
   DivisionDetail,
   DivisionParticipant,
@@ -85,6 +84,8 @@ export function DivisionMatchingView({
 }) {
   switch (division.format) {
     case "SINGLE_ELIMINATION":
+    case "DOUBLE_ELIMINATION_GRAND_FINAL":
+    case "DOUBLE_ELIMINATION_THIRD_PLACE":
       return (
         <DivisionBracket
           division={division}
@@ -100,14 +101,6 @@ export function DivisionMatchingView({
           participants={participants}
           overallSeq={overallSeq}
         />
-      );
-    case "DOUBLE_ELIMINATION_GRAND_FINAL":
-    case "DOUBLE_ELIMINATION_THIRD_PLACE":
-      return (
-        <Notice>
-          「{DIVISION_FORMAT_LABELS[division.format]}
-          」のブラケット表示はまだ対応していません
-        </Notice>
       );
     default: {
       // 形式を増やしたときに、何も描かないまま通るのではなくコンパイルエラーにする
