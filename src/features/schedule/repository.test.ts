@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { DEFAULT_DIVISION_RESULT_CONFIG } from "@/lib/division/types";
 
 const divisionFindMany = vi.fn();
 const participantFindMany = vi.fn();
@@ -22,7 +23,7 @@ const matchingConfig = {
       bracket: "winners",
       round: 1,
       order: 0,
-      matchNumber: "1",
+      matchName: "1",
       slots: [
         { kind: "entry", entryId: "e1" },
         { kind: "entry", entryId: "e2" },
@@ -39,6 +40,13 @@ const entries = {
   ],
 };
 
+const resultConfig = {
+  version: 1,
+  winReason: { enabled: false, options: [] },
+  score: { enabled: false, count: 3, aggregation: "sum" },
+  note: { enabled: false },
+};
+
 beforeEach(() => {
   divisionFindMany.mockReset();
   participantFindMany.mockReset();
@@ -52,6 +60,7 @@ beforeEach(() => {
       entries,
       matchingConfig,
       results: { version: 1, matches: [] },
+      resultConfig,
     },
   ]);
   participantFindMany.mockResolvedValue([
@@ -93,8 +102,8 @@ describe("loadScheduleView", () => {
         divisionId: "dA",
         divisionName: "男子",
         matchId: "m1-0",
-        matchNumber: "1",
-        label: "1回戦 第1試合",
+        matchName: "1",
+        label: "1回戦 (1)",
         card: "山田 vs 佐藤",
       },
     ]);
@@ -129,8 +138,8 @@ describe("loadResultRows", () => {
         divisionId: "dA",
         divisionName: "男子",
         matchId: "m1-0",
-        matchNumber: "1",
-        label: "1回戦 第1試合",
+        matchName: "1",
+        label: "1回戦 (1)",
         slots: [
           { label: "山田", entryId: "e1" },
           { label: "佐藤", entryId: "e2" },
@@ -138,8 +147,34 @@ describe("loadResultRows", () => {
         winnerEntryId: null,
         state: "ready",
         downstreamRecordedCount: 0,
+        resultConfig,
+        winReason: null,
+        scores: [],
+        note: null,
       },
     ]);
+  });
+
+  it("resultConfig が壊れていてもページを落とさず既定値で返す", async () => {
+    divisionFindMany.mockResolvedValue([
+      {
+        id: "dA",
+        name: "男子",
+        order: 0,
+        format: "SINGLE_ELIMINATION",
+        entries,
+        matchingConfig,
+        results: { version: 1, matches: [] },
+        resultConfig: { version: 2 },
+      },
+    ]);
+
+    const rows = await loadResultRows("o1", "t1");
+
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({
+      resultConfig: DEFAULT_DIVISION_RESULT_CONFIG,
+    });
   });
 
   it("部門の読み出しに所有条件を入れる", async () => {

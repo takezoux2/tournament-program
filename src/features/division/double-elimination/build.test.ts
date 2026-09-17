@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import { DEFAULT_MATCH_NAME } from "@/lib/division/match-name";
+import { parseMatchingConfig } from "@/lib/division/parse";
 import type {
   BracketMatch,
   DivisionEntries,
@@ -96,15 +98,25 @@ describe("buildDoubleElimination", () => {
     }
   });
 
-  it("試合番号と sequence は勝者側 → 敗者側 → 決勝の順の連番", () => {
+  it("全試合の試合名は既定値で、実施順（sequence）を持たない", () => {
     const config = build(8, "grandFinal");
-    config.matches.forEach((match, index) => {
-      expect(match.sequence).toBe(index);
-      expect(match.matchNumber).toBe(String(index + 1));
-    });
+    for (const match of config.matches) {
+      expect(match.matchName).toBe(DEFAULT_MATCH_NAME);
+      expect(match).not.toHaveProperty("sequence");
+    }
+  });
+
+  it("配列は勝者側 → 敗者側 → 決勝の順で、読み出し後も変わらない", () => {
+    const config = build(8, "grandFinal");
     const sides = config.matches.map((match) => match.bracket);
     expect(sides.indexOf("losers")).toBe(7);
     expect(sides.at(-1)).toBe("final");
+    // 通し番号は読み出した配列の順で振られるので、並べ直しても崩れないこと。
+    expect(
+      parseMatchingConfig(JSON.parse(JSON.stringify(config))).matches.map(
+        (match) => match.id,
+      ),
+    ).toEqual(config.matches.map((match) => match.id));
   });
 
   it("grandFinal: 全試合の敗者と、決勝以外の全試合の勝者がちょうど 1 回ずつ送られる", () => {
@@ -211,14 +223,13 @@ describe("isDoubleEliminationShape", () => {
     expect(isDoubleEliminationShape(config, "thirdPlace")).toBe(false);
   });
 
-  it("試合番号や実施順を変えても true", () => {
+  it("試合名や配列の順を変えても true", () => {
     const config = build(8, "thirdPlace");
     const edited: MatchingConfig = {
       version: 1,
       matches: [...config.matches].reverse().map((match, index) => ({
         ...match,
-        sequence: index,
-        matchNumber: `A${index}`,
+        matchName: `A${index}`,
       })),
     };
     expect(isDoubleEliminationShape(edited, "thirdPlace")).toBe(true);

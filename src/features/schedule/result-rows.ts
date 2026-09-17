@@ -6,6 +6,11 @@ import {
   resolveMatchSlots,
 } from "@/lib/division/resolve";
 import type {
+  DivisionResultConfig,
+  MatchResultRecord,
+  MatchScoreEntry,
+} from "@/lib/division/types";
+import type {
   ScheduleDivision,
   ScheduleParticipant,
   ScheduleRowView,
@@ -27,15 +32,25 @@ export type ResultRowState = "ready" | "recorded" | "waiting" | "bye";
  * 参照できないため。結果の入力に時刻は要らない。
  */
 export type ResultRowView =
-  | { kind: "divider"; key: string; label: string }
+  | {
+      kind: "divider";
+      key: string;
+      label: string;
+      /**
+       * 区切りの開始予定時刻。書式化は画面側の仕事なので Date のまま運ぶ
+       * （features/schedule からは同列の features/tournament を参照できない）。
+       * 公開の試合一覧がこの型を使うため、結果入力には要らないが載せている。
+       */
+      startsAt: Date | null;
+    }
   | {
       kind: "match";
       key: string;
       divisionId: string;
       divisionName: string;
       matchId: string;
-      matchNumber: string;
-      /** 「1回戦 第1試合」 */
+      matchName: string;
+      /** 「1回戦 (1)」。リーグは位置を持たないので空文字 */
       label: string;
       slots: [ResultSlotView, ResultSlotView];
       /** BYE の自動勝ち上がりを含む。決まっていなければ null */
@@ -43,6 +58,14 @@ export type ResultRowView =
       state: ResultRowState;
       /** 上書き・取り消しで消える下流の記録の件数。0 なら確認を出さない */
       downstreamRecordedCount: number;
+      /** この試合が属する部門の結果入力の設定 */
+      resultConfig: DivisionResultConfig;
+      /** 記録済みの勝因。未設定は null */
+      winReason: string | null;
+      /** 記録済みの採点。未設定は空配列 */
+      scores: MatchScoreEntry[];
+      /** 記録済みのメモ。未設定は null */
+      note: string | null;
     };
 
 /**
@@ -77,6 +100,20 @@ export const buildResultRows = (
   divisions: ScheduleDivision[],
   participants: ScheduleParticipant[],
 ): ResultRowView[] => {
+  // 展開済みの試合名は進行順の行（buildScheduleView の出力）が既に持っている。
+  // 行は大会の全試合を含むので、部門ごとの「試合 id → 表示名」に組み直して
+  // スロットの文言（「第3試合の勝者」）もそれで作る。通し番号をここで
+  // 計算し直すと、進行順の一覧と結果入力で規則が 2 本になるため。
+  const namesByDivision = new Map<string, Map<string, string>>();
+  for (const row of rows) {
+    if (row.kind !== "match") {
+      continue;
+    }
+    const names = namesByDivision.get(row.divisionId) ?? new Map();
+    names.set(row.matchId, row.matchName);
+    namesByDivision.set(row.divisionId, names);
+  }
+
   const context = new Map(
     divisions.map((division) => [
       division.id,
@@ -84,12 +121,13 @@ export const buildResultRows = (
         division,
         resolved: resolveMatchSlots(division.matchingConfig, division.results),
         labelSlot: createSlotLabeler(
-          division.matchingConfig,
+          namesByDivision.get(division.id) ?? new Map<string, string>(),
           division.entries,
           participants,
         ),
-        recorded: new Set(
-          division.results.matches.map((record) => record.matchId),
+        // 記録の有無だけでなく中身も要るので、id から記録を引く表にする。
+        recordById: new Map<string, MatchResultRecord>(
+          division.results.matches.map((record) => [record.matchId, record]),
         ),
         // id から試合を引く表。行ごとに matches を線形探索しないための Map。
         matchById: new Map(
@@ -104,7 +142,14 @@ export const buildResultRows = (
 
   return rows.flatMap((row): ResultRowView[] => {
     if (row.kind === "divider") {
-      return [{ kind: "divider", key: row.key, label: row.label }];
+      return [
+        {
+          kind: "divider",
+          key: row.key,
+          label: row.label,
+          startsAt: row.startsAt,
+        },
+      ];
     }
 
     const current = context.get(row.divisionId);
@@ -134,6 +179,8 @@ export const buildResultRows = (
       current.dependents,
     );
 
+    const record = current.recordById.get(row.matchId);
+
     return [
       {
         kind: "match",
@@ -141,14 +188,18 @@ export const buildResultRows = (
         divisionId: row.divisionId,
         divisionName: row.divisionName,
         matchId: row.matchId,
-        matchNumber: row.matchNumber,
+        matchName: row.matchName,
         label: row.label,
         slots: [slotView(0), slotView(1)],
         winnerEntryId: resolved.winnerEntryId,
-        state: rowState(resolved, current.recorded.has(row.matchId)),
+        state: rowState(resolved, record !== undefined),
         downstreamRecordedCount: [...downstream].filter((id) =>
-          current.recorded.has(id),
+          current.recordById.has(id),
         ).length,
+        resultConfig: current.division.resultConfig,
+        winReason: record?.winReason ?? null,
+        scores: record?.scores ?? [],
+        note: record?.note ?? null,
       },
     ];
   });

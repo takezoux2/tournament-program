@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { INITIAL_DIVISION_FORM_STATE } from "../state";
 
 const requireOrganization = vi.fn();
-const setMatchNumberInDb = vi.fn();
+const setMatchNameInDb = vi.fn();
 const revalidateDivisionSetup = vi.fn();
 const notFound = vi.fn(() => {
   throw new Error("NEXT_NOT_FOUND");
@@ -27,54 +27,54 @@ vi.mock("../revalidate", () => ({
   ) => revalidateDivisionSetup(slug, tournamentId, divisionId),
 }));
 vi.mock("./repository", () => ({
-  setMatchNumberInDb: (ids: unknown, input: unknown) => {
-    calls.push("setMatchNumberInDb");
-    return setMatchNumberInDb(ids, input);
+  setMatchNameInDb: (ids: unknown, input: unknown) => {
+    calls.push("setMatchNameInDb");
+    return setMatchNameInDb(ids, input);
   },
 }));
 
-const { setMatchNumberAction } = await import("./handler");
+const { setMatchNameAction } = await import("./handler");
 
-const formData = (matchId: string, matchNumber: string) => {
+const formData = (matchId: string, matchName: string) => {
   const data = new FormData();
   data.set("slug", "acme");
   data.set("tournamentId", "t1");
   data.set("divisionId", "d1");
   data.set("matchId", matchId);
-  data.set("matchNumber", matchNumber);
+  data.set("matchName", matchName);
   return data;
 };
 
 beforeEach(() => {
   calls = [];
   requireOrganization.mockReset();
-  setMatchNumberInDb.mockReset();
+  setMatchNameInDb.mockReset();
   revalidateDivisionSetup.mockReset();
   notFound.mockClear();
   requireOrganization.mockResolvedValue({ organization: { id: "o1" } });
-  setMatchNumberInDb.mockReturnValue(
+  setMatchNameInDb.mockReturnValue(
     Effect.succeed({ found: true, value: null }),
   );
 });
 
-describe("setMatchNumberAction", () => {
+describe("setMatchNameAction", () => {
   it("認可を独立に確かめ、トリム済みの入力をポートへ渡す", async () => {
-    await setMatchNumberAction(
+    await setMatchNameAction(
       INITIAL_DIVISION_FORM_STATE,
       formData("m1", " 12 "),
     );
 
     expect(requireOrganization).toHaveBeenCalledWith("acme");
-    expect(setMatchNumberInDb).toHaveBeenCalledWith(
+    expect(setMatchNameInDb).toHaveBeenCalledWith(
       { organizationId: "o1", tournamentId: "t1", divisionId: "d1" },
-      { matchId: "m1", matchNumber: "12" },
+      { matchId: "m1", matchName: "12" },
     );
     // データベース処理よりも前に認可チェックが必ず実行されることを確認
-    expect(calls).toEqual(["requireOrganization", "setMatchNumberInDb"]);
+    expect(calls).toEqual(["requireOrganization", "setMatchNameInDb"]);
   });
 
   it("成功したら再検証する", async () => {
-    const state = await setMatchNumberAction(
+    const state = await setMatchNameAction(
       INITIAL_DIVISION_FORM_STATE,
       formData("m1", "12"),
     );
@@ -83,35 +83,31 @@ describe("setMatchNumberAction", () => {
     expect(state.error).toBeNull();
   });
 
-  it("試合番号が空なら入力エラーにする", async () => {
-    const state = await setMatchNumberAction(
+  it("試合名が空なら入力エラーにする", async () => {
+    const state = await setMatchNameAction(
       INITIAL_DIVISION_FORM_STATE,
       formData("m1", "  "),
     );
 
-    expect(state.error).toBe("試合番号を入力してください");
-    expect(setMatchNumberInDb).not.toHaveBeenCalled();
+    expect(state.error).toBe("試合名を入力してください");
+    expect(setMatchNameInDb).not.toHaveBeenCalled();
   });
 
-  it("試合番号が重複していたら文言を返す", async () => {
-    const { DivisionMatchNumberConflictError } = await import("../errors");
-    setMatchNumberInDb.mockReturnValue(
-      Effect.fail(new DivisionMatchNumberConflictError({ matchNumber: "12" })),
-    );
-
-    const state = await setMatchNumberAction(
+  it("試合名の書き方が正しくなければ文言を返し、保存しない", async () => {
+    const state = await setMatchNameAction(
       INITIAL_DIVISION_FORM_STATE,
-      formData("m1", "12"),
+      formData("m1", "{{#a}}第1試合"),
     );
 
-    expect(state.error).toBe("その試合番号は別の試合で使われています");
+    expect(state.error).toBe("試合名の書き方が正しくありません");
+    expect(setMatchNameInDb).not.toHaveBeenCalled();
   });
 
   it("部門が無ければ 404 にする", async () => {
-    setMatchNumberInDb.mockReturnValue(Effect.succeed({ found: false }));
+    setMatchNameInDb.mockReturnValue(Effect.succeed({ found: false }));
 
     await expect(
-      setMatchNumberAction(INITIAL_DIVISION_FORM_STATE, formData("m1", "12")),
+      setMatchNameAction(INITIAL_DIVISION_FORM_STATE, formData("m1", "12")),
     ).rejects.toThrow("NEXT_NOT_FOUND");
   });
 });

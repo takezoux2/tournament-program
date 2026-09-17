@@ -17,14 +17,14 @@ const bracket: Bracket = {
       id: "m1",
       round: 1,
       order: 0,
-      matchNumber: "1",
+      matchName: "1",
       slots: [{ kind: "participant", participantId: "p1" }, { kind: "bye" }],
     },
     {
       id: "m2",
       round: 1,
       order: 1,
-      matchNumber: "2",
+      matchName: "2",
       slots: [
         { kind: "participant", participantId: "p2" },
         { kind: "participant", participantId: "p3" },
@@ -34,7 +34,7 @@ const bracket: Bracket = {
       id: "m3",
       round: 2,
       order: 0,
-      matchNumber: "3",
+      matchName: "3",
       slots: [
         { kind: "winnerOf", matchId: "m1" },
         { kind: "winnerOf", matchId: "m2" },
@@ -120,7 +120,7 @@ describe("resolveBracket", () => {
           id: "x1",
           round: 1,
           order: 0,
-          matchNumber: "1",
+          matchName: "1",
           slots: [
             { kind: "participant", participantId: "ghost" },
             { kind: "bye" },
@@ -139,7 +139,7 @@ describe("resolveBracket", () => {
           id: "x1",
           round: 2,
           order: 0,
-          matchNumber: "1",
+          matchName: "1",
           slots: [{ kind: "winnerOf", matchId: "ghost" }, { kind: "bye" }],
         },
       ],
@@ -167,20 +167,51 @@ describe("resolveBracket", () => {
     expect(() => resolveBracket(participants, bracket, results)).toThrow(/p9/);
   });
 
-  it("matchNumber を ResolvedMatch へ通す。無ければ null", () => {
-    const bracketWithNumber: Bracket = {
+  it("スコアをスロットに配り、勝因とメモを試合に載せる", () => {
+    const resolved = resolveBracket(participants, bracket, [
+      {
+        matchId: "m2",
+        winnerId: "p2",
+        winReason: "一本勝ち",
+        scores: [
+          { participantId: "p2", score: "21" },
+          { participantId: "p3", score: "20" },
+        ],
+        note: "抗議あり",
+      },
+    ]);
+
+    const match = byId(resolved, "m2");
+    expect(match.winReason).toBe("一本勝ち");
+    expect(match.note).toBe("抗議あり");
+    expect(match.slots[0].score).toBe("21");
+    expect(match.slots[1].score).toBe("20");
+  });
+
+  it("スコアが無いスロットは null", () => {
+    const resolved = resolveBracket(participants, bracket, [
+      { matchId: "m2", winnerId: "p2" },
+    ]);
+    const match = byId(resolved, "m2");
+    expect(match.slots[0].score).toBeNull();
+    expect(match.winReason).toBeNull();
+    expect(match.note).toBeNull();
+  });
+
+  it("matchName を ResolvedMatch へ通す。無ければ null", () => {
+    const bracketWithName: Bracket = {
       ...bracket,
       matches: [
         {
           ...bracket.matches[0],
-          matchNumber: "3",
+          matchName: "3",
         },
       ],
     };
-    const withNumber = resolveBracket(participants, bracketWithNumber, []);
-    expect(withNumber[0].matchNumber).toBe("3");
+    const withName = resolveBracket(participants, bracketWithName, []);
+    expect(withName[0].matchName).toBe("3");
 
-    const bracketWithoutNumber: Bracket = {
+    const bracketWithoutName: Bracket = {
       ...bracket,
       matches: [
         {
@@ -194,12 +225,8 @@ describe("resolveBracket", () => {
         },
       ],
     };
-    const withoutNumber = resolveBracket(
-      participants,
-      bracketWithoutNumber,
-      [],
-    );
-    expect(withoutNumber[0].matchNumber).toBeNull();
+    const withoutName = resolveBracket(participants, bracketWithoutName, []);
+    expect(withoutName[0].matchName).toBeNull();
   });
 });
 
@@ -218,7 +245,7 @@ describe("resolveBracket（敗者側）", () => {
         bracket: "winners",
         round: 1,
         order: 0,
-        matchNumber: "1",
+        matchName: "第1試合",
         slots: [
           { kind: "participant", participantId: "a" },
           { kind: "participant", participantId: "b" },
@@ -229,7 +256,7 @@ describe("resolveBracket（敗者側）", () => {
         bracket: "winners",
         round: 1,
         order: 1,
-        matchNumber: "2",
+        matchName: "第2試合",
         slots: [{ kind: "participant", participantId: "c" }, { kind: "bye" }],
       },
       {
@@ -237,7 +264,7 @@ describe("resolveBracket（敗者側）", () => {
         bracket: "losers",
         round: 2,
         order: 0,
-        matchNumber: "3",
+        matchName: "第3試合",
         slots: [
           { kind: "loserOf", matchId: "m1-0" },
           { kind: "loserOf", matchId: "m1-1" },
@@ -256,7 +283,7 @@ describe("resolveBracket（敗者側）", () => {
     expect(find(resolved, "l1-0").bracket).toBe("losers");
   });
 
-  it("敗者が決まる前は pending で「第N試合の敗者」を持つ", () => {
+  it("敗者が決まる前は pending で「（展開済みの試合名）の敗者」を持つ", () => {
     const slot = find(resolveBracket(players, bracket, []), "l1-0").slots[0];
     expect(slot).toMatchObject({
       state: "pending",

@@ -25,8 +25,8 @@ export type Match = {
   round: number;
   /** ラウンド内の上からの位置。0 始まり */
   order: number;
-  /** 表示用の試合番号。mock など無い場合は省略可 */
-  matchNumber?: string;
+  /** 表示用の試合名。mock など無い場合は省略可 */
+  matchName?: string;
   slots: [SlotSource, SlotSource];
 };
 
@@ -42,6 +42,14 @@ export type MatchResult = {
   winnerId: string;
   /** "3-1" などの表示用文字列 */
   score?: string;
+  /** 決着のつき方。「一本勝ち」など */
+  winReason?: string;
+  /**
+   * 参加者ごとの表示用スコア。集計（合計か平均か）は呼び出し元が済ませて
+   * 文字列にしてから渡す。こうすると features/bracket は部門の設定を知らずに済む。
+   */
+  scores?: { participantId: string; score: string }[];
+  note?: string;
 };
 
 export type SlotState = "confirmed" | "pending" | "bye";
@@ -51,8 +59,10 @@ export type ResolvedSlot = {
   participant: Participant | null;
   state: SlotState;
   isWinner: boolean;
-  /** pending のときの説明（「第3試合の敗者」など）。無ければ「未定」と出す */
+  /** pending のときの説明（展開済みの試合名に「の敗者」を付けたもの）。無ければ「未定」と出す */
   pendingLabel?: string;
+  /** 表示用スコア。無ければ null */
+  score: string | null;
 };
 
 export type MatchStatus = "done" | "ready" | "waiting" | "bye";
@@ -64,11 +74,15 @@ export type ResolvedMatch = {
   bracket: BracketSide;
   round: number;
   order: number;
-  /** 表示用の試合番号。元データに無ければ null */
-  matchNumber: string | null;
+  /** 表示用の試合名。元データに無ければ null */
+  matchName: string | null;
   slots: [ResolvedSlot, ResolvedSlot];
   winnerId: string | null;
   score: string | null;
+  /** 決着のつき方。「一本勝ち」など。記録が無ければ null */
+  winReason: string | null;
+  /** 運営メモ。記録が無ければ null */
+  note: string | null;
   status: MatchStatus;
   /** 各スロットの winnerOf 供給元試合 id。loserOf は線を引かないので null */
   sourceMatchIds: [string | null, string | null];

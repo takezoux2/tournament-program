@@ -64,7 +64,7 @@ export const removeEntryInDb: RemoveEntryPort = (ids, input) =>
     };
 
     // 穴を残すより、シード順から作り直した方が結果が読みやすい。
-    // トーナメントで手動入れ替えした配置と、両形式で手で変えた試合番号は
+    // トーナメントで手動入れ替えした配置と、両形式で手で変えた試合名は
     // ここで失われるので、画面には再生成した旨を出す。
     const hadMatching = current.matchingConfig.matches.length > 0;
     const matchingConfig = hadMatching

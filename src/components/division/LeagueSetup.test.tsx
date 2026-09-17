@@ -2,17 +2,18 @@ import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import type { DivisionDetail } from "@/features/division/repository";
 import { buildRoundRobin } from "@/features/division/round-robin/build";
+import { DEFAULT_MATCH_NAME } from "@/lib/division/match-name";
+import { overallSeqKey } from "@/lib/division/overall-order";
 import { LeagueSetup } from "./LeagueSetup";
 
-// 7 つとも別の vi.fn にする。同じ参照を使い回すと、配線で prop を
+// 6 つとも別の vi.fn にする。同じ参照を使い回すと、配線で prop を
 // 取り違えても（例: reorderEntry と removeEntry の入れ替え）検知できない。
 const actions = {
   addEntry: vi.fn(async () => ({ error: null })),
   removeEntry: vi.fn(async () => ({ error: null })),
   reorderEntry: vi.fn(async () => ({ error: null })),
   generateMatching: vi.fn(async () => ({ error: null })),
-  reorderMatches: vi.fn(async () => ({ error: null })),
-  setMatchNumber: vi.fn(async () => ({ error: null })),
+  setMatchName: vi.fn(async () => ({ error: null })),
   setPlayerNumber: vi.fn(async () => ({ error: null })),
 };
 
@@ -34,6 +35,7 @@ const division = (overrides: Partial<DivisionDetail> = {}): DivisionDetail => ({
   entries: { version: 1, entries: leagueEntries },
   matchingConfig: leagueMatching,
   results: { version: 1, matches: [] },
+  resultConfig: null,
   createdAt: new Date("2026-01-01T00:00:00Z"),
   ...overrides,
 });
@@ -49,27 +51,30 @@ const props = {
   ],
   members: [],
   actions,
+  overallSeq: new Map([[overallSeqKey("d1", "r1-0"), 1]]),
 };
 
 describe("LeagueSetup", () => {
-  it("エントリー・対戦表・試合の実施順の 3 区画を出す", () => {
+  it("エントリー・対戦表・試合名の 3 区画を出す", () => {
     render(<LeagueSetup {...props} division={division()} />);
 
     expect(
       screen.getByRole("heading", { name: "エントリー" }),
     ).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "対戦表" })).toBeInTheDocument();
-    expect(
-      screen.getByRole("heading", { name: "試合の実施順" }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "試合名" })).toBeInTheDocument();
 
     // 見出しの有無だけでは mismatched 分岐の両側で真になってしまい、
     // 本物の toCrossTableView / toMatchOrderView が描かれたことの証明にならない。
     // 星取表は「第1試合」を左右対称な 2 マスに出すため、その文字列だけでは
-    // 星取表のみが描かれた場合と実施順の一覧まで描かれた場合を区別できない。
-    // 実施順の一覧にしか無い試合番号の入力欄（MatchNumberRow の aria-label）を
+    // 星取表のみが描かれた場合と試合名の一覧まで描かれた場合を区別できない。
+    // 試合名の一覧にしか無い試合名の入力欄（MatchNameRow の aria-label）を
     // 見て、本物の toMatchOrderView / MatchOrderList が描かれたことを確かめる。
-    expect(screen.getByLabelText("第1試合の試合番号")).toHaveValue("1");
+    expect(screen.getByLabelText("山田 vs 田中の試合名")).toHaveValue(
+      DEFAULT_MATCH_NAME,
+    );
+    // 星取表の左右対称な 2 マスと、編集行のプレビューに同じ名前が出る。
+    expect(screen.getAllByText("第1試合")).toHaveLength(3);
   });
 
   it("リーグ以外の形式は案内だけを出す", () => {
@@ -124,7 +129,7 @@ describe("LeagueSetup", () => {
                 bracket: "winners",
                 round: 2,
                 order: 0,
-                matchNumber: "3",
+                matchName: "3",
                 slots: [
                   { kind: "winnerOf", matchId: "m1-0" },
                   { kind: "winnerOf", matchId: "m1-1" },

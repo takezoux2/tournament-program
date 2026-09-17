@@ -12,6 +12,7 @@ const requireOrganization = vi.fn();
 const findTournamentInOrganization = vi.fn();
 const findDivisionInTournament = vi.fn();
 const listParticipantsInTournament = vi.fn();
+const listOverallOrderSources = vi.fn();
 const notFound = vi.fn(() => {
   // next/navigation の notFound は例外を投げて制御を打ち切る。
   // require-organization.test.ts と同じ形で模す。
@@ -46,14 +47,20 @@ vi.mock("@/features/division/repository", () => ({
     organizationId: string,
     tournamentId: string,
   ) => listParticipantsInTournament(organizationId, tournamentId),
+  listOverallOrderSources: (tournamentId: string) =>
+    listOverallOrderSources(tournamentId),
 }));
 
 // DivisionMatchingView は組み合わせの組み立てまで踏み込むため、ページのテストでは
 // division / participants をそのまま受け取っているかだけを見たいのでダミーへ差し替える。
 // needsParticipants は @/features/division/format 側にあり、ここではモックしない
 // （参加者を引く条件がページの責務であり、本物の判定を通して確かめたいため）。
+const matchingViewProps = vi.fn();
 vi.mock("@/components/division/DivisionMatchingView", () => ({
-  DivisionMatchingView: () => <div>matching</div>,
+  DivisionMatchingView: (props: unknown) => {
+    matchingViewProps(props);
+    return <div>matching</div>;
+  },
 }));
 
 const { default: DivisionPage } = await import("./page");
@@ -110,6 +117,9 @@ describe("DivisionPage", () => {
     findTournamentInOrganization.mockResolvedValue(tournament);
     findDivisionInTournament.mockResolvedValue(division);
     listParticipantsInTournament.mockResolvedValue([]);
+    listOverallOrderSources.mockReset();
+    listOverallOrderSources.mockResolvedValue(new Map());
+    matchingViewProps.mockReset();
   });
 
   it("requireOrganization には params の slug をそのまま渡す", async () => {
@@ -158,6 +168,7 @@ describe("DivisionPage", () => {
     );
     expect(findTournamentInOrganization).not.toHaveBeenCalled();
     expect(findDivisionInTournament).not.toHaveBeenCalled();
+    expect(listOverallOrderSources).not.toHaveBeenCalled();
   });
 
   it("SINGLE_ELIMINATION の部門では参加者一覧を organization.id と tournamentId で取得する", async () => {
@@ -195,5 +206,18 @@ describe("DivisionPage", () => {
     expect(
       screen.getByRole("heading", { name: "男子シングルス" }),
     ).toBeInTheDocument();
+  });
+
+  it("大会 id で通し番号を読み、DivisionMatchingView にそのまま渡す", async () => {
+    const overallSeq = new Map([["d1:m1-0", 1]]);
+    listOverallOrderSources.mockResolvedValue(overallSeq);
+
+    render(await DivisionPage(pageProps("tennis", "t1", "d1")));
+
+    expect(listOverallOrderSources).toHaveBeenCalledWith("t1");
+    const { overallSeq: passed } = matchingViewProps.mock.calls[0][0] as {
+      overallSeq: unknown;
+    };
+    expect(passed).toBe(overallSeq);
   });
 });

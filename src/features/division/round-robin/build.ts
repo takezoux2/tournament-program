@@ -1,3 +1,4 @@
+import { DEFAULT_MATCH_NAME } from "@/lib/division/match-name";
 import type {
   BracketMatch,
   DivisionEntry,
@@ -56,7 +57,7 @@ export const circleRounds = (count: number): [number, number][][] => {
  * 試合 id。生成時の通し番号だけから決まる。接頭辞を single-elimination の
  * `m{round}-{order}` と変えてあるのは、形式を取り違えたデータが混ざったときに
  * 見分けられるようにするため。`r1-` の 1 は「リーグに節は無い（round は常に 1）」
- * ことを表していて、実施順ではない。並べ替えても id は変わらない。
+ * ことを表していて、並びの位置（order）と同じ値を使う。
  */
 const matchId = (order: number): string => `r1-${order}`;
 
@@ -80,8 +81,7 @@ export const buildRoundRobin = (entries: DivisionEntry[]): MatchingConfig => {
         bracket: "winners",
         round: 1,
         order,
-        sequence: order,
-        matchNumber: String(order + 1),
+        matchName: DEFAULT_MATCH_NAME,
         slots: [
           { kind: "entry", entryId: sorted[left].id },
           { kind: "entry", entryId: sorted[right].id },

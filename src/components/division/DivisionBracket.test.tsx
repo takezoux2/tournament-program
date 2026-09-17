@@ -1,8 +1,8 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { buildDoubleElimination } from "@/features/division/double-elimination/build";
-import { generateSlots } from "@/features/division/single-elimination/edit";
 import type { DivisionDetail } from "@/features/division/repository";
+import { generateSlots } from "@/features/division/single-elimination/edit";
 
 // @xyflow/react は jsdom で実寸を測れないため、描画そのものは差し替える。
 // ここで確かめたいのは「描くか、どんな案内を出すか」の分岐。
@@ -18,6 +18,8 @@ const participants = [
   { id: "p1", name: "佐藤 蓮", nameKana: "サトウ レン", playerNumber: "1" },
   { id: "p2", name: "鈴木 陽菜", nameKana: "スズキ ハルナ", playerNumber: "2" },
 ];
+
+const noSeq = new Map<string, number>();
 
 const buildDivision = (
   overrides: Partial<DivisionDetail> = {},
@@ -49,6 +51,12 @@ const buildDivision = (
     ],
   },
   results: { version: 1, matches: [] },
+  resultConfig: {
+    version: 1,
+    winReason: { enabled: false, options: [] },
+    score: { enabled: false, count: 3, aggregation: "sum" },
+    note: { enabled: false },
+  },
   createdAt: new Date("2026-08-01T00:00:00Z"),
   ...overrides,
 });
@@ -59,6 +67,7 @@ describe("DivisionBracket", () => {
       <DivisionBracket
         division={buildDivision()}
         participants={participants}
+        overallSeq={noSeq}
       />,
     );
 
@@ -72,6 +81,7 @@ describe("DivisionBracket", () => {
           matchingConfig: { version: 1, matches: [] },
         })}
         participants={participants}
+        overallSeq={noSeq}
       />,
     );
 
@@ -84,6 +94,7 @@ describe("DivisionBracket", () => {
       <DivisionBracket
         division={buildDivision({ format: "ROUND_ROBIN" })}
         participants={participants}
+        overallSeq={noSeq}
       />,
     );
 
@@ -115,12 +126,32 @@ describe("DivisionBracket", () => {
           },
         })}
         participants={participants}
+        overallSeq={noSeq}
       />,
     );
 
     expect(
       screen.getByText("この組み合わせはまだ表示に対応していません"),
     ).toBeInTheDocument();
+  });
+
+  // resultConfig は表示のフィルタでしかない。壊れていても他の 3 列が
+  // 無事ならブラケットそのものは描けるべきで、/edit ページと同じく
+  // 既定値へ落として描画を続ける（entries/matchingConfig/results の壊れ方
+  // とは扱いを分ける）。
+  it("resultConfig が壊れていても既定値に落として描画する", () => {
+    render(
+      <DivisionBracket
+        division={buildDivision({ resultConfig: { version: 2 } })}
+        participants={participants}
+        overallSeq={noSeq}
+      />,
+    );
+
+    expect(screen.getByTestId("flow")).toHaveTextContent("1");
+    expect(
+      screen.queryByText("ブラケットのデータを読み込めませんでした"),
+    ).toBeNull();
   });
 
   // Json は DB の列で、アプリの外から壊れた値が入りうる。ページ全体を
@@ -130,6 +161,7 @@ describe("DivisionBracket", () => {
       <DivisionBracket
         division={buildDivision({ matchingConfig: { version: 2 } })}
         participants={participants}
+        overallSeq={noSeq}
       />,
     );
 
@@ -168,6 +200,7 @@ describe("DivisionBracket", () => {
             playerNumber: "3",
           },
         ]}
+        overallSeq={noSeq}
       />,
     );
 
@@ -188,6 +221,7 @@ describe("DivisionBracket", () => {
           matchingConfig: { version: 1, matches: [] },
         })}
         participants={participants}
+        overallSeq={noSeq}
       />,
     );
 
@@ -199,6 +233,7 @@ describe("DivisionBracket", () => {
       <DivisionBracket
         division={buildDivision()}
         participants={participants}
+        overallSeq={noSeq}
       />,
     );
 
@@ -226,8 +261,14 @@ describe("DivisionBracket", () => {
         })}
         participants={[
           ...participants,
-          { id: "p3", name: "高橋 湊", nameKana: "タカハシ ミナト", playerNumber: "3" },
+          {
+            id: "p3",
+            name: "高橋 湊",
+            nameKana: "タカハシ ミナト",
+            playerNumber: "3",
+          },
         ]}
+        overallSeq={noSeq}
       />,
     );
     // 4 枠: 勝者側 3 + 敗者側 2 + 決勝 1 + ラベル 3
@@ -239,6 +280,7 @@ describe("DivisionBracket", () => {
       <DivisionBracket
         division={buildDivision()}
         participants={participants}
+        overallSeq={noSeq}
         heightClassName="h-[20rem]"
       />,
     );

@@ -22,6 +22,15 @@ export const updateDivisionAction = async (
   const parsed = updateDivisionSchema.safeParse({
     name: String(formData.get("name") ?? ""),
     format: String(formData.get("format") ?? ""),
+    resultConfig: {
+      // checkbox はチェックされたときだけ送られてくる。存在の有無を真偽値に直す。
+      winReasonEnabled: formData.get("winReasonEnabled") !== null,
+      winReasonOptions: String(formData.get("winReasonOptions") ?? ""),
+      scoreEnabled: formData.get("scoreEnabled") !== null,
+      scoreCount: String(formData.get("scoreCount") ?? ""),
+      scoreAggregation: String(formData.get("scoreAggregation") ?? ""),
+      noteEnabled: formData.get("noteEnabled") !== null,
+    },
   });
   if (!parsed.success) {
     return { error: parsed.error.issues[0].message };

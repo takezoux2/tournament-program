@@ -17,11 +17,11 @@ vi.mock("@/shared/db/prisma", () => ({
   },
 }));
 
-const { setMatchNumberInDb } = await import("./repository");
+const { setMatchNameInDb } = await import("./repository");
 
 const ids = { organizationId: "o1", tournamentId: "t1", divisionId: "d1" };
 
-// e1 vs e2 の 1 試合だけの組み合わせ（matchNumber "1"）
+// e1 vs e2 の 1 試合だけの組み合わせ（matchName は既定のテンプレート）
 const config = buildFromSlots([
   { kind: "entry", entryId: "e1" },
   { kind: "entry", entryId: "e2" },
@@ -45,21 +45,21 @@ beforeEach(() => {
   divisionUpdateMany.mockResolvedValue({ count: 1 });
 });
 
-describe("setMatchNumberInDb", () => {
-  it("指定した試合の番号だけを書き換える", async () => {
+describe("setMatchNameInDb", () => {
+  it("指定した試合の試合名だけを書き換える", async () => {
     const outcome = await Effect.runPromise(
-      setMatchNumberInDb(ids, { matchId: "m1-0", matchNumber: "A" }),
+      setMatchNameInDb(ids, { matchId: "m1-0", matchName: "A" }),
     );
 
     expect(outcome).toEqual({ found: true, value: null });
     const written = divisionUpdateMany.mock.calls[0][0].data.matchingConfig;
-    expect(written.matches[0].matchNumber).toBe("A");
+    expect(written.matches[0].matchName).toBe("A");
     expect(written.matches[0].slots).toEqual(config.matches[0].slots);
   });
 
   it("所有権を where に入れて読む", async () => {
     await Effect.runPromise(
-      setMatchNumberInDb(ids, { matchId: "m1-0", matchNumber: "A" }),
+      setMatchNameInDb(ids, { matchId: "m1-0", matchName: "A" }),
     );
     expect(divisionFindFirst).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -74,7 +74,7 @@ describe("setMatchNumberInDb", () => {
   it("部門が見つからなければ found: false", async () => {
     divisionFindFirst.mockResolvedValue(null);
     const outcome = await Effect.runPromise(
-      setMatchNumberInDb(ids, { matchId: "m1-0", matchNumber: "A" }),
+      setMatchNameInDb(ids, { matchId: "m1-0", matchName: "A" }),
     );
     expect(outcome).toEqual({ found: false });
     expect(divisionUpdateMany).not.toHaveBeenCalled();
@@ -82,7 +82,7 @@ describe("setMatchNumberInDb", () => {
 
   it("存在しない試合なら DivisionMatchNotFoundError", async () => {
     const exit = await Effect.runPromiseExit(
-      setMatchNumberInDb(ids, { matchId: "m9-9", matchNumber: "A" }),
+      setMatchNameInDb(ids, { matchId: "m9-9", matchName: "A" }),
     );
     expect(exit._tag).toBe("Failure");
     if (Exit.isFailure(exit)) {
@@ -95,7 +95,7 @@ describe("setMatchNumberInDb", () => {
     expect(divisionUpdateMany).not.toHaveBeenCalled();
   });
 
-  it("別の試合と同じ番号なら DivisionMatchNumberConflictError", async () => {
+  it("別の試合と同じ試合名でも保存できる", async () => {
     const twoMatches = buildFromSlots([
       { kind: "entry", entryId: "e1" },
       { kind: "entry", entryId: "e2" },
@@ -107,29 +107,25 @@ describe("setMatchNumberInDb", () => {
       entries,
       matchingConfig: twoMatches,
     });
+    const sameAsOther = twoMatches.matches[1].matchName;
 
-    const exit = await Effect.runPromiseExit(
-      setMatchNumberInDb(ids, { matchId: "m1-0", matchNumber: "2" }),
+    const outcome = await Effect.runPromise(
+      setMatchNameInDb(ids, { matchId: "m1-0", matchName: sameAsOther }),
     );
-    expect(exit._tag).toBe("Failure");
-    if (Exit.isFailure(exit)) {
-      const failure = Cause.failureOption(exit.cause);
-      expect(Option.isSome(failure)).toBe(true);
-      if (Option.isSome(failure)) {
-        expect(failure.value._tag).toBe("DivisionMatchNumberConflictError");
-      }
-    }
-    expect(divisionUpdateMany).not.toHaveBeenCalled();
+
+    expect(outcome).toEqual({ found: true, value: null });
+    const written = divisionUpdateMany.mock.calls[0][0].data.matchingConfig;
+    expect(written.matches[0].matchName).toBe(sameAsOther);
   });
 
-  it("同じ試合への同じ番号の再設定は重複にならない", async () => {
+  it("同じ試合への同じ試合名の再設定もそのまま保存する", async () => {
     const outcome = await Effect.runPromise(
-      setMatchNumberInDb(ids, { matchId: "m1-0", matchNumber: "1" }),
+      setMatchNameInDb(ids, { matchId: "m1-0", matchName: "1" }),
     );
     expect(outcome).toEqual({ found: true, value: null });
   });
 
-  it("リーグの部門でも試合番号を変えられる", async () => {
+  it("リーグの部門でも試合名を変えられる", async () => {
     divisionFindFirst.mockResolvedValue({
       format: "ROUND_ROBIN",
       entries: {
@@ -147,7 +143,7 @@ describe("setMatchNumberInDb", () => {
             bracket: "winners",
             round: 1,
             order: 0,
-            matchNumber: "1",
+            matchName: "1",
             slots: [
               { kind: "entry", entryId: "e1" },
               { kind: "entry", entryId: "e2" },
@@ -158,14 +154,14 @@ describe("setMatchNumberInDb", () => {
     });
 
     const result = await Effect.runPromise(
-      setMatchNumberInDb(ids, { matchId: "r1-0", matchNumber: "A-1" }),
+      setMatchNameInDb(ids, { matchId: "r1-0", matchName: "A-1" }),
     );
 
     expect(result).toEqual({ found: true, value: null });
     expect(divisionUpdateMany).toHaveBeenCalled();
   });
 
-  it("ダブルエリミネーションの部門でも試合番号を変えられる", async () => {
+  it("ダブルエリミネーションの部門でも試合名を変えられる", async () => {
     // 全形式が編集画面を持つようになったので、found: false に倒れる形式は無い。
     divisionFindFirst.mockResolvedValue({
       format: "DOUBLE_ELIMINATION_GRAND_FINAL",
@@ -174,7 +170,7 @@ describe("setMatchNumberInDb", () => {
     });
 
     const result = await Effect.runPromise(
-      setMatchNumberInDb(ids, { matchId: "m1-0", matchNumber: "A" }),
+      setMatchNameInDb(ids, { matchId: "m1-0", matchName: "A" }),
     );
 
     expect(result).toEqual({ found: true, value: null });

@@ -1,10 +1,19 @@
 import { describe, expect, it } from "vitest";
+import { DEFAULT_MATCH_NAME } from "./match-name";
 import {
   DivisionJsonError,
   parseDivisionEntries,
+  parseDivisionResultConfig,
+  parseDivisionResultConfigOrDefault,
   parseDivisionResults,
   parseMatchingConfig,
 } from "./parse";
+import {
+  DEFAULT_DIVISION_RESULT_CONFIG,
+  MAX_NOTE_LENGTH,
+  MAX_WIN_REASON_LENGTH,
+  MAX_WIN_REASON_OPTIONS,
+} from "./types";
 
 describe("parseDivisionEntries", () => {
   it("妥当な値をそのまま返す", () => {
@@ -56,7 +65,7 @@ describe("parseDivisionEntries", () => {
 });
 
 describe("parseMatchingConfig", () => {
-  it("matchNumber を持つ試合はそのまま読む", () => {
+  it("matchName を持つ試合はそのまま読む", () => {
     const config = parseMatchingConfig({
       version: 1,
       matches: [
@@ -65,34 +74,15 @@ describe("parseMatchingConfig", () => {
           bracket: "winners",
           round: 1,
           order: 0,
-          matchNumber: "A",
+          matchName: "A",
           slots: [{ kind: "bye" }, { kind: "bye" }],
         },
       ],
     });
-    expect(config.matches[0].matchNumber).toBe("A");
+    expect(config.matches[0].matchName).toBe("A");
   });
 
-  it("matchNumber の無い試合には round/order 順で未使用の連番を補完する", () => {
-    const match = (id: string, round: number, order: number) => ({
-      id,
-      bracket: "winners",
-      round,
-      order,
-      slots: [{ kind: "bye" }, { kind: "bye" }],
-    });
-    const config = parseMatchingConfig({
-      version: 1,
-      // 配列順は round 順と逆に置き、round/order 順で補完されることを確かめる
-      matches: [match("m2-0", 2, 0), match("m1-0", 1, 0), match("m1-1", 1, 1)],
-    });
-    const byId = new Map(config.matches.map((m) => [m.id, m.matchNumber]));
-    expect(byId.get("m1-0")).toBe("1");
-    expect(byId.get("m1-1")).toBe("2");
-    expect(byId.get("m2-0")).toBe("3");
-  });
-
-  it("補完する連番は既に使われている番号を飛ばす", () => {
+  it("matchName の無い試合には既定のテンプレートを入れる", () => {
     const config = parseMatchingConfig({
       version: 1,
       matches: [
@@ -101,7 +91,7 @@ describe("parseMatchingConfig", () => {
           bracket: "winners",
           round: 1,
           order: 0,
-          matchNumber: "1",
+          matchName: "決勝",
           slots: [{ kind: "bye" }, { kind: "bye" }],
         },
         {
@@ -113,11 +103,33 @@ describe("parseMatchingConfig", () => {
         },
       ],
     });
-    const byId = new Map(config.matches.map((m) => [m.id, m.matchNumber]));
-    expect(byId.get("m1-1")).toBe("2");
+
+    expect(config.matches.map((match) => match.matchName)).toEqual([
+      "決勝",
+      DEFAULT_MATCH_NAME,
+    ]);
   });
 
-  it("matchNumber が文字列以外なら DivisionJsonError", () => {
+  it("旧データの matchNumber は読み継がない", () => {
+    const config = parseMatchingConfig({
+      version: 1,
+      matches: [
+        {
+          id: "m1-0",
+          bracket: "winners",
+          round: 1,
+          order: 0,
+          matchNumber: "7",
+          slots: [{ kind: "bye" }, { kind: "bye" }],
+        },
+      ],
+    });
+
+    expect(config.matches[0].matchName).toBe(DEFAULT_MATCH_NAME);
+    expect(config.matches[0]).not.toHaveProperty("matchNumber");
+  });
+
+  it("matchName が文字列以外なら DivisionJsonError", () => {
     expect(() =>
       parseMatchingConfig({
         version: 1,
@@ -127,7 +139,7 @@ describe("parseMatchingConfig", () => {
             bracket: "winners",
             round: 1,
             order: 0,
-            matchNumber: 1,
+            matchName: 1,
             slots: [{ kind: "bye" }, { kind: "bye" }],
           },
         ],
@@ -144,8 +156,7 @@ describe("parseMatchingConfig", () => {
           bracket: "winners",
           round: 1,
           order: 0,
-          sequence: 0,
-          matchNumber: "1",
+          matchName: "1",
           slots: [{ kind: "entry", entryId: "e1" }, { kind: "bye" }],
         },
         {
@@ -153,8 +164,7 @@ describe("parseMatchingConfig", () => {
           bracket: "losers",
           round: 2,
           order: 0,
-          sequence: 1,
-          matchNumber: "2",
+          matchName: "2",
           slots: [
             { kind: "winnerOf", matchId: "m1" },
             { kind: "loserOf", matchId: "m1" },
@@ -220,53 +230,66 @@ describe("parseMatchingConfig", () => {
     ).toThrow(DivisionJsonError);
   });
 
-  it("sequence の無い旧データには round/order 順で 0 からの連番を振る", () => {
+  it("matches は round → order の順に並べて返す", () => {
     const match = (id: string, round: number, order: number) => ({
       id,
       bracket: "winners",
       round,
       order,
-      matchNumber: id,
+      matchName: id,
       slots: [{ kind: "bye" }, { kind: "bye" }],
     });
     const config = parseMatchingConfig({
       version: 1,
-      // 配列順を round 順と逆に置き、並べ替えたうえで振ることを確かめる
-      matches: [match("m2-0", 2, 0), match("m1-0", 1, 0), match("m1-1", 1, 1)],
+      // 配列順を round/order 順と食い違わせ、並べ直すことを確かめる
+      matches: [match("m2-0", 2, 0), match("m1-1", 1, 1), match("m1-0", 1, 0)],
     });
 
-    // 返す配列自体が実施順になっている（下流は配列順をそのまま読む）
+    // 返す配列の順が下流（編集一覧・進行順の末尾追加）の並びになる
     expect(config.matches.map((match) => match.id)).toEqual([
       "m1-0",
       "m1-1",
       "m2-0",
     ]);
-    expect(config.matches.map((match) => match.sequence)).toEqual([0, 1, 2]);
   });
 
-  it("sequence があればその昇順に並べ、0 からの連番に詰め直す", () => {
-    const match = (id: string, order: number, sequence: number) => ({
+  it("ブラケットは勝者側 → 敗者側 → 決勝の順に並べる", () => {
+    const match = (
+      id: string,
+      bracket: string,
+      round: number,
+      order: number,
+    ) => ({
       id,
-      bracket: "winners",
-      round: 1,
+      bracket,
+      round,
       order,
-      sequence,
-      matchNumber: id,
+      matchName: id,
       slots: [{ kind: "bye" }, { kind: "bye" }],
     });
     const config = parseMatchingConfig({
       version: 1,
-      // 3 番目の試合を先頭へ動かしたあとの並び。値も 0 始まりでない。
-      matches: [match("a", 0, 5), match("b", 1, 9), match("c", 2, 1)],
+      // ダブルエリミの round は全ブラケット通し（敗者側 L1 は round 2）。
+      matches: [
+        match("f", "final", 4, 0),
+        match("l1-0", "losers", 2, 0),
+        match("m2-0", "winners", 2, 0),
+        match("m1-1", "winners", 1, 1),
+        match("m1-0", "winners", 1, 0),
+      ],
     });
 
-    expect(config.matches.map((match) => match.id)).toEqual(["c", "a", "b"]);
-    expect(config.matches.map((match) => match.sequence)).toEqual([0, 1, 2]);
+    expect(config.matches.map((match) => match.id)).toEqual([
+      "m1-0",
+      "m1-1",
+      "m2-0",
+      "l1-0",
+      "f",
+    ]);
   });
 
-  it("sequence が一部にしか無ければ全件を round/order 順で振り直す", () => {
-    // 途中まで書き込まれた壊れたデータ。中途半端な値を信じると並びが
-    // 飛び飛びになるので、揃っていないときは既定の順に戻す。
+  it("保存済みの sequence は読まずに捨て、並びにも使わない", () => {
+    // 部門内の並べ替えで sequence を書いていた旧データ。
     const config = parseMatchingConfig({
       version: 1,
       matches: [
@@ -276,7 +299,7 @@ describe("parseMatchingConfig", () => {
           round: 1,
           order: 1,
           sequence: 0,
-          matchNumber: "2",
+          matchName: "b",
           slots: [{ kind: "bye" }, { kind: "bye" }],
         },
         {
@@ -284,17 +307,18 @@ describe("parseMatchingConfig", () => {
           bracket: "winners",
           round: 1,
           order: 0,
-          matchNumber: "1",
+          sequence: 1,
+          matchName: "a",
           slots: [{ kind: "bye" }, { kind: "bye" }],
         },
       ],
     });
 
     expect(config.matches.map((match) => match.id)).toEqual(["m1-0", "m1-1"]);
-    expect(config.matches.map((match) => match.sequence)).toEqual([0, 1]);
+    expect(config.matches[0]).not.toHaveProperty("sequence");
   });
 
-  it("sequence が整数以外なら DivisionJsonError", () => {
+  it("sequence が整数でなくてもエラーにしない（読まないため）", () => {
     expect(() =>
       parseMatchingConfig({
         version: 1,
@@ -305,12 +329,12 @@ describe("parseMatchingConfig", () => {
             round: 1,
             order: 0,
             sequence: "1",
-            matchNumber: "1",
+            matchName: "1",
             slots: [{ kind: "bye" }, { kind: "bye" }],
           },
         ],
       }),
-    ).toThrow(/matchingConfig\.matches\[0\]\.sequence/);
+    ).not.toThrow();
   });
 });
 
@@ -363,5 +387,189 @@ describe("parseDivisionResults", () => {
     expect(() =>
       parseDivisionResults({ version: 1, matches: { m1: "e1" } }),
     ).toThrow(DivisionJsonError);
+  });
+});
+
+describe("parseDivisionResultConfigOrDefault", () => {
+  it("正しい設定はそのまま返す", () => {
+    const valid = {
+      version: 1,
+      winReason: { enabled: true, options: ["一本勝ち"] },
+      score: { enabled: true, count: 2, aggregation: "sum" },
+      note: { enabled: true },
+    };
+    expect(parseDivisionResultConfigOrDefault(valid)).toEqual(valid);
+  });
+
+  it("壊れた設定は既定値に落とす", () => {
+    expect(parseDivisionResultConfigOrDefault({ version: 2 })).toBe(
+      DEFAULT_DIVISION_RESULT_CONFIG,
+    );
+    expect(parseDivisionResultConfigOrDefault(null)).toBe(
+      DEFAULT_DIVISION_RESULT_CONFIG,
+    );
+  });
+
+  // Json の形の誤り以外（プログラムの不具合など）まで既定値で覆い隠さない。
+  it("DivisionJsonError 以外の例外はそのまま投げる", () => {
+    const broken = {
+      version: 1,
+      get winReason(): unknown {
+        throw new TypeError("boom");
+      },
+    };
+    expect(() => parseDivisionResultConfigOrDefault(broken)).toThrow(TypeError);
+  });
+});
+
+describe("parseDivisionResultConfig", () => {
+  const valid = {
+    version: 1,
+    winReason: { enabled: true, options: ["一本勝ち", "判定勝ち"] },
+    score: { enabled: true, count: 3, aggregation: "average" },
+    note: { enabled: false },
+  };
+
+  it("正しい設定をそのまま返す", () => {
+    expect(parseDivisionResultConfig(valid)).toEqual(valid);
+  });
+
+  it("count が範囲外なら弾く", () => {
+    expect(() =>
+      parseDivisionResultConfig({
+        ...valid,
+        score: { ...valid.score, count: 9 },
+      }),
+    ).toThrow(DivisionJsonError);
+    expect(() =>
+      parseDivisionResultConfig({
+        ...valid,
+        score: { ...valid.score, count: 0 },
+      }),
+    ).toThrow(DivisionJsonError);
+  });
+
+  it("aggregation が未知の値なら弾く", () => {
+    expect(() =>
+      parseDivisionResultConfig({
+        ...valid,
+        score: { ...valid.score, aggregation: "median" },
+      }),
+    ).toThrow(DivisionJsonError);
+  });
+
+  it("enabled が真偽値でなければ弾く", () => {
+    expect(() =>
+      parseDivisionResultConfig({ ...valid, note: { enabled: "yes" } }),
+    ).toThrow(DivisionJsonError);
+  });
+
+  it("winReason.options が上限件数を超えたら弾く", () => {
+    const tooMany = Array.from(
+      { length: MAX_WIN_REASON_OPTIONS + 1 },
+      (_, index) => `理由${index}`,
+    );
+    expect(() =>
+      parseDivisionResultConfig({
+        ...valid,
+        winReason: { ...valid.winReason, options: tooMany },
+      }),
+    ).toThrow(DivisionJsonError);
+  });
+
+  it("winReason.options の 1 件が上限文字数を超えたら弾く", () => {
+    const tooLong = "あ".repeat(MAX_WIN_REASON_LENGTH + 1);
+    expect(() =>
+      parseDivisionResultConfig({
+        ...valid,
+        winReason: { ...valid.winReason, options: [tooLong] },
+      }),
+    ).toThrow(DivisionJsonError);
+  });
+});
+
+describe("parseDivisionResults の詳細項目", () => {
+  const base = {
+    version: 1,
+    matches: [
+      {
+        matchId: "m1",
+        winnerEntryId: "e1",
+        winReason: "一本勝ち",
+        scores: [
+          { entryId: "e1", values: [7, 6.8, null] },
+          { entryId: "e2", values: [6.5, 6.9, 6.6] },
+        ],
+        note: "主審の判定に抗議あり",
+      },
+    ],
+  };
+
+  it("勝因・スコア・メモを読む", () => {
+    expect(parseDivisionResults(base)).toEqual(base);
+  });
+
+  it("詳細項目を持たない旧データもそのまま読める", () => {
+    const old = {
+      version: 1,
+      matches: [{ matchId: "m1", winnerEntryId: "e1" }],
+    };
+    expect(parseDivisionResults(old)).toEqual(old);
+  });
+
+  it("スコアが範囲外なら弾く", () => {
+    const over = {
+      version: 1,
+      matches: [
+        {
+          matchId: "m1",
+          winnerEntryId: "e1",
+          scores: [{ entryId: "e1", values: [1000] }],
+        },
+      ],
+    };
+    expect(() => parseDivisionResults(over)).toThrow(DivisionJsonError);
+  });
+
+  it("スコアが数値でも null でもなければ弾く", () => {
+    const bad = {
+      version: 1,
+      matches: [
+        {
+          matchId: "m1",
+          winnerEntryId: "e1",
+          scores: [{ entryId: "e1", values: ["7"] }],
+        },
+      ],
+    };
+    expect(() => parseDivisionResults(bad)).toThrow(DivisionJsonError);
+  });
+
+  it("winReason が上限文字数を超えたら弾く", () => {
+    const tooLong = {
+      version: 1,
+      matches: [
+        {
+          matchId: "m1",
+          winnerEntryId: "e1",
+          winReason: "あ".repeat(MAX_WIN_REASON_LENGTH + 1),
+        },
+      ],
+    };
+    expect(() => parseDivisionResults(tooLong)).toThrow(DivisionJsonError);
+  });
+
+  it("note が上限文字数を超えたら弾く", () => {
+    const tooLong = {
+      version: 1,
+      matches: [
+        {
+          matchId: "m1",
+          winnerEntryId: "e1",
+          note: "あ".repeat(MAX_NOTE_LENGTH + 1),
+        },
+      ],
+    };
+    expect(() => parseDivisionResults(tooLong)).toThrow(DivisionJsonError);
   });
 });

@@ -16,7 +16,7 @@ export function ConfirmDialog({
   pending,
   error,
   hiddenFields,
-  triggerClassName = "rounded border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-800",
+  triggerClassName = "rounded border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-800 cursor-pointer",
 }: {
   triggerLabel: string;
   title: string;
@@ -67,14 +67,14 @@ export function ConfirmDialog({
             <button
               type="button"
               onClick={() => dialogRef.current?.close()}
-              className="rounded border border-slate-300 px-4 py-2 text-sm text-slate-700"
+              className="rounded border border-slate-300 px-4 py-2 text-sm text-slate-700 cursor-pointer"
             >
               キャンセル
             </button>
             <button
               type="submit"
               disabled={pending}
-              className="rounded bg-slate-800 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
+              className="rounded bg-slate-800 px-4 py-2 text-sm font-medium text-white disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
             >
               {pending ? pendingLabel : confirmLabel}
             </button>

@@ -29,6 +29,9 @@ vi.mock("@/features/schedule/repository", () => ({
 vi.mock("@/features/division/record-result/handler", () => ({
   recordResultAction: async () => ({ error: null }),
 }));
+vi.mock("@/features/division/update-result-detail/handler", () => ({
+  updateResultDetailAction: async () => ({ error: null }),
+}));
 
 const { default: Page } = await import("./page");
 
@@ -55,7 +58,7 @@ beforeEach(() => {
       divisionId: "d1",
       divisionName: "男子",
       matchId: "m1-0",
-      matchNumber: "1",
+      matchName: "1",
       label: "1回戦 第1試合",
       slots: [
         { label: "山田", entryId: "e1" },
@@ -64,6 +67,15 @@ beforeEach(() => {
       winnerEntryId: null,
       state: "ready",
       downstreamRecordedCount: 0,
+      resultConfig: {
+        version: 1,
+        winReason: { enabled: false, options: [] },
+        score: { enabled: false, count: 3, aggregation: "sum" },
+        note: { enabled: false },
+      },
+      winReason: null,
+      scores: [],
+      note: null,
     },
   ]);
 });
@@ -75,7 +87,7 @@ describe("TournamentResultsPage", () => {
     expect(requireOrganization).toHaveBeenCalledWith("tennis");
     expect(loadResultRows).toHaveBeenCalledWith("o1", "t1");
     expect(
-      screen.getByRole("button", { name: "男子 第1試合 山田の勝ち" }),
+      screen.getByRole("button", { name: "男子 1 山田の勝ち" }),
     ).toBeInTheDocument();
   });
 

@@ -6,12 +6,12 @@ import { generateMatchingAction } from "@/features/division/generate-matching/ha
 import { isSlotBracketFormat } from "@/features/division/matching-strategy";
 import { removeEntryAction } from "@/features/division/remove-entry/handler";
 import { reorderEntryAction } from "@/features/division/reorder-entry/handler";
-import { reorderMatchesAction } from "@/features/division/reorder-matches/handler";
 import {
   findDivisionInTournament,
+  listOverallOrderSources,
   listParticipantsInTournament,
 } from "@/features/division/repository";
-import { setMatchNumberAction } from "@/features/division/set-match-number/handler";
+import { setMatchNameAction } from "@/features/division/set-match-name/handler";
 import { setPlayerNumberAction } from "@/features/division/set-player-number/handler";
 import { swapSlotsAction } from "@/features/division/swap-slots/handler";
 import { listMembersInOrganization } from "@/features/organization/repository";
@@ -26,12 +26,14 @@ export default async function DivisionSetupPage({
 
   // 詳細ページと違い、参加者とメンバーを常に引く。この画面は
   // トーナメント形式（SE・DE）を編集するために開くもので、どちらも必ず使うため。
-  const [tournament, division, participants, members] = await Promise.all([
-    findTournamentInOrganization(organization.id, tournamentId),
-    findDivisionInTournament(organization.id, tournamentId, divisionId),
-    listParticipantsInTournament(organization.id, tournamentId),
-    listMembersInOrganization(organization.id),
-  ]);
+  const [tournament, division, participants, members, overallSeq] =
+    await Promise.all([
+      findTournamentInOrganization(organization.id, tournamentId),
+      findDivisionInTournament(organization.id, tournamentId, divisionId),
+      listParticipantsInTournament(organization.id, tournamentId),
+      listMembersInOrganization(organization.id),
+      listOverallOrderSources(tournamentId),
+    ]);
   if (!tournament || !division) {
     notFound();
   }
@@ -71,14 +73,14 @@ export default async function DivisionSetupPage({
           members={members}
           slug={slug}
           tournamentId={tournament.id}
+          overallSeq={overallSeq}
           actions={{
             addEntry: addEntryAction,
             removeEntry: removeEntryAction,
             reorderEntry: reorderEntryAction,
             generateMatching: generateMatchingAction,
             swapSlots: swapSlotsAction,
-            reorderMatches: reorderMatchesAction,
-            setMatchNumber: setMatchNumberAction,
+            setMatchName: setMatchNameAction,
             setPlayerNumber: setPlayerNumberAction,
           }}
         />

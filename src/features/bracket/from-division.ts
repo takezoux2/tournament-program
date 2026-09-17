@@ -1,6 +1,8 @@
 import type { DivisionFormat } from "@/generated/prisma/enums";
+import { aggregateScore, formatScore } from "@/lib/division/score";
 import type {
   DivisionEntries,
+  DivisionResultConfig,
   DivisionResults,
   SlotSource as DivisionSlotSource,
   MatchingConfig,
@@ -36,7 +38,13 @@ export type FromDivisionInput = {
   entries: DivisionEntries;
   matchingConfig: MatchingConfig;
   results: DivisionResults;
+  resultConfig: DivisionResultConfig;
   participants: DivisionSourceParticipant[];
+  /**
+   * 展開済みの試合名（試合 id → 表示名）。{{OverallSeq}} は大会全体を
+   * 見ないと決まらないため、部門だけを受け取るこの関数では作れない。
+   */
+  matchNames: ReadonlyMap<string, string>;
 };
 
 export type FromDivisionResult = {
@@ -135,7 +143,8 @@ export function fromDivision(
       bracket: source.bracket,
       round: source.round,
       order: source.order,
-      matchNumber: source.matchNumber,
+      // 引けなければテンプレートをそのまま出す。描画を止めるほどの不整合ではない。
+      matchName: input.matchNames.get(source.id) ?? source.matchName,
       slots: [toSlotSource(source.slots[0]), toSlotSource(source.slots[1])],
     });
   }
@@ -147,11 +156,38 @@ export function fromDivision(
     if (record.winnerEntryId === null) {
       continue;
     }
-    results.push({
+
+    const result: MatchResult = {
       matchId: record.matchId,
       winnerId: record.winnerEntryId,
-      score: record.score,
-    });
+    };
+    if (record.score !== undefined) {
+      result.score = record.score;
+    }
+    // 無効にした項目は公開側にも出さない。設定は表示のフィルタでもある。
+    if (
+      input.resultConfig.winReason.enabled &&
+      record.winReason !== undefined
+    ) {
+      result.winReason = record.winReason;
+    }
+    if (input.resultConfig.score.enabled && record.scores !== undefined) {
+      const scores = record.scores.flatMap((entry) => {
+        const value = formatScore(
+          aggregateScore(entry.values, input.resultConfig.score.aggregation),
+        );
+        return value === null
+          ? []
+          : [{ participantId: entry.entryId, score: value }];
+      });
+      if (scores.length > 0) {
+        result.scores = scores;
+      }
+    }
+    if (input.resultConfig.note.enabled && record.note !== undefined) {
+      result.note = record.note;
+    }
+    results.push(result);
   }
 
   return {

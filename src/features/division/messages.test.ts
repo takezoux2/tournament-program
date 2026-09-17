@@ -6,9 +6,11 @@ import {
   DivisionMemberNotFoundError,
   DivisionNotEnoughEntriesError,
   DivisionOrderConflictError,
+  DivisionResultNotRecordedError,
   DivisionResultsRecordedError,
   DivisionRevisionConflictError,
   DivisionSlotNotDecidedError,
+  DivisionWinReasonNotAllowedError,
   UnexpectedDivisionError,
 } from "./errors";
 import { divisionErrorMessage } from "./messages";
@@ -95,5 +97,21 @@ describe("divisionErrorMessage（追加分）", () => {
     expect(
       divisionErrorMessage(new DivisionSlotNotDecidedError({ matchId: "m1" })),
     ).toBe("対戦相手がまだ決まっていません。画面を再読み込みしてください");
+  });
+
+  it("勝敗が未記録の試合への詳細入力は先に勝敗を記録するよう促す", () => {
+    expect(
+      divisionErrorMessage(
+        new DivisionResultNotRecordedError({ matchId: "m1" }),
+      ),
+    ).toBe("先に勝敗を記録してください");
+  });
+
+  it("選択肢に無い勝因はその旨を返す", () => {
+    expect(
+      divisionErrorMessage(
+        new DivisionWinReasonNotAllowedError({ winReason: "反則負け" }),
+      ),
+    ).toBe("その勝因は選べません。画面を再読み込みしてください");
   });
 });

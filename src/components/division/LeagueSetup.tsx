@@ -1,5 +1,5 @@
 import { DIVISION_FORMAT_LABELS } from "@/features/division/format";
-import { toMatchOrderView } from "@/features/division/match-number-view";
+import { toMatchOrderView } from "@/features/division/match-name-view";
 import type {
   DivisionDetail,
   DivisionParticipant,
@@ -8,6 +8,7 @@ import { isRoundRobinShape } from "@/features/division/round-robin/build";
 import { toCrossTableView } from "@/features/division/round-robin/view";
 import type { DivisionFormAction } from "@/features/division/state";
 import type { MemberSummary } from "@/features/organization/repository";
+import { resolveMatchNames } from "@/lib/division/match-name";
 import {
   parseDivisionEntries,
   parseDivisionResults,
@@ -29,8 +30,7 @@ export type LeagueSetupActions = {
   removeEntry: DivisionFormAction;
   reorderEntry: DivisionFormAction;
   generateMatching: DivisionFormAction;
-  reorderMatches: DivisionFormAction;
-  setMatchNumber: DivisionFormAction;
+  setMatchName: DivisionFormAction;
   setPlayerNumber: DivisionFormAction;
 };
 
@@ -41,6 +41,7 @@ export function LeagueSetup({
   slug,
   tournamentId,
   actions,
+  overallSeq,
 }: {
   division: DivisionDetail;
   participants: DivisionParticipant[];
@@ -48,6 +49,8 @@ export function LeagueSetup({
   slug: string;
   tournamentId: string;
   actions: LeagueSetupActions;
+  /** 大会全体の通し番号。{{OverallSeq}} の展開に使う */
+  overallSeq: ReadonlyMap<string, number>;
 }) {
   // ページ側でも弾いているが、この画面はリーグ専用であることを型より外でも守る。
   if (division.format !== "ROUND_ROBIN") {
@@ -95,6 +98,14 @@ export function LeagueSetup({
   // 持ったままリーグになった部門が存在しうる。その木を星取表として
   // 描くと嘘になるため、作り直しを促すだけにする。
   const mismatched = !isRoundRobinShape(parsed.matchingConfig);
+
+  // 星取表と試合名の一覧の両方が同じ展開結果を使う。呼び出しごとに作ると
+  // 同じ試合の名前が食い違って出かねないので、1 回だけ作って両方に渡す。
+  const matchNames = resolveMatchNames(
+    parsed.matchingConfig,
+    division.id,
+    overallSeq,
+  );
 
   return (
     <div className="space-y-6">
@@ -147,14 +158,15 @@ export function LeagueSetup({
               parsed.matchingConfig,
               parsed.entries,
               participants,
+              matchNames,
             )}
           />
         )}
       </section>
 
       <section className="space-y-3">
-        <h2 className="text-sm font-bold text-slate-700">試合の実施順</h2>
-        {/* 実施順と番号の変更は構造を変えないため、locked でも編集できる */}
+        <h2 className="text-sm font-bold text-slate-700">試合名</h2>
+        {/* 試合名の変更は構造を変えないため、locked でも編集できる */}
         {mismatched ? (
           <Notice>対戦表を作り直すと、ここに試合が出ます</Notice>
         ) : (
@@ -164,12 +176,12 @@ export function LeagueSetup({
               parsed.entries,
               participants,
               division.format,
+              matchNames,
             )}
             slug={slug}
             tournamentId={tournamentId}
             divisionId={division.id}
-            reorderAction={actions.reorderMatches}
-            setMatchNumberAction={actions.setMatchNumber}
+            setMatchNameAction={actions.setMatchName}
             emptyMessage="まだ対戦表がありません"
           />
         )}

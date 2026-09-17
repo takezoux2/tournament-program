@@ -101,7 +101,7 @@ DB への読み書きが責務であり、描画には関わらない。
 勝点は勝 3・分 1・負 0 で、勝点 → 勝ち数 → 同点者どうしの直接対決 → 同順位の順に
 決める。閲覧ページ（管理画面の部門詳細と公開の部門ページ）は形式で描画を振り分ける
 `components/division/DivisionMatchingView.tsx` を通してこれを使う。編集画面の
-`LeagueCrossTable` は試合番号だけを出す別物で、閲覧用と役割を分けている。
+`LeagueCrossTable` は試合名だけを出す別物で、閲覧用と役割を分けている。
 
 `setup-store.ts` は全スライス共通の read-modify-write を持つ。所有権つきの読み出し、
 Json のパース、勝敗が記録済みかの確認、保存前の検証、`updateMany` での書き戻しを
@@ -119,9 +119,12 @@ Json のパース、勝敗が記録済みかの確認、保存前の検証、`up
 （組み合わせの再生成、部門の削除、新しい部門の組み合わせ）。
 
 このずれは読み出しの純粋関数 `buildScheduleView` が吸収する。保存された行を
-`order` 昇順に並べ、実体の無い行を落とし、行を持たない試合を
-「部門の order 昇順 → round 昇順 → order 昇順」で末尾へ足す。読み出しは
-副作用を持たず、DB の掃除は次の保存（全行の書き直し）でまとめて片付く。
+`order` 昇順に並べ、実体の無い行と二重の行を落とし、行を持たない試合を
+「部門の order 昇順 → 部門内の `matches` 配列の順（`parseMatchingConfig` が
+bracket → round → order に揃えた順）」で末尾へ足す。この並びの規則は
+`src/lib/division/overall-order.ts` の `buildOverallSeq` 1 つにまとめてあり、
+`buildScheduleView` もそこから並びを得る。読み出しは副作用を持たず、DB の掃除は
+次の保存（全行の書き直し）でまとめて片付く。
 
 `schedule-store.ts` は 4 スライス（`reorder` / `insert-divider` /
 `update-divider` / `remove-divider`）共通の read-modify-write を持つ。
@@ -147,12 +150,33 @@ Json のパース、勝敗が記録済みかの確認、保存前の検証、`up
 表示側は必ずサーバで文字列にしてから画面へ運ぶ。クライアントで組み立てると
 ブラウザの時刻帯で書き、サーバの時刻帯で `new Date` することになり、時差ぶんずれる。
 
+## 試合名と通し番号
+
+試合番号は大会の進行順の通し番号 `{{OverallSeq}}` だけである。部門の中の実施順は
+持たない（`BracketMatch` に `sequence` は無く、部門内で試合を並べ替える操作も無い）。
+通し番号は保存せず、`buildOverallSeq` が進行順から毎回算出する。区切り行は数えない。
+進行順を並べ替えたり区切りを挿したりすると、表示される番号は自動で振り直される。
+
+`BracketMatch.matchName` は mustache のテンプレートで、既定値は
+`"第{{OverallSeq}}試合"`（`lib/division/match-name.ts` の `DEFAULT_MATCH_NAME`）。
+部門内で重複してよい。展開は `renderMatchName` / `resolveMatchNames` に集めてあり、
+知らない変数は mustache の既定どおり空文字になる。`{{OverallSeq}}` は大会全体を
+見ないと決まらないので、試合名を出す画面は大会全体を読んで展開済みの文字列を
+受け取る。部門の画面（編集・詳細・公開）は `features/division/repository.ts` の
+`listOverallOrderSources`、進行順と結果入力は `features/schedule` の読み出しが
+自分の材料から作る。スロットの文言（「第 3 試合の勝者」）も展開済みの名前から作る
+（`createSlotLabeler` は展開済みの名前の表を受け取る）。
+
+構造上の位置 `matchPositionLabel` は試合番号と紛れないよう、トーナメントで
+`N回戦 (M)`（M はラウンド内の上からの位置）、リーグでは空文字にする。表示側は
+`formatDivisionPosition` を通し、空文字なら区切りごと描かない。
+
 ## features/division/record-result
 
 `features/division/record-result` は、5 つの編集スライスと違って `setup-store.ts` を
 **意図的に使わない**。`setup-store.ts` の読み出しは「`results` が 1 件でもあれば
 部門の編集を拒否する」作りだが、このスライスが書き換えたいのはまさに `results` 列
-そのものだから、この読み出しには乗れない。先例は `set-match-number` と同じ形の
+そのものだから、この読み出しには乗れない。先例は `set-match-name` と同じ形の
 専用トランザクション（所有権つきの読み出し・パース・検証・`updateMany` での
 書き戻しをスライス自身の `repository.ts` に持つ）である。
 

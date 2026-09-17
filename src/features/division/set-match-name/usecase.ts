@@ -1,11 +1,11 @@
 import type { Effect } from "effect";
 import type { DivisionError } from "../errors";
 import type { DivisionIds, DivisionSetupOutcome } from "../setup-store";
-import type { ReorderMatchesPort } from "./repository";
-import type { ReorderMatchesInput } from "./schema";
+import type { SetMatchNamePort } from "./repository";
+import type { SetMatchNameInput } from "./schema";
 
-export const reorderMatchesForDivision = (
-  port: ReorderMatchesPort,
+export const setMatchNameForDivision = (
+  port: SetMatchNamePort,
   ids: DivisionIds,
-  input: ReorderMatchesInput,
+  input: SetMatchNameInput,
 ): Effect.Effect<DivisionSetupOutcome<null>, DivisionError> => port(ids, input);

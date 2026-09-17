@@ -6,6 +6,9 @@ import type { ResultRowView } from "@/features/schedule/result-rows";
 import { MatchResultList } from "./MatchResultList";
 
 const action = vi.fn<DivisionFormAction>(async () => ({ error: null }));
+// 詳細フォームの配線は MatchResultDetailForm.test.tsx 側で見るので、
+// ここでは呼ばれないことだけ確認できれば十分なダミーにする。
+const detailAction = vi.fn<DivisionFormAction>(async () => ({ error: null }));
 
 const trackEvent = vi.fn();
 
@@ -21,7 +24,7 @@ const matchRow = (
   divisionId: "d1",
   divisionName: "男子",
   matchId: "m1-0",
-  matchNumber: "1",
+  matchName: "1",
   label: "1回戦 第1試合",
   slots: [
     { label: "山田", entryId: "e1" },
@@ -30,6 +33,15 @@ const matchRow = (
   winnerEntryId: null,
   state: "ready",
   downstreamRecordedCount: 0,
+  resultConfig: {
+    version: 1,
+    winReason: { enabled: false, options: [] },
+    score: { enabled: false, count: 3, aggregation: "sum" },
+    note: { enabled: false },
+  },
+  winReason: null,
+  scores: [],
+  note: null,
   ...overrides,
 });
 
@@ -40,6 +52,7 @@ const renderList = (rows: ResultRowView[]) =>
       slug="tennis"
       tournamentId="t1"
       action={action}
+      detailAction={detailAction}
     />,
   );
 
@@ -53,9 +66,7 @@ describe("MatchResultList", () => {
     const user = userEvent.setup();
     renderList([matchRow()]);
 
-    await user.click(
-      screen.getByRole("button", { name: "男子 第1試合 佐藤の勝ち" }),
-    );
+    await user.click(screen.getByRole("button", { name: "男子 1 佐藤の勝ち" }));
 
     expect(action).toHaveBeenCalled();
     const formData = action.mock.calls[0][1] as FormData;
@@ -70,10 +81,10 @@ describe("MatchResultList", () => {
     renderList([matchRow({ state: "recorded", winnerEntryId: "e1" })]);
 
     expect(
-      screen.getByRole("button", { name: "男子 第1試合 山田の勝ち" }),
+      screen.getByRole("button", { name: "男子 1 山田の勝ち" }),
     ).toHaveAttribute("aria-pressed", "true");
     expect(
-      screen.getByRole("button", { name: "男子 第1試合の結果を取り消す" }),
+      screen.getByRole("button", { name: "男子 1の結果を取り消す" }),
     ).toBeInTheDocument();
   });
 
@@ -89,7 +100,7 @@ describe("MatchResultList", () => {
     ]);
 
     expect(
-      screen.getByRole("button", { name: "男子 第1試合 佐藤の勝ち" }),
+      screen.getByRole("button", { name: "男子 1 佐藤の勝ち" }),
     ).toBeDisabled();
     expect(screen.getByText("第1試合の勝者")).toBeInTheDocument();
   });
@@ -106,10 +117,10 @@ describe("MatchResultList", () => {
     ]);
 
     expect(
-      screen.getByRole("button", { name: "男子 第1試合 山田の勝ち" }),
+      screen.getByRole("button", { name: "男子 1 山田の勝ち" }),
     ).toBeDisabled();
     expect(
-      screen.getByRole("button", { name: "男子 第1試合 BYEの勝ち" }),
+      screen.getByRole("button", { name: "男子 1 BYEの勝ち" }),
     ).toBeDisabled();
   });
 
@@ -124,9 +135,7 @@ describe("MatchResultList", () => {
       }),
     ]);
 
-    await user.click(
-      screen.getByRole("button", { name: "男子 第1試合 佐藤の勝ち" }),
-    );
+    await user.click(screen.getByRole("button", { name: "男子 1 佐藤の勝ち" }));
 
     expect(confirm).toHaveBeenCalledWith(
       "この試合の結果を変えると、あとの試合の結果 2 件も取り消されます。よろしいですか？",
@@ -145,9 +154,7 @@ describe("MatchResultList", () => {
       }),
     ]);
 
-    await user.click(
-      screen.getByRole("button", { name: "男子 第1試合 山田の勝ち" }),
-    );
+    await user.click(screen.getByRole("button", { name: "男子 1 山田の勝ち" }));
 
     expect(confirm).not.toHaveBeenCalled();
     expect(action).toHaveBeenCalled();
@@ -158,9 +165,7 @@ describe("MatchResultList", () => {
     const confirm = vi.spyOn(window, "confirm").mockReturnValue(true);
     renderList([matchRow()]);
 
-    await user.click(
-      screen.getByRole("button", { name: "男子 第1試合 山田の勝ち" }),
-    );
+    await user.click(screen.getByRole("button", { name: "男子 1 山田の勝ち" }));
 
     expect(confirm).not.toHaveBeenCalled();
     expect(action).toHaveBeenCalled();
@@ -171,7 +176,7 @@ describe("MatchResultList", () => {
     renderList([matchRow({ state: "recorded", winnerEntryId: "e1" })]);
 
     await user.click(
-      screen.getByRole("button", { name: "男子 第1試合の結果を取り消す" }),
+      screen.getByRole("button", { name: "男子 1の結果を取り消す" }),
     );
 
     const formData = action.mock.calls[0][1] as FormData;
@@ -197,32 +202,31 @@ describe("MatchResultList", () => {
         slug="tennis"
         tournamentId="t1"
         action={pendingAction}
+        detailAction={detailAction}
       />,
     );
 
-    await user.click(
-      screen.getByRole("button", { name: "男子 第1試合 山田の勝ち" }),
-    );
+    await user.click(screen.getByRole("button", { name: "男子 1 山田の勝ち" }));
 
     expect(
-      await screen.findByRole("button", { name: "男子 第1試合 山田の勝ち" }),
+      await screen.findByRole("button", { name: "男子 1 山田の勝ち" }),
     ).toBeDisabled();
     expect(
-      screen.getByRole("button", { name: "男子 第1試合 佐藤の勝ち" }),
+      screen.getByRole("button", { name: "男子 1 佐藤の勝ち" }),
     ).toBeDisabled();
 
     // act 警告を避けるため、テストを終える前に保留中の action を解決しておく。
     deferred.resolve?.({ error: null });
     await waitFor(() =>
       expect(
-        screen.getByRole("button", { name: "男子 第1試合 山田の勝ち" }),
+        screen.getByRole("button", { name: "男子 1 山田の勝ち" }),
       ).not.toBeDisabled(),
     );
   });
 
   it("区切りは見出しとして出す", () => {
     renderList([
-      { kind: "divider", key: "divider:x1", label: "午前の部" },
+      { kind: "divider", key: "divider:x1", label: "午前の部", startsAt: null },
       matchRow(),
     ]);
 
@@ -233,6 +237,13 @@ describe("MatchResultList", () => {
     renderList([]);
 
     expect(screen.getByText("まだ試合がありません")).toBeInTheDocument();
+  });
+
+  it("位置の文言が空の行（リーグ）は部門名だけを出す", () => {
+    renderList([matchRow({ divisionName: "女子リーグ", label: "" })]);
+
+    expect(screen.getByText("女子リーグ")).toBeInTheDocument();
+    expect(screen.queryByText(/女子リーグ \//)).toBeNull();
   });
 });
 
@@ -254,6 +265,7 @@ describe("MatchResultList の GA イベント", () => {
         slug="tennis"
         tournamentId="t1"
         action={rowAction}
+        detailAction={detailAction}
       />,
     );
 
@@ -271,9 +283,7 @@ describe("MatchResultList の GA イベント", () => {
     const user = userEvent.setup();
     renderWith(succeedingAction);
 
-    await user.click(
-      screen.getByRole("button", { name: "男子 第1試合 山田の勝ち" }),
-    );
+    await user.click(screen.getByRole("button", { name: "男子 1 山田の勝ち" }));
 
     await waitFor(() =>
       expect(trackEvent).toHaveBeenCalledWith("record_result"),
@@ -286,7 +296,7 @@ describe("MatchResultList の GA イベント", () => {
     renderWith(succeedingAction);
 
     const button = screen.getByRole("button", {
-      name: "男子 第1試合 山田の勝ち",
+      name: "男子 1 山田の勝ち",
     });
 
     await user.click(button);
@@ -300,9 +310,7 @@ describe("MatchResultList の GA イベント", () => {
     const user = userEvent.setup();
     renderWith(failingAction);
 
-    await user.click(
-      screen.getByRole("button", { name: "男子 第1試合 山田の勝ち" }),
-    );
+    await user.click(screen.getByRole("button", { name: "男子 1 山田の勝ち" }));
 
     expect(await screen.findByRole("alert")).toBeInTheDocument();
     expect(trackEvent).not.toHaveBeenCalled();

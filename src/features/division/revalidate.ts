@@ -18,8 +18,9 @@ export const revalidateDivisionSetup = (
 };
 
 /**
- * 勝敗を書き換えたあとに再検証すべきページ。結果入力の一覧、進行順の一覧、
- * ブラケットを描く部門詳細の 3 本が同じ results を読む。
+ * 勝敗と結果の詳細を書き換えたあとに再検証すべきページ。運営の結果入力・進行順・
+ * 部門詳細に加えて、公開側の試合一覧とブラケットも同じ results を読む。
+ * 公開側はこれまで再検証の対象から漏れていた。
  */
 export const revalidateDivisionResults = (
   slug: string,
@@ -30,4 +31,6 @@ export const revalidateDivisionResults = (
   revalidatePath(`${base}/results`);
   revalidatePath(`${base}/matches`);
   revalidatePath(`${base}/divisions/${divisionId}`);
+  revalidatePath(`/t/${tournamentId}/schedule`);
+  revalidatePath(`/t/${tournamentId}/divisions/${divisionId}`);
 };

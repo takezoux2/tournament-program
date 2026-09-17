@@ -71,20 +71,6 @@ export class DivisionMatchNotFoundError extends Data.TaggedError(
   readonly matchId: string;
 }> {}
 
-/** 試合番号が部門内の別の試合と重複していることを表す。 */
-export class DivisionMatchNumberConflictError extends Data.TaggedError(
-  "DivisionMatchNumberConflictError",
-)<{
-  readonly matchNumber: string;
-}> {}
-
-/** 送られてきた並び順が現在の組み合わせと一致しないことを表す。 */
-export class DivisionMatchOrderError extends Data.TaggedError(
-  "DivisionMatchOrderError",
-)<{
-  readonly divisionId: string;
-}> {}
-
 /** 指定された参加者がこの大会に無いことを表す。 */
 export class DivisionParticipantNotFoundError extends Data.TaggedError(
   "DivisionParticipantNotFoundError",
@@ -106,6 +92,24 @@ export class DivisionSlotNotDecidedError extends Data.TaggedError(
   readonly matchId: string;
 }> {}
 
+/** 勝敗が未記録の試合に詳細（勝因・スコア・メモ）を入れようとしたことを表す。 */
+export class DivisionResultNotRecordedError extends Data.TaggedError(
+  "DivisionResultNotRecordedError",
+)<{
+  readonly matchId: string;
+}> {}
+
+/**
+ * 選択肢にも現在の記録にも無い勝因を保存しようとしたことを表す。
+ * 判定には DB 側の options と現在の記録の両方が要るので Zod では書けず、
+ * repository で見る。したがって入力エラーではなくドメインエラーになる。
+ */
+export class DivisionWinReasonNotAllowedError extends Data.TaggedError(
+  "DivisionWinReasonNotAllowedError",
+)<{
+  readonly winReason: string;
+}> {}
+
 export type DivisionError =
   | DivisionOrderConflictError
   | UnexpectedDivisionError
@@ -116,11 +120,11 @@ export type DivisionError =
   | DivisionDuplicateEntryError
   | DivisionMemberNotFoundError
   | DivisionMatchNotFoundError
-  | DivisionMatchNumberConflictError
-  | DivisionMatchOrderError
   | DivisionParticipantNotFoundError
   | DivisionRevisionConflictError
-  | DivisionSlotNotDecidedError;
+  | DivisionSlotNotDecidedError
+  | DivisionResultNotRecordedError
+  | DivisionWinReasonNotAllowedError;
 
 /**
  * DivisionError の全タグをコンパイラに列挙させるための対照表。
@@ -141,11 +145,11 @@ const divisionErrorTags: Record<DivisionError["_tag"], true> = {
   DivisionDuplicateEntryError: true,
   DivisionMemberNotFoundError: true,
   DivisionMatchNotFoundError: true,
-  DivisionMatchNumberConflictError: true,
-  DivisionMatchOrderError: true,
   DivisionParticipantNotFoundError: true,
   DivisionRevisionConflictError: true,
   DivisionSlotNotDecidedError: true,
+  DivisionResultNotRecordedError: true,
+  DivisionWinReasonNotAllowedError: true,
 };
 
 /**

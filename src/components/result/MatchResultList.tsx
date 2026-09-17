@@ -13,11 +13,13 @@ export function MatchResultList({
   slug,
   tournamentId,
   action,
+  detailAction,
 }: {
   rows: ResultRowView[];
   slug: string;
   tournamentId: string;
   action: DivisionFormAction;
+  detailAction: DivisionFormAction;
 }) {
   if (rows.length === 0) {
     return <p className="text-sm text-slate-600">まだ試合がありません</p>;
@@ -40,6 +42,7 @@ export function MatchResultList({
             slug={slug}
             tournamentId={tournamentId}
             action={action}
+            detailAction={detailAction}
           />
         ),
       )}

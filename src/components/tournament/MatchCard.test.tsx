@@ -12,18 +12,21 @@ const confirmed = (
   participant: { id, name, seed },
   state: "confirmed",
   isWinner,
+  score: null,
 });
 
 const pending: ResolvedSlot = {
   participant: null,
   state: "pending",
   isWinner: false,
+  score: null,
 };
 
 const bye: ResolvedSlot = {
   participant: null,
   state: "bye",
   isWinner: false,
+  score: null,
 };
 
 const doneMatch: ResolvedMatch = {
@@ -37,9 +40,11 @@ const doneMatch: ResolvedMatch = {
   ],
   winnerId: "p1",
   score: "3-1",
+  winReason: null,
+  note: null,
   status: "done",
   sourceMatchIds: ["r1-m1", "r1-m2"],
-  matchNumber: null,
+  matchName: null,
 };
 
 describe("MatchCard", () => {
@@ -165,17 +170,17 @@ describe("MatchCard", () => {
     expect(screen.queryByText("3-1")).not.toBeInTheDocument();
   });
 
-  it("試合番号があればバッジで表示する", () => {
-    render(<MatchCard match={{ ...doneMatch, matchNumber: "7" }} />);
-    expect(
-      screen.getByTestId(`match-number-${doneMatch.id}`),
-    ).toHaveTextContent("7");
+  it("試合名があればバッジで表示する", () => {
+    render(<MatchCard match={{ ...doneMatch, matchName: "7" }} />);
+    expect(screen.getByTestId(`match-name-${doneMatch.id}`)).toHaveTextContent(
+      "7",
+    );
   });
 
-  it("試合番号が null ならバッジを出さない", () => {
-    render(<MatchCard match={{ ...doneMatch, matchNumber: null }} />);
+  it("試合名が null ならバッジを出さない", () => {
+    render(<MatchCard match={{ ...doneMatch, matchName: null }} />);
     expect(
-      screen.queryByTestId(`match-number-${doneMatch.id}`),
+      screen.queryByTestId(`match-name-${doneMatch.id}`),
     ).not.toBeInTheDocument();
   });
 
@@ -189,9 +194,15 @@ describe("MatchCard", () => {
               participant: null,
               state: "pending",
               isWinner: false,
+              score: null,
               pendingLabel: "第3試合の敗者",
             },
-            { participant: null, state: "pending", isWinner: false },
+            {
+              participant: null,
+              state: "pending",
+              isWinner: false,
+              score: null,
+            },
           ],
           winnerId: null,
           status: "waiting",
@@ -200,5 +211,85 @@ describe("MatchCard", () => {
     );
     expect(screen.getByText("第3試合の敗者")).toBeInTheDocument();
     expect(screen.getByText("未定")).toBeInTheDocument();
+  });
+
+  it("スロットにスコアがあれば各行に表示する", () => {
+    render(
+      <MatchCard
+        match={{
+          ...doneMatch,
+          slots: [
+            { ...doneMatch.slots[0], score: "21" },
+            { ...doneMatch.slots[1], score: "18" },
+          ],
+        }}
+      />,
+    );
+    expect(screen.getByText("21")).toBeInTheDocument();
+    expect(screen.getByText("18")).toBeInTheDocument();
+  });
+
+  // スロットにスコアがあるときは旧来の右上バッジ（match.score）と重なるため出さない。
+  it("スロットにスコアがあれば右上の旧バッジは出さない", () => {
+    render(
+      <MatchCard
+        match={{
+          ...doneMatch,
+          score: "3-1",
+          slots: [
+            { ...doneMatch.slots[0], score: "21" },
+            { ...doneMatch.slots[1], score: "18" },
+          ],
+        }}
+      />,
+    );
+    expect(screen.queryByText("3-1")).not.toBeInTheDocument();
+  });
+
+  it("勝因は勝者の行にだけ表示する", () => {
+    render(<MatchCard match={{ ...doneMatch, winReason: "一本勝ち" }} />);
+    const winnerRow = screen.getByTestId(`slot-${doneMatch.id}-0`);
+    const loserRow = screen.getByTestId(`slot-${doneMatch.id}-1`);
+    expect(winnerRow).toHaveTextContent("一本勝ち");
+    expect(loserRow).not.toHaveTextContent("一本勝ち");
+  });
+
+  it("メモがあり試合名もあれば「<試合名>のメモ」を読み上げ用ラベルにする", () => {
+    render(
+      <MatchCard
+        match={{ ...doneMatch, note: "抗議あり", matchName: "第7試合" }}
+      />,
+    );
+    expect(
+      screen.getByRole("button", { name: "第7試合のメモ" }),
+    ).toBeInTheDocument();
+  });
+
+  // 試合名が無いとき、内部 id をそのままラベルに出すと読み上げに適さない
+  // ため、汎用の文言に落とす。
+  it("メモがあり試合名が無ければ「試合のメモ」を読み上げ用ラベルにする", () => {
+    render(
+      <MatchCard
+        match={{ ...doneMatch, note: "抗議あり", matchName: null }}
+      />,
+    );
+    expect(
+      screen.getByRole("button", { name: "試合のメモ" }),
+    ).toBeInTheDocument();
+  });
+
+  // React Flow のノード内では、ノードに付く pointer-events: none と
+  // ドラッグ・パンにボタン上の押下を取られる。
+  it("メモボタンは React Flow のドラッグ・パンから外す", () => {
+    render(<MatchCard match={{ ...doneMatch, note: "抗議あり" }} />);
+    const wrapper = screen.getByRole("button", {
+      name: "試合のメモ",
+    }).parentElement;
+    expect(wrapper).toHaveClass("nodrag", "nopan", "pointer-events-auto");
+  });
+
+  it("メモが無ければメモボタンを表示しない", () => {
+    render(<MatchCard match={{ ...doneMatch, note: null }} />);
+    expect(screen.queryByRole("button")).not.toBeInTheDocument();
   });
 });

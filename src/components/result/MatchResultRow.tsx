@@ -1,7 +1,7 @@
 "use client";
 
 import type { MouseEvent } from "react";
-import { useActionState, useEffect, useRef } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import {
   type DivisionFormAction,
   INITIAL_DIVISION_FORM_STATE,
@@ -10,7 +10,11 @@ import type {
   ResultRowView,
   ResultSlotView,
 } from "@/features/schedule/result-rows";
+import { formatDivisionPosition } from "@/lib/division/label";
+import { formatMatchScoreSummary } from "@/lib/division/score";
 import { trackEvent } from "@/shared/lib/analytics/events";
+import { MatchNoteButton } from "./MatchNoteButton";
+import { MatchResultDetailForm } from "./MatchResultDetailForm";
 
 type MatchRow = Extract<ResultRowView, { kind: "match" }>;
 
@@ -38,7 +42,7 @@ function WinnerButton({
       type="submit"
       name="winnerEntryId"
       value={slot.entryId ?? ""}
-      aria-label={`${row.divisionName} 第${row.matchNumber}試合 ${slot.label}の勝ち`}
+      aria-label={`${row.divisionName} ${row.matchName} ${slot.label}の勝ち`}
       aria-pressed={isWinner}
       disabled={disabled || slot.entryId === null}
       onClick={onClick}
@@ -63,17 +67,37 @@ export function MatchResultRow({
   slug,
   tournamentId,
   action,
+  detailAction,
 }: {
   row: MatchRow;
   slug: string;
   tournamentId: string;
   action: DivisionFormAction;
+  detailAction: DivisionFormAction;
 }) {
   const [state, formAction, pending] = useActionState(
     action,
     INITIAL_DIVISION_FORM_STATE,
   );
   const editable = row.state === "ready" || row.state === "recorded";
+
+  const [detailOpen, setDetailOpen] = useState(false);
+
+  const config = row.resultConfig;
+  const hasDetailFields =
+    config.winReason.enabled || config.score.enabled || config.note.enabled;
+  // 勝敗より先に詳細だけを入れる場面は無い。記録済みの行にだけ出す。
+  const detailAvailable = row.state === "recorded" && hasDetailFields;
+
+  const scoreSummary = formatMatchScoreSummary(
+    row.slots.map((slot) => slot.entryId),
+    row.scores,
+    config.score.aggregation,
+  );
+  const summaryParts = [
+    config.winReason.enabled ? row.winReason : null,
+    config.score.enabled ? scoreSummary : null,
+  ].filter((value): value is string => value !== null);
 
   // recordResultAction は成功時も { error: null } を返し、初期状態と
   // 同じ形になる。さらに同じ行で登録と訂正が繰り返されるため、真偽値では
@@ -115,10 +139,10 @@ export function MatchResultRow({
         <div className="min-w-0">
           <p className="flex items-center gap-2 text-sm text-slate-800">
             <span className="shrink-0 rounded bg-slate-100 px-2 py-0.5 text-xs font-bold">
-              第{row.matchNumber}試合
+              {row.matchName}
             </span>
             <span className="truncate text-xs text-slate-500">
-              {row.divisionName} / {row.label}
+              {formatDivisionPosition(row.divisionName, row.label)}
             </span>
           </p>
         </div>
@@ -148,7 +172,7 @@ export function MatchResultRow({
               type="submit"
               name="winnerEntryId"
               value=""
-              aria-label={`${row.divisionName} 第${row.matchNumber}試合の結果を取り消す`}
+              aria-label={`${row.divisionName} ${row.matchName}の結果を取り消す`}
               disabled={pending}
               onClick={confirmIfNeeded(null)}
               className="rounded border border-slate-300 px-2 py-1 text-xs text-slate-600 disabled:opacity-40"
@@ -157,6 +181,17 @@ export function MatchResultRow({
             </button>
           )}
         </form>
+
+        {detailAvailable && (
+          <button
+            type="button"
+            aria-expanded={detailOpen}
+            onClick={() => setDetailOpen((open) => !open)}
+            className="rounded border border-slate-300 px-2 py-1 text-xs text-slate-600"
+          >
+            詳細 {detailOpen ? "▴" : "▾"}
+          </button>
+        )}
       </div>
 
       {row.state === "bye" && (
@@ -168,6 +203,29 @@ export function MatchResultRow({
         <p role="alert" className="mt-1 text-xs text-red-600">
           {state.error}
         </p>
+      )}
+
+      {detailAvailable &&
+        (summaryParts.length > 0 ||
+          (config.note.enabled && row.note !== null)) && (
+          <p className="mt-1 flex items-center gap-2 text-xs text-slate-600">
+            {summaryParts.join(" ・ ")}
+            {config.note.enabled && (
+              <MatchNoteButton
+                note={row.note}
+                label={`${row.divisionName} ${row.matchName}のメモ`}
+              />
+            )}
+          </p>
+        )}
+
+      {detailAvailable && detailOpen && (
+        <MatchResultDetailForm
+          row={row}
+          slug={slug}
+          tournamentId={tournamentId}
+          action={detailAction}
+        />
       )}
     </li>
   );

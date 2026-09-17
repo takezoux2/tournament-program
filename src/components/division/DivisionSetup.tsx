@@ -1,16 +1,17 @@
 import { DIVISION_FORMAT_LABELS } from "@/features/division/format";
-import { toMatchOrderView } from "@/features/division/match-number-view";
-import type {
-  DivisionDetail,
-  DivisionParticipant,
-} from "@/features/division/repository";
+import { toMatchOrderView } from "@/features/division/match-name-view";
 import {
   isSlotBracketFormat,
   matchesSlotBracketShape,
 } from "@/features/division/matching-strategy";
+import type {
+  DivisionDetail,
+  DivisionParticipant,
+} from "@/features/division/repository";
 import { toSetupView } from "@/features/division/single-elimination/view";
 import type { DivisionFormAction } from "@/features/division/state";
 import type { MemberSummary } from "@/features/organization/repository";
+import { resolveMatchNames } from "@/lib/division/match-name";
 import {
   parseDivisionEntries,
   parseDivisionResults,
@@ -30,8 +31,7 @@ export type DivisionSetupActions = {
   reorderEntry: DivisionFormAction;
   generateMatching: DivisionFormAction;
   swapSlots: DivisionFormAction;
-  reorderMatches: DivisionFormAction;
-  setMatchNumber: DivisionFormAction;
+  setMatchName: DivisionFormAction;
   setPlayerNumber: DivisionFormAction;
 };
 
@@ -42,6 +42,7 @@ export function DivisionSetup({
   slug,
   tournamentId,
   actions,
+  overallSeq,
 }: {
   division: DivisionDetail;
   participants: DivisionParticipant[];
@@ -49,6 +50,8 @@ export function DivisionSetup({
   slug: string;
   tournamentId: string;
   actions: DivisionSetupActions;
+  /** 大会全体の通し番号。{{OverallSeq}} の展開に使う */
+  overallSeq: ReadonlyMap<string, number>;
 }) {
   // ページ側で弾いているため実際には届かないが、防御的にこの画面が
   // トーナメント専用であることを型より外でも守っておく。リーグの
@@ -160,10 +163,10 @@ export function DivisionSetup({
       </section>
 
       <section className="space-y-3">
-        <h2 className="text-sm font-bold text-slate-700">試合の実施順</h2>
-        {/* 実施順と番号の変更は構造を変えないため、locked でも編集できる */}
+        <h2 className="text-sm font-bold text-slate-700">試合名</h2>
+        {/* 試合名の変更は構造を変えないため、locked でも編集できる */}
         {mismatched ? (
-          <Notice>組み合わせを作り直すと、ここに試合の実施順が出ます</Notice>
+          <Notice>組み合わせを作り直すと、ここに試合が出ます</Notice>
         ) : (
           <MatchOrderList
             rows={toMatchOrderView(
@@ -171,12 +174,12 @@ export function DivisionSetup({
               parsed.entries,
               participants,
               format,
+              resolveMatchNames(parsed.matchingConfig, division.id, overallSeq),
             )}
             slug={slug}
             tournamentId={tournamentId}
             divisionId={division.id}
-            reorderAction={actions.reorderMatches}
-            setMatchNumberAction={actions.setMatchNumber}
+            setMatchNameAction={actions.setMatchName}
             emptyMessage="まだ組み合わせがありません"
           />
         )}
@@ -184,7 +187,11 @@ export function DivisionSetup({
 
       <section className="space-y-3">
         <h2 className="text-sm font-bold text-slate-700">プレビュー</h2>
-        <DivisionBracket division={division} participants={participants} />
+        <DivisionBracket
+          division={division}
+          participants={participants}
+          overallSeq={overallSeq}
+        />
       </section>
     </div>
   );

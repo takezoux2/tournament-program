@@ -27,7 +27,7 @@ const matchingConfig = {
       bracket: "winners",
       round: 1,
       order: 0,
-      matchNumber: "1",
+      matchName: "1",
       slots: [
         { kind: "entry", entryId: "e1" },
         { kind: "entry", entryId: "e2" },
@@ -38,7 +38,7 @@ const matchingConfig = {
       bracket: "winners",
       round: 1,
       order: 1,
-      matchNumber: "2",
+      matchName: "2",
       slots: [
         { kind: "entry", entryId: "e3" },
         { kind: "entry", entryId: "e4" },
@@ -49,7 +49,7 @@ const matchingConfig = {
       bracket: "winners",
       round: 2,
       order: 0,
-      matchNumber: "3",
+      matchName: "3",
       slots: [
         { kind: "winnerOf", matchId: "m1-0" },
         { kind: "winnerOf", matchId: "m1-1" },
@@ -81,7 +81,7 @@ const empty = { version: 1, matches: [] };
 const run = (input: { matchId: string; winnerEntryId: string }) =>
   Effect.runPromiseExit(recordResultInDb(ids, input));
 
-/** 失敗のタグを確かめる。set-match-number/repository.test.ts と同じ書き方。 */
+/** 失敗のタグを確かめる。set-match-name/repository.test.ts と同じ書き方。 */
 const expectFailureTag = (
   exit: Exit.Exit<unknown, { _tag: string }>,
   tag: string,
@@ -172,6 +172,75 @@ describe("recordResultInDb", () => {
               { matchId: "m1-0", winnerEntryId: "e2" },
               { matchId: "m1-1", winnerEntryId: "e3" },
             ],
+          },
+        }),
+      }),
+    );
+  });
+
+  it("記録済みの試合の勝者を変えると、スコアとメモを引き継ぎ勝因を消す", async () => {
+    // スコアとメモは勝者が変わっても意味を保つが、勝因は前の勝者に付いた
+    // ものなので残すと別の勝者の勝因として表示されてしまう。
+    findFirst.mockResolvedValue(
+      division({
+        version: 1,
+        matches: [
+          {
+            matchId: "m1-0",
+            winnerEntryId: "e1",
+            winReason: "一本勝ち",
+            scores: [
+              { entryId: "e1", values: [8, 4] },
+              { entryId: "e2", values: [2, 2] },
+            ],
+            note: "抗議あり",
+          },
+        ],
+      }),
+    );
+
+    await run({ matchId: "m1-0", winnerEntryId: "e2" });
+
+    expect(updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          results: {
+            version: 1,
+            matches: [
+              {
+                matchId: "m1-0",
+                winnerEntryId: "e2",
+                scores: [
+                  { entryId: "e1", values: [8, 4] },
+                  { entryId: "e2", values: [2, 2] },
+                ],
+                note: "抗議あり",
+              },
+            ],
+          },
+        }),
+      }),
+    );
+  });
+
+  it("勝因だけの記録で勝者を変えると、詳細の無い記録になる", async () => {
+    findFirst.mockResolvedValue(
+      division({
+        version: 1,
+        matches: [
+          { matchId: "m1-0", winnerEntryId: "e1", winReason: "判定勝ち" },
+        ],
+      }),
+    );
+
+    await run({ matchId: "m1-0", winnerEntryId: "e2" });
+
+    expect(updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          results: {
+            version: 1,
+            matches: [{ matchId: "m1-0", winnerEntryId: "e2" }],
           },
         }),
       }),

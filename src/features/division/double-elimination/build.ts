@@ -1,3 +1,4 @@
+import { DEFAULT_MATCH_NAME } from "@/lib/division/match-name";
 import type {
   BracketMatch,
   MatchingConfig,
@@ -65,8 +66,7 @@ export const buildDoubleElimination = (
       bracket,
       round,
       order,
-      sequence: matches.length,
-      matchNumber: String(matches.length + 1),
+      matchName: DEFAULT_MATCH_NAME,
       slots: matchSlots,
     });
     return id;
@@ -144,7 +144,7 @@ const slotKey = (slot: SlotSource): string => {
   }
 };
 
-/** 構造だけの署名。試合番号と実施順は編集できるので比較に含めない。 */
+/** 構造だけの署名。試合名は編集できるので比較に含めない。 */
 const structureSignature = (config: MatchingConfig): string =>
   config.matches
     .map((match) =>

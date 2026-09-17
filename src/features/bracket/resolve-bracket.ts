@@ -22,8 +22,8 @@ export function resolveBracket(
   const participantById = new Map(participants.map((p) => [p.id, p]));
   const resultByMatchId = new Map(results.map((r) => [r.matchId, r]));
   const matchIds = new Set(bracket.matches.map((m) => m.id));
-  const numberByMatchId = new Map(
-    bracket.matches.map((m) => [m.id, m.matchNumber]),
+  const nameByMatchId = new Map(
+    bracket.matches.map((m) => [m.id, m.matchName]),
   );
   const settled = new Map<string, Settled>();
 
@@ -35,7 +35,7 @@ export function resolveBracket(
     const context: SlotContext = {
       participantById,
       matchIds,
-      numberByMatchId,
+      nameByMatchId,
       settled,
     };
     const slots: [ResolvedSlot, ResolvedSlot] = [
@@ -83,6 +83,16 @@ export function resolveBracket(
       }
     }
 
+    const scoreByParticipant = new Map(
+      (result?.scores ?? []).map((entry) => [entry.participantId, entry.score]),
+    );
+    for (const slot of slots) {
+      slot.score =
+        slot.participant === null
+          ? null
+          : (scoreByParticipant.get(slot.participant.id) ?? null);
+    }
+
     settled.set(match.id, { slots, winnerId });
 
     return {
@@ -90,10 +100,12 @@ export function resolveBracket(
       bracket: match.bracket ?? "winners",
       round: match.round,
       order: match.order,
-      matchNumber: match.matchNumber ?? null,
+      matchName: match.matchName ?? null,
       slots,
       winnerId,
       score,
+      winReason: result?.winReason ?? null,
+      note: result?.note ?? null,
       status: toStatus(hasBye, winnerId, slots),
       sourceMatchIds,
     };
@@ -103,13 +115,13 @@ export function resolveBracket(
 type SlotContext = {
   participantById: Map<string, Participant>;
   matchIds: Set<string>;
-  numberByMatchId: Map<string, string | undefined>;
+  nameByMatchId: Map<string, string | undefined>;
   settled: Map<string, Settled>;
 };
 
 function resolveSlot(source: SlotSource, context: SlotContext): ResolvedSlot {
   if (source.kind === "bye") {
-    return { participant: null, state: "bye", isWinner: false };
+    return { participant: null, state: "bye", isWinner: false, score: null };
   }
 
   if (source.kind === "participant") {
@@ -120,6 +132,7 @@ function resolveSlot(source: SlotSource, context: SlotContext): ResolvedSlot {
       ),
       state: "confirmed",
       isWinner: false,
+      score: null,
     };
   }
 
@@ -131,6 +144,7 @@ function resolveSlot(source: SlotSource, context: SlotContext): ResolvedSlot {
     participant: null,
     state: "pending",
     isWinner: false,
+    score: null,
   };
   if (origin === undefined) {
     return pending;
@@ -139,7 +153,7 @@ function resolveSlot(source: SlotSource, context: SlotContext): ResolvedSlot {
   if (source.kind === "winnerOf") {
     // BYE どうしの試合からは誰も来ない。pending だと先が永久に進まない。
     if (origin.slots.every((slot) => slot.state === "bye")) {
-      return { participant: null, state: "bye", isWinner: false };
+      return { participant: null, state: "bye", isWinner: false, score: null };
     }
     if (origin.winnerId === null) {
       return pending;
@@ -148,12 +162,13 @@ function resolveSlot(source: SlotSource, context: SlotContext): ResolvedSlot {
       participant: lookupParticipant(context.participantById, origin.winnerId),
       state: "confirmed",
       isWinner: false,
+      score: null,
     };
   }
 
   // loserOf: BYE を含む試合は不戦勝なので敗者が生まれない。
   if (origin.slots.some((slot) => slot.state === "bye")) {
-    return { participant: null, state: "bye", isWinner: false };
+    return { participant: null, state: "bye", isWinner: false, score: null };
   }
   const loser =
     origin.winnerId === null
@@ -164,12 +179,19 @@ function resolveSlot(source: SlotSource, context: SlotContext): ResolvedSlot {
             slot.participant?.id !== origin.winnerId,
         );
   if (loser?.participant) {
-    return { participant: loser.participant, state: "confirmed", isWinner: false };
+    return {
+      participant: loser.participant,
+      state: "confirmed",
+      isWinner: false,
+      score: null,
+    };
   }
-  const number = context.numberByMatchId.get(source.matchId);
-  return number === undefined
+  // 名前は展開済みの試合名（from-division が渡す）。スロットの文言
+  // （createSlotLabeler の「◯◯の敗者」）と同じ形にそろえる。
+  const name = context.nameByMatchId.get(source.matchId);
+  return name === undefined
     ? pending
-    : { ...pending, pendingLabel: `第${number}試合の敗者` };
+    : { ...pending, pendingLabel: `${name}の敗者` };
 }
 
 function lookupParticipant(

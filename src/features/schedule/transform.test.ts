@@ -15,7 +15,7 @@ const match = (divisionId: string, matchId: string): ScheduleRowView => ({
   divisionId,
   divisionName: "男子",
   matchId,
-  matchNumber: "1",
+  matchName: "1",
   label: "1回戦 第1試合",
   card: "山田 vs 佐藤",
 });

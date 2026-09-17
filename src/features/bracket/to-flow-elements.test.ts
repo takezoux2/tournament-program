@@ -7,6 +7,7 @@ const emptySlot: ResolvedSlot = {
   participant: null,
   state: "pending",
   isWinner: false,
+  score: null,
 };
 
 const match = (
@@ -21,10 +22,12 @@ const match = (
   bracket: "winners",
   round,
   order,
-  matchNumber: null,
+  matchName: null,
   slots: [emptySlot, emptySlot],
   winnerId,
   score: null,
+  winReason: null,
+  note: null,
   status,
   sourceMatchIds,
 });

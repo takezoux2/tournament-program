@@ -4,6 +4,7 @@ import type {
 } from "@/features/division/repository";
 import { isRoundRobinShape } from "@/features/division/round-robin/build";
 import { toLeagueTableView } from "@/features/division/round-robin/standings";
+import { resolveMatchNames } from "@/lib/division/match-name";
 import {
   parseDivisionEntries,
   parseDivisionResults,
@@ -17,9 +18,11 @@ import { Notice } from "./Notice";
 const LeagueSection = ({
   division,
   participants,
+  overallSeq,
 }: {
   division: DivisionDetail;
   participants: DivisionParticipant[];
+  overallSeq: ReadonlyMap<string, number>;
 }) => {
   // Json は DB の列で、アプリの外から壊れた値が入りうる。パースの失敗は
   // ここで受け止め、ページ全体は落とさない。
@@ -56,6 +59,7 @@ const LeagueSection = ({
         parsed.entries,
         parsed.results,
         participants,
+        resolveMatchNames(parsed.matchingConfig, division.id, overallSeq),
       )}
     />
   );
@@ -69,10 +73,13 @@ const LeagueSection = ({
 export function DivisionMatchingView({
   division,
   participants,
+  overallSeq,
   heightClassName,
 }: {
   division: DivisionDetail;
   participants: DivisionParticipant[];
+  /** 大会全体の通し番号。試合名の {{OverallSeq}} の展開に使う */
+  overallSeq: ReadonlyMap<string, number>;
   heightClassName?: string;
 }) {
   switch (division.format) {
@@ -83,11 +90,18 @@ export function DivisionMatchingView({
         <DivisionBracket
           division={division}
           participants={participants}
+          overallSeq={overallSeq}
           heightClassName={heightClassName}
         />
       );
     case "ROUND_ROBIN":
-      return <LeagueSection division={division} participants={participants} />;
+      return (
+        <LeagueSection
+          division={division}
+          participants={participants}
+          overallSeq={overallSeq}
+        />
+      );
     default: {
       // 形式を増やしたときに、何も描かないまま通るのではなくコンパイルエラーにする
       const exhaustive: never = division.format;

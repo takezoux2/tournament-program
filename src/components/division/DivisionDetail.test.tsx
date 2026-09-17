@@ -11,6 +11,7 @@ const division = (overrides: Partial<DivisionDetail> = {}): DivisionDetail => ({
   entries: { version: 1, entries: [] },
   matchingConfig: { version: 1, matches: [] },
   results: { version: 1, matches: [] },
+  resultConfig: null,
   createdAt: new Date("2026-01-01T00:00:00Z"),
   ...overrides,
 });

@@ -16,4 +16,5 @@ export const updateDivision = (
     divisionId,
     name: input.name,
     format: input.format,
+    resultConfig: input.resultConfig,
   });

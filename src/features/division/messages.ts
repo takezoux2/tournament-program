@@ -21,7 +21,8 @@ export const divisionErrorMessage: (error: DivisionError) => string =
     ),
     Match.tag(
       "DivisionNotEnoughEntriesError",
-      (error) => `組み合わせを作るにはエントリーが${error.minimum}人以上必要です`,
+      (error) =>
+        `組み合わせを作るにはエントリーが${error.minimum}人以上必要です`,
     ),
     Match.tag(
       "DivisionDataError",
@@ -44,14 +45,6 @@ export const divisionErrorMessage: (error: DivisionError) => string =
       () => "対象の試合が見つかりません。画面を再読み込みしてください",
     ),
     Match.tag(
-      "DivisionMatchNumberConflictError",
-      () => "その試合番号は別の試合で使われています",
-    ),
-    Match.tag(
-      "DivisionMatchOrderError",
-      () => "並び順が古くなっています。画面を再読み込みしてください",
-    ),
-    Match.tag(
       "DivisionParticipantNotFoundError",
       () => "対象の参加者が見つかりません。画面を再読み込みしてください",
     ),
@@ -62,6 +55,14 @@ export const divisionErrorMessage: (error: DivisionError) => string =
     Match.tag(
       "DivisionSlotNotDecidedError",
       () => "対戦相手がまだ決まっていません。画面を再読み込みしてください",
+    ),
+    Match.tag(
+      "DivisionResultNotRecordedError",
+      () => "先に勝敗を記録してください",
+    ),
+    Match.tag(
+      "DivisionWinReasonNotAllowedError",
+      () => "その勝因は選べません。画面を再読み込みしてください",
     ),
     Match.exhaustive,
   );

@@ -2,7 +2,7 @@ import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const findPublicTournament = vi.fn();
-const loadScheduleView = vi.fn();
+const loadResultRows = vi.fn();
 const getOptionalSession = vi.fn();
 const notFound = vi.fn(() => {
   throw new Error("NEXT_NOT_FOUND");
@@ -14,8 +14,8 @@ vi.mock("@/features/tournament/repository", () => ({
     findPublicTournament(tournamentId, viewerUserId),
 }));
 vi.mock("@/features/schedule/repository", () => ({
-  loadScheduleView: (organizationId: string, tournamentId: string) =>
-    loadScheduleView(organizationId, tournamentId),
+  loadResultRows: (organizationId: string, tournamentId: string) =>
+    loadResultRows(organizationId, tournamentId),
 }));
 vi.mock("@/shared/middleware/require-session", () => ({
   getOptionalSession: () => getOptionalSession(),
@@ -43,21 +43,36 @@ const tournament = {
 describe("PublicSchedulePage", () => {
   beforeEach(() => {
     findPublicTournament.mockReset();
-    loadScheduleView.mockReset();
+    loadResultRows.mockReset();
     getOptionalSession.mockReset();
     notFound.mockClear();
     findPublicTournament.mockResolvedValue(tournament);
     getOptionalSession.mockResolvedValue(null);
-    loadScheduleView.mockResolvedValue([
+    loadResultRows.mockResolvedValue([
       {
         kind: "match",
         key: "match:d1:m1-0",
         divisionId: "d1",
         divisionName: "男子シングルス",
         matchId: "m1-0",
-        matchNumber: "1",
+        matchName: "1",
         label: "1回戦 第1試合",
-        card: "佐藤 蓮 vs 鈴木 陽菜",
+        slots: [
+          { label: "佐藤 蓮", entryId: "e1" },
+          { label: "鈴木 陽菜", entryId: "e2" },
+        ],
+        winnerEntryId: null,
+        state: "ready",
+        downstreamRecordedCount: 0,
+        resultConfig: {
+          version: 1,
+          winReason: { enabled: false, options: [] },
+          score: { enabled: false, count: 3, aggregation: "sum" },
+          note: { enabled: false },
+        },
+        winReason: null,
+        scores: [],
+        note: null,
       },
     ]);
   });
@@ -80,7 +95,7 @@ describe("PublicSchedulePage", () => {
   it("試合一覧はゲートが返した organizationId で絞り込む", async () => {
     await Page(pageProps("t1"));
 
-    expect(loadScheduleView).toHaveBeenCalledWith("o1", "t1");
+    expect(loadResultRows).toHaveBeenCalledWith("o1", "t1");
   });
 
   it("公開対象でなければ notFound を呼び、試合一覧も引かない", async () => {
@@ -88,7 +103,7 @@ describe("PublicSchedulePage", () => {
 
     await expect(Page(pageProps("t1"))).rejects.toThrow("NEXT_NOT_FOUND");
     expect(notFound).toHaveBeenCalled();
-    expect(loadScheduleView).not.toHaveBeenCalled();
+    expect(loadResultRows).not.toHaveBeenCalled();
   });
 
   it("試合を描画する", async () => {
