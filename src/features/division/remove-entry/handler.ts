@@ -80,7 +80,7 @@ export const removeEntryAction = async (
     result.matching === "cleared"
       ? `エントリーを削除し、残りが${result.minimum}人未満になったため組み合わせを取り消しました`
       : result.matching === "clearedOverCap"
-        ? `エントリーが形式の上限（${result.limit}人）を超えているため組み合わせを取り消しました`
+        ? `エントリーを削除しましたが、形式の上限（${result.limit}人）を超えているため組み合わせを取り消しました。上限以下になるまで削除してから生成し直してください`
         : REMOVED_NOTICE[result.matching];
 
   return { error: null, notice };
