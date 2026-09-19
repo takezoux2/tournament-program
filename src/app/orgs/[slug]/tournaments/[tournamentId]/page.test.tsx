@@ -156,6 +156,14 @@ describe("TournamentPage", () => {
     ).toHaveAttribute("href", "/orgs/tennis/tournaments/t1/divisions/d1");
   });
 
+  it("参加者一覧への導線を出す", async () => {
+    render(await Page(pageProps("tennis", "t1")));
+
+    expect(
+      screen.getByRole("link", { name: "参加者一覧" }),
+    ).toHaveAttribute("href", "/orgs/tennis/tournaments/t1/participants");
+  });
+
   it("試合一覧ページへの導線を出す", async () => {
     const element = await Page(pageProps("tennis", "t1"));
     render(element);
