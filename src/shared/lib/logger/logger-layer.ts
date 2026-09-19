@@ -8,7 +8,8 @@ import { logLevelFromEnv } from "./log-level";
  */
 export const loggerOutputLayer = (
   nodeEnv: string | undefined,
-): Layer.Layer<never> => (nodeEnv === "production" ? Logger.json : Logger.pretty);
+): Layer.Layer<never> =>
+  nodeEnv === "production" ? Logger.json : Logger.pretty;
 
 /**
  * アプリ全体のログ設定。出力先と最小レベルをまとめたもの。
