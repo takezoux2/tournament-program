@@ -1,4 +1,4 @@
-import { Cause, Effect, Option, Predicate } from "effect";
+import { Cause, Effect, FiberRef, LogLevel, Option, Predicate } from "effect";
 import { redact } from "./redact";
 
 export type OperationLogOptions = {
@@ -26,6 +26,23 @@ const isUnexpectedError = (error: unknown): boolean =>
   error._tag.startsWith("Unexpected");
 
 /**
+ * debug 行を遅延評価する。Effect.logDebug(msg, redact(x)) と書くと
+ * redact は引数なので最小ログレベルの判定より先に必ず走る。本番の
+ * LOG_LEVEL=Info では捨てるだけの深いコピーを毎回作ることになり、
+ * さらに redact が投げた場合は成功した処理が defect に化ける。
+ * 出すと決まってから初めて値を作る。
+ */
+const logDebugLazy = (
+  message: string,
+  make: () => unknown,
+): Effect.Effect<void> =>
+  Effect.flatMap(FiberRef.get(FiberRef.currentMinimumLogLevel), (minimum) =>
+    LogLevel.greaterThanEqual(LogLevel.Debug, minimum)
+      ? Effect.logDebug(message, make())
+      : Effect.void,
+  );
+
+/**
  * Effect にログを巻く。渡した Effect の成功値も失敗値も変えない。
  *
  * ここでは Logger を差し替えない。差し替えを中で Effect.provide すると
@@ -39,11 +56,17 @@ export const withOperationLog = <A, E>(
 ): Effect.Effect<A, E> =>
   Effect.logInfo(`${operation} 開始`).pipe(
     Effect.zipRight(
-      Effect.logDebug(`${operation} リクエスト`, redact(options.request)),
+      // request を渡さないハンドラ（division.generate-matching など）で
+      // "${operation} リクエスト" undefined という空虚な行を出さない。
+      options.request === undefined
+        ? Effect.void
+        : logDebugLazy(`${operation} リクエスト`, () =>
+            redact(options.request),
+          ),
     ),
     Effect.zipRight(effect),
     Effect.tap((value) =>
-      Effect.logDebug(`${operation} レスポンス`, redact(value)),
+      logDebugLazy(`${operation} レスポンス`, () => redact(value)),
     ),
     Effect.tap(() => Effect.logInfo(`${operation} 完了`)),
     Effect.tapErrorCause((cause) =>
@@ -56,7 +79,8 @@ export const withOperationLog = <A, E>(
             : Effect.logWarning(`${operation} 失敗`, error),
       }),
     ),
-    // 完了行に所要時間が入る。
+    // span 内の全行に所要時間（開始からの経過）が入る。一番役立つのは完了行だが、
+    // 他の行にも同様に載る。
     Effect.withLogSpan(operation),
     Effect.annotateLogs({ operation, ...options.context }),
   );
