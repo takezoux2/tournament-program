@@ -1,7 +1,8 @@
 "use server";
 
-import { Effect, Exit } from "effect";
+import { Exit } from "effect";
 import { notFound } from "next/navigation";
+import { runOperationExit } from "@/shared/lib/logger/run-operation";
 import { requireOrganization } from "@/shared/middleware/require-organization";
 import { divisionErrorFormState } from "../effect-to-form-state";
 import { revalidateDivisionResults } from "../revalidate";
@@ -47,7 +48,16 @@ export const updateResultDetailAction = async (
     return { error: parsed.error.issues[0].message };
   }
 
-  const exit = await Effect.runPromiseExit(
+  const exit = await runOperationExit(
+    "division.update-result-detail",
+    {
+      request: parsed.data,
+      context: {
+        organizationId: organization.id,
+        tournamentId,
+        divisionId,
+      },
+    },
     updateResultDetailForDivision(
       updateResultDetailInDb,
       { organizationId: organization.id, tournamentId, divisionId },

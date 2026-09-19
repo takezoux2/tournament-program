@@ -1,7 +1,8 @@
 "use server";
 
-import { Effect, Exit } from "effect";
+import { Exit } from "effect";
 import { notFound } from "next/navigation";
+import { runOperationExit } from "@/shared/lib/logger/run-operation";
 import { requireOrganization } from "@/shared/middleware/require-organization";
 import { divisionErrorFormState } from "../effect-to-form-state";
 import { revalidateDivisionSetup } from "../revalidate";
@@ -33,7 +34,16 @@ export const setPlayerNumberAction = async (
   const confirmedNumber = String(formData.get("confirmedNumber") ?? "");
   const confirmed = confirmedNumber === parsed.data.playerNumber;
 
-  const exit = await Effect.runPromiseExit(
+  const exit = await runOperationExit(
+    "division.set-player-number",
+    {
+      request: { ...parsed.data, confirmed },
+      context: {
+        organizationId: organization.id,
+        tournamentId,
+        divisionId,
+      },
+    },
     setPlayerNumberForParticipant(
       setPlayerNumberInDb,
       { organizationId: organization.id, tournamentId, divisionId },
