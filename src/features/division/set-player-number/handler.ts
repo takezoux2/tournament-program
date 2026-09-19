@@ -19,7 +19,7 @@ export const setPlayerNumberAction = async (
   const tournamentId = String(formData.get("tournamentId") ?? "");
   const divisionId = String(formData.get("divisionId") ?? "");
   // Server Action はページを経由せず直接叩ける別の入口なので、ここで独立に確かめる。
-  const { organization } = await requireOrganization(slug);
+  const { organization, session } = await requireOrganization(slug);
 
   const parsed = setPlayerNumberSchema.safeParse({
     participantId: String(formData.get("participantId") ?? ""),
@@ -39,6 +39,7 @@ export const setPlayerNumberAction = async (
     {
       request: { ...parsed.data, confirmed },
       context: {
+        userId: session.user.id,
         organizationId: organization.id,
         tournamentId,
         divisionId,

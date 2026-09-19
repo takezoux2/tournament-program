@@ -19,7 +19,7 @@ export const createDivisionAction = async (
   const slug = String(formData.get("slug") ?? "");
   const tournamentId = String(formData.get("tournamentId") ?? "");
   // ページで確認済みでも Server Action は独立した入口なので、ここでも呼ぶ。
-  const { organization } = await requireOrganization(slug);
+  const { organization, session } = await requireOrganization(slug);
 
   const parsed = createDivisionSchema.safeParse({
     name: String(formData.get("name") ?? ""),
@@ -34,7 +34,11 @@ export const createDivisionAction = async (
     {
       request: parsed.data,
       // 部門はこれから作るので divisionId はまだ無い。
-      context: { organizationId: organization.id, tournamentId },
+      context: {
+        userId: session.user.id,
+        organizationId: organization.id,
+        tournamentId,
+      },
     },
     createDivision(
       createDivisionInDb,

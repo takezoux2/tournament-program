@@ -19,7 +19,7 @@ export const deleteDivisionAction = async (
   const slug = String(formData.get("slug") ?? "");
   const tournamentId = String(formData.get("tournamentId") ?? "");
   const divisionId = String(formData.get("divisionId") ?? "");
-  const { organization } = await requireOrganization(slug);
+  const { organization, session } = await requireOrganization(slug);
 
   const division = await findDivisionInTournament(
     organization.id,
@@ -47,6 +47,7 @@ export const deleteDivisionAction = async (
     {
       request: parsed.data,
       context: {
+        userId: session.user.id,
         organizationId: organization.id,
         tournamentId,
         divisionId,

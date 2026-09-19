@@ -19,7 +19,7 @@ export const addEntryAction = async (
   const tournamentId = String(formData.get("tournamentId") ?? "");
   const divisionId = String(formData.get("divisionId") ?? "");
   // Server Action はページを経由せず直接叩ける別の入口なので、ここで独立に確かめる。
-  const { organization } = await requireOrganization(slug);
+  const { organization, session } = await requireOrganization(slug);
 
   // mode に応じて要る項目が変わるので、両方の項目をそのまま渡して
   // discriminatedUnion に選ばせる。
@@ -38,6 +38,7 @@ export const addEntryAction = async (
     {
       request: parsed.data,
       context: {
+        userId: session.user.id,
         organizationId: organization.id,
         tournamentId,
         divisionId,

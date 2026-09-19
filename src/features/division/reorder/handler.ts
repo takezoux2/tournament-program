@@ -17,7 +17,7 @@ export const reorderDivisionAction = async (
   const slug = String(formData.get("slug") ?? "");
   const tournamentId = String(formData.get("tournamentId") ?? "");
   const divisionId = String(formData.get("divisionId") ?? "");
-  const { organization } = await requireOrganization(slug);
+  const { organization, session } = await requireOrganization(slug);
 
   const parsed = reorderDivisionSchema.safeParse({
     direction: String(formData.get("direction") ?? ""),
@@ -31,6 +31,7 @@ export const reorderDivisionAction = async (
     {
       request: parsed.data,
       context: {
+        userId: session.user.id,
         organizationId: organization.id,
         tournamentId,
         divisionId,

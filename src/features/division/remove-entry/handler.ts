@@ -37,7 +37,7 @@ export const removeEntryAction = async (
   const tournamentId = String(formData.get("tournamentId") ?? "");
   const divisionId = String(formData.get("divisionId") ?? "");
   // Server Action はページを経由せず直接叩ける別の入口なので、ここで独立に確かめる。
-  const { organization } = await requireOrganization(slug);
+  const { organization, session } = await requireOrganization(slug);
 
   const parsed = removeEntrySchema.safeParse({
     entryId: String(formData.get("entryId") ?? ""),
@@ -51,6 +51,7 @@ export const removeEntryAction = async (
     {
       request: parsed.data,
       context: {
+        userId: session.user.id,
         organizationId: organization.id,
         tournamentId,
         divisionId,

@@ -36,7 +36,7 @@ export const updateResultDetailAction = async (
   const tournamentId = String(formData.get("tournamentId") ?? "");
   const divisionId = String(formData.get("divisionId") ?? "");
   // Server Action はページを経由せず直接叩ける別の入口なので、ここで独立に確かめる。
-  const { organization } = await requireOrganization(slug);
+  const { organization, session } = await requireOrganization(slug);
 
   const parsed = updateResultDetailSchema.safeParse({
     matchId: String(formData.get("matchId") ?? ""),
@@ -53,6 +53,7 @@ export const updateResultDetailAction = async (
     {
       request: parsed.data,
       context: {
+        userId: session.user.id,
         organizationId: organization.id,
         tournamentId,
         divisionId,

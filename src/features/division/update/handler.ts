@@ -18,7 +18,7 @@ export const updateDivisionAction = async (
   const slug = String(formData.get("slug") ?? "");
   const tournamentId = String(formData.get("tournamentId") ?? "");
   const divisionId = String(formData.get("divisionId") ?? "");
-  const { organization } = await requireOrganization(slug);
+  const { organization, session } = await requireOrganization(slug);
 
   const parsed = updateDivisionSchema.safeParse({
     name: String(formData.get("name") ?? ""),
@@ -42,6 +42,7 @@ export const updateDivisionAction = async (
     {
       request: parsed.data,
       context: {
+        userId: session.user.id,
         organizationId: organization.id,
         tournamentId,
         divisionId,

@@ -58,7 +58,10 @@ beforeEach(() => {
   setPlayerNumberInDb.mockReset();
   revalidateDivisionSetup.mockReset();
   notFound.mockClear();
-  requireOrganization.mockResolvedValue({ organization: { id: "o1" } });
+  requireOrganization.mockResolvedValue({
+    organization: { id: "o1" },
+    session: { user: { id: "u1" } },
+  });
   setPlayerNumberInDb.mockReturnValue(
     Effect.succeed({ found: true, value: { updated: true } }),
   );
