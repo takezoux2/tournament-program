@@ -1,7 +1,8 @@
 "use server";
 
-import { Effect, Exit } from "effect";
+import { Exit } from "effect";
 import { revalidatePath } from "next/cache";
+import { runOperationExit } from "@/shared/lib/logger/run-operation";
 import { requireOrganization } from "@/shared/middleware/require-organization";
 import { divisionErrorFormState } from "../effect-to-form-state";
 import type { DivisionFormState } from "../state";
@@ -25,7 +26,16 @@ export const reorderDivisionAction = async (
     return { error: parsed.error.issues[0].message };
   }
 
-  const exit = await Effect.runPromiseExit(
+  const exit = await runOperationExit(
+    "division.reorder",
+    {
+      request: parsed.data,
+      context: {
+        organizationId: organization.id,
+        tournamentId,
+        divisionId,
+      },
+    },
     reorderDivision(
       reorderDivisionInDb,
       organization.id,

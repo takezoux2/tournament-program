@@ -1,9 +1,10 @@
 "use server";
 
-import { Effect, Exit } from "effect";
+import { Exit } from "effect";
 import { revalidatePath } from "next/cache";
 import { notFound, redirect } from "next/navigation";
 import { createdQuery } from "@/shared/lib/analytics/created";
+import { runOperationExit } from "@/shared/lib/logger/run-operation";
 import { requireOrganization } from "@/shared/middleware/require-organization";
 import { divisionErrorFormState } from "../effect-to-form-state";
 import type { DivisionFormState } from "../state";
@@ -28,7 +29,13 @@ export const createDivisionAction = async (
     return { error: parsed.error.issues[0].message };
   }
 
-  const exit = await Effect.runPromiseExit(
+  const exit = await runOperationExit(
+    "division.create",
+    {
+      request: parsed.data,
+      // 部門はこれから作るので divisionId はまだ無い。
+      context: { organizationId: organization.id, tournamentId },
+    },
     createDivision(
       createDivisionInDb,
       parsed.data,

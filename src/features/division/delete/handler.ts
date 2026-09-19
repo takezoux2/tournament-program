@@ -1,8 +1,9 @@
 "use server";
 
-import { Effect, Exit } from "effect";
+import { Exit } from "effect";
 import { revalidatePath } from "next/cache";
 import { notFound, redirect } from "next/navigation";
+import { runOperationExit } from "@/shared/lib/logger/run-operation";
 import { requireOrganization } from "@/shared/middleware/require-organization";
 import { divisionErrorFormState } from "../effect-to-form-state";
 import { findDivisionInTournament } from "../repository";
@@ -41,7 +42,16 @@ export const deleteDivisionAction = async (
     return { error: "部門名が一致しません" };
   }
 
-  const exit = await Effect.runPromiseExit(
+  const exit = await runOperationExit(
+    "division.delete",
+    {
+      request: parsed.data,
+      context: {
+        organizationId: organization.id,
+        tournamentId,
+        divisionId,
+      },
+    },
     deleteDivision(
       deleteDivisionInDb,
       organization.id,
