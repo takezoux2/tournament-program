@@ -1,7 +1,8 @@
 "use server";
 
-import { Effect, Exit } from "effect";
+import { Exit } from "effect";
 import { notFound } from "next/navigation";
+import { runOperationExit } from "@/shared/lib/logger/run-operation";
 import { requireOrganization } from "@/shared/middleware/require-organization";
 import { divisionErrorFormState } from "../effect-to-form-state";
 import { revalidateDivisionSetup } from "../revalidate";
@@ -45,7 +46,16 @@ export const removeEntryAction = async (
     return { error: parsed.error.issues[0].message };
   }
 
-  const exit = await Effect.runPromiseExit(
+  const exit = await runOperationExit(
+    "division.remove-entry",
+    {
+      request: parsed.data,
+      context: {
+        organizationId: organization.id,
+        tournamentId,
+        divisionId,
+      },
+    },
     removeEntry(
       removeEntryInDb,
       { organizationId: organization.id, tournamentId, divisionId },
