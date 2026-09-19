@@ -1,7 +1,7 @@
 "use server";
 
 import { Effect, Exit } from "effect";
-import { requireOrganization } from "@/shared/middleware/require-organization";
+import { requirePermission } from "@/shared/middleware/require-organization";
 import { participantErrorFormState } from "../effect-to-form-state";
 import { revalidatePlayerNumber } from "../revalidate";
 import type { ParticipantFormState } from "../state";
@@ -15,13 +15,9 @@ export const setPlayerNumberAction = async (
 ): Promise<ParticipantFormState> => {
   const slug = String(formData.get("slug") ?? "");
   const tournamentId = String(formData.get("tournamentId") ?? "");
-  // 部門の編集画面から送られたときだけ入る。参加者一覧からは空。
-  // 再検証の対象を決めるためだけに使い、絞り込みには使わない。
-  const divisionIdValue = String(formData.get("divisionId") ?? "");
-  const divisionId = divisionIdValue === "" ? null : divisionIdValue;
 
   // Server Action はページを経由せず直接叩ける別の入口なので、ここで独立に確かめる。
-  const { organization } = await requireOrganization(slug);
+  const { organization } = await requirePermission(slug, "tournament.edit");
 
   const parsed = setPlayerNumberSchema.safeParse({
     participantId: String(formData.get("participantId") ?? ""),
@@ -57,6 +53,6 @@ export const setPlayerNumberAction = async (
     };
   }
 
-  revalidatePlayerNumber(slug, tournamentId, divisionId);
+  revalidatePlayerNumber(slug, tournamentId, exit.value.divisionIds);
   return { error: null };
 };

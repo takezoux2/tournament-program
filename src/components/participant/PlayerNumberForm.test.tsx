@@ -19,7 +19,6 @@ describe("PlayerNumberForm", () => {
         participantName="山田"
         slug="org"
         tournamentId="t1"
-        divisionId="d1"
         action={action}
       />,
     );
@@ -33,11 +32,11 @@ describe("PlayerNumberForm", () => {
     expect(sent.get("participantId")).toBe("p1");
     expect(sent.get("playerNumber")).toBe("10");
     expect(sent.get("confirmedNumber")).toBe("");
-    expect(sent.get("divisionId")).toBe("d1");
   });
 
-  it("divisionId を渡さなければ hidden の divisionId を送らない", async () => {
-    // 参加者一覧からの編集。サーバ側は null として扱い、部門を再検証しない。
+  it("divisionId は送らない", async () => {
+    // サーバ側は更新後に大会の全部門を再検証するため、絞り込み用の
+    // divisionId を送る必要が無い。
     const user = userEvent.setup();
     const action = vi.fn(
       async (_state: ParticipantFormState, _data: FormData) => ({
@@ -81,7 +80,6 @@ describe("PlayerNumberForm", () => {
         participantName="山田"
         slug="org"
         tournamentId="t1"
-        divisionId="d1"
         action={action}
       />,
     );

@@ -2,7 +2,7 @@ import { Effect } from "effect";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { INITIAL_PARTICIPANT_FORM_STATE } from "../state";
 
-const requireOrganization = vi.fn();
+const requirePermission = vi.fn();
 const setPlayerNumberInDb = vi.fn();
 const revalidatePlayerNumber = vi.fn();
 
@@ -10,17 +10,17 @@ const revalidatePlayerNumber = vi.fn();
 let calls: string[] = [];
 
 vi.mock("@/shared/middleware/require-organization", () => ({
-  requireOrganization: (slug: string) => {
-    calls.push("requireOrganization");
-    return requireOrganization(slug);
+  requirePermission: (slug: string, code: string) => {
+    calls.push("requirePermission");
+    return requirePermission(slug, code);
   },
 }));
 vi.mock("../revalidate", () => ({
   revalidatePlayerNumber: (
     slug: string,
     tournamentId: string,
-    divisionId: string | null,
-  ) => revalidatePlayerNumber(slug, tournamentId, divisionId),
+    divisionIds: readonly string[],
+  ) => revalidatePlayerNumber(slug, tournamentId, divisionIds),
 }));
 vi.mock("./repository", () => ({
   setPlayerNumberInDb: (ids: unknown, input: unknown) => {
@@ -31,8 +31,7 @@ vi.mock("./repository", () => ({
 
 const { setPlayerNumberAction } = await import("./handler");
 
-/** 部門の編集画面から送られたフォーム。divisionId が入る。 */
-const fromDivision = (
+const formData = (
   participantId: string,
   playerNumber: string,
   confirmedNumber?: string,
@@ -40,7 +39,6 @@ const fromDivision = (
   const data = new FormData();
   data.set("slug", "acme");
   data.set("tournamentId", "t1");
-  data.set("divisionId", "d1");
   data.set("participantId", participantId);
   data.set("playerNumber", playerNumber);
   if (confirmedNumber !== undefined) {
@@ -49,60 +47,44 @@ const fromDivision = (
   return data;
 };
 
-/** 大会の参加者一覧から送られたフォーム。divisionId は無い。 */
-const fromParticipantList = (participantId: string, playerNumber: string) => {
-  const data = new FormData();
-  data.set("slug", "acme");
-  data.set("tournamentId", "t1");
-  data.set("participantId", participantId);
-  data.set("playerNumber", playerNumber);
-  return data;
-};
-
 beforeEach(() => {
   calls = [];
-  requireOrganization.mockReset();
+  requirePermission.mockReset();
   setPlayerNumberInDb.mockReset();
   revalidatePlayerNumber.mockReset();
-  requireOrganization.mockResolvedValue({ organization: { id: "o1" } });
-  setPlayerNumberInDb.mockReturnValue(Effect.succeed({ updated: true }));
+  requirePermission.mockResolvedValue({ organization: { id: "o1" } });
+  setPlayerNumberInDb.mockReturnValue(
+    Effect.succeed({ updated: true, divisionIds: ["d1", "d2"] }),
+  );
 });
 
 describe("setPlayerNumberAction", () => {
-  it("認可を独立に確かめ、トリム済みの入力をポートへ渡す", async () => {
+  it("tournament.edit を要求し、トリム済みの入力をポートへ渡す", async () => {
     await setPlayerNumberAction(
       INITIAL_PARTICIPANT_FORM_STATE,
-      fromDivision("p1", " 7 "),
+      formData("p1", " 7 "),
     );
 
-    expect(requireOrganization).toHaveBeenCalledWith("acme");
-    // divisionId は絞り込みに使わない。ids は大会までの 2 段だけ。
+    expect(requirePermission).toHaveBeenCalledWith("acme", "tournament.edit");
     expect(setPlayerNumberInDb).toHaveBeenCalledWith(
       { organizationId: "o1", tournamentId: "t1" },
       { participantId: "p1", playerNumber: "7", confirmed: false },
     );
     // データベース処理よりも前に認可チェックが必ず実行されることを確認
-    expect(calls).toEqual(["requireOrganization", "setPlayerNumberInDb"]);
+    expect(calls).toEqual(["requirePermission", "setPlayerNumberInDb"]);
   });
 
-  it("部門の編集画面から送られたら、その部門も再検証の対象にする", async () => {
+  it("更新できたら、大会の全部門を再検証の対象にする", async () => {
     const state = await setPlayerNumberAction(
       INITIAL_PARTICIPANT_FORM_STATE,
-      fromDivision("p1", "7"),
+      formData("p1", "7"),
     );
 
-    expect(revalidatePlayerNumber).toHaveBeenCalledWith("acme", "t1", "d1");
+    expect(revalidatePlayerNumber).toHaveBeenCalledWith("acme", "t1", [
+      "d1",
+      "d2",
+    ]);
     expect(state.error).toBeNull();
-  });
-
-  it("参加者一覧から送られた（divisionId なし）ときも保存できる", async () => {
-    const state = await setPlayerNumberAction(
-      INITIAL_PARTICIPANT_FORM_STATE,
-      fromParticipantList("p1", "7"),
-    );
-
-    expect(state).toEqual({ error: null });
-    expect(revalidatePlayerNumber).toHaveBeenCalledWith("acme", "t1", null);
   });
 
   it("重複していたら確認待ちを返し、再検証しない", async () => {
@@ -110,7 +92,7 @@ describe("setPlayerNumberAction", () => {
 
     const state = await setPlayerNumberAction(
       INITIAL_PARTICIPANT_FORM_STATE,
-      fromDivision("p1", "7"),
+      formData("p1", "7"),
     );
 
     expect(state).toEqual({
@@ -126,7 +108,7 @@ describe("setPlayerNumberAction", () => {
   it("confirm で返した値と同じ番号の再送は確認済みとしてポートへ渡す", async () => {
     await setPlayerNumberAction(
       INITIAL_PARTICIPANT_FORM_STATE,
-      fromDivision("p1", " 7 ", "7"),
+      formData("p1", " 7 ", "7"),
     );
 
     expect(setPlayerNumberInDb).toHaveBeenCalledWith(
@@ -138,7 +120,7 @@ describe("setPlayerNumberAction", () => {
   it("確認後に番号を変えて送ったら未確認としてポートへ渡す", async () => {
     await setPlayerNumberAction(
       INITIAL_PARTICIPANT_FORM_STATE,
-      fromDivision("p1", "8", "7"),
+      formData("p1", "8", "7"),
     );
 
     expect(setPlayerNumberInDb).toHaveBeenCalledWith(
@@ -150,7 +132,7 @@ describe("setPlayerNumberAction", () => {
   it("選手番号が空なら入力エラーにする", async () => {
     const state = await setPlayerNumberAction(
       INITIAL_PARTICIPANT_FORM_STATE,
-      fromDivision("p1", "  "),
+      formData("p1", "  "),
     );
 
     expect(state.error).toBe("選手番号を入力してください");
@@ -165,7 +147,7 @@ describe("setPlayerNumberAction", () => {
 
     const state = await setPlayerNumberAction(
       INITIAL_PARTICIPANT_FORM_STATE,
-      fromDivision("p1", "7"),
+      formData("p1", "7"),
     );
 
     expect(state.error).toBe(

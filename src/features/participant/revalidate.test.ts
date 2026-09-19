@@ -30,9 +30,9 @@ describe("revalidatePlayerNumber", () => {
     revalidatePath.mockReset();
   });
 
-  it("divisionId が無ければ参加者一覧だけを再検証する", () => {
+  it("divisionIds が空なら参加者一覧だけを再検証する", () => {
     // 番号は大会内で共通なので、部門を経由しない編集でも一覧は必ず対象。
-    revalidatePlayerNumber("tennis", "t1", null);
+    revalidatePlayerNumber("tennis", "t1", []);
 
     expect(revalidatePath.mock.calls.flat()).toEqual([
       "/orgs/tennis/tournaments/t1/participants",
@@ -40,8 +40,10 @@ describe("revalidatePlayerNumber", () => {
     ]);
   });
 
-  it("divisionId があれば部門の編集画面も再検証する", () => {
-    revalidatePlayerNumber("tennis", "t1", "d1");
+  it("divisionIds があれば、それぞれの部門の編集画面も再検証する", () => {
+    // 選手番号は大会内で共通なので、どの部門から編集しても
+    // 大会の全部門（ここでは d1, d2）を再検証しないと他の部門が古いまま残る。
+    revalidatePlayerNumber("tennis", "t1", ["d1", "d2"]);
 
     expect(revalidatePath.mock.calls.flat()).toEqual([
       "/orgs/tennis/tournaments/t1/participants",
@@ -49,6 +51,9 @@ describe("revalidatePlayerNumber", () => {
       "/orgs/tennis/tournaments/t1/divisions/d1",
       "/orgs/tennis/tournaments/t1/divisions/d1/setup",
       "/orgs/tennis/tournaments/t1/divisions/d1/league",
+      "/orgs/tennis/tournaments/t1/divisions/d2",
+      "/orgs/tennis/tournaments/t1/divisions/d2/setup",
+      "/orgs/tennis/tournaments/t1/divisions/d2/league",
     ]);
   });
 });

@@ -14,8 +14,14 @@ export type SetPlayerNumberCommand = SetPlayerNumberInput & {
   confirmed: boolean;
 };
 
-/** updated: false は「重複が見つかったので確認待ち」。 */
-export type SetPlayerNumberResult = { updated: boolean };
+/**
+ * updated: false は「重複が見つかったので確認待ち」で、この場合は再検証の
+ * 対象を決められない（決めなくてよい）ので divisionIds を持たない。
+ * updated: true のときは、更新が確定した大会に属する全部門の id を返す。
+ */
+export type SetPlayerNumberResult =
+  | { updated: false }
+  | { updated: true; divisionIds: string[] };
 
 export type SetPlayerNumberPort = (
   ids: ParticipantIds,
@@ -66,7 +72,19 @@ export const setPlayerNumberInDb: SetPlayerNumberPort = (ids, input) =>
           where: { id: input.participantId },
           data: { playerNumber: input.playerNumber },
         });
-        return { updated: true };
+
+        // 選手番号は大会内で共通なので、更新後は大会に属する全部門を
+        // 再検証の対象として呼び出し元へ返す。
+        const divisions = await tx.division.findMany({
+          where: {
+            tournament: {
+              id: ids.tournamentId,
+              organizationId: ids.organizationId,
+            },
+          },
+          select: { id: true },
+        });
+        return { updated: true, divisionIds: divisions.map((d) => d.id) };
       }),
     catch: (reason) => toParticipantError(reason),
   });

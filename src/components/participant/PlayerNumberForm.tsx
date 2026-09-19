@@ -11,8 +11,9 @@ import {
  * その値を confirmedNumber として次の送信に積む。番号を変えて送り直すと
  * サーバ側で不一致になり、改めて確認が求められる。
  *
- * divisionId は部門の編集画面から使うときだけ渡す。サーバ側では
- * 再検証の対象を決めるのに使うだけで、絞り込みには使わない。
+ * 選手番号は大会内で共通なので、サーバ側は更新後に大会の全部門を
+ * 再検証する。編集の起点となった部門を絞り込む必要が無いため、
+ * このフォームは divisionId を持たない。
  */
 export function PlayerNumberForm({
   participantId,
@@ -20,7 +21,6 @@ export function PlayerNumberForm({
   participantName,
   slug,
   tournamentId,
-  divisionId,
   action,
 }: {
   participantId: string;
@@ -28,7 +28,6 @@ export function PlayerNumberForm({
   participantName: string;
   slug: string;
   tournamentId: string;
-  divisionId?: string;
   action: ParticipantFormAction;
 }) {
   const [state, formAction, pending] = useActionState(
@@ -41,9 +40,6 @@ export function PlayerNumberForm({
       <div className="flex items-center gap-2">
         <input type="hidden" name="slug" value={slug} />
         <input type="hidden" name="tournamentId" value={tournamentId} />
-        {divisionId !== undefined && (
-          <input type="hidden" name="divisionId" value={divisionId} />
-        )}
         <input type="hidden" name="participantId" value={participantId} />
         <input
           type="hidden"

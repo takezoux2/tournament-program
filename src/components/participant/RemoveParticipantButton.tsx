@@ -45,28 +45,21 @@ export function RemoveParticipantButton({
   }
 
   return (
-    <div className="flex flex-col items-end gap-1">
-      <ConfirmDialog
-        triggerLabel="削除"
-        title="参加者を削除"
-        message={`「${participant.name}」を大会から削除しますか？組織のメンバーは残ります。`}
-        confirmLabel="削除する"
-        pendingLabel="削除中..."
-        formAction={formAction}
-        pending={pending}
-        error={state.error}
-        hiddenFields={{
-          slug,
-          tournamentId,
-          participantId: participant.id,
-        }}
-        triggerClassName="rounded border border-red-300 bg-white px-3 py-1 text-xs text-red-700 cursor-pointer"
-      />
-      {state.error !== null && (
-        <p role="alert" className="text-xs text-red-600">
-          {state.error}
-        </p>
-      )}
-    </div>
+    <ConfirmDialog
+      triggerLabel="削除"
+      title="参加者を削除"
+      message={`「${participant.name}」を大会から削除しますか？組織のメンバーは残ります。`}
+      confirmLabel="削除する"
+      pendingLabel="削除中..."
+      formAction={formAction}
+      pending={pending}
+      error={state.error}
+      hiddenFields={{
+        slug,
+        tournamentId,
+        participantId: participant.id,
+      }}
+      triggerClassName="rounded border border-red-300 bg-white px-3 py-1 text-xs text-red-700 cursor-pointer"
+    />
   );
 }

@@ -75,7 +75,6 @@ export function EntryList({
                     participantName={participant.name}
                     slug={slug}
                     tournamentId={tournamentId}
-                    divisionId={divisionId}
                     action={setPlayerNumberAction}
                   />
                 )}
