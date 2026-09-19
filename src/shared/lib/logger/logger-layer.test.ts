@@ -1,4 +1,4 @@
-import { Logger } from "effect";
+import { Effect, FiberRef, Logger } from "effect";
 import { describe, expect, it } from "vitest";
 import { appLoggerLayer, loggerOutputLayer } from "./logger-layer";
 
@@ -17,7 +17,17 @@ describe("loggerOutputLayer", () => {
 });
 
 describe("appLoggerLayer", () => {
-  it("出力先と最小レベルをまとめた Layer が組み立てられる", () => {
-    expect(appLoggerLayer).toBeDefined();
+  it("Logger.minimumLogLevel(logLevelFromEnv()) が実際に反映されている", async () => {
+    // toBeDefined() は Layer.merge の右半分（minimumLogLevel）が丸ごと
+    // 落ちていても通ってしまう。ここでは FiberRef を実際に読み、
+    // vitest.config.mts が設定する LOG_LEVEL=Off が反映されていることを
+    // 確かめる。反映されていなければ既定値の Info のままになる。
+    const minimum = await Effect.runPromise(
+      FiberRef.get(FiberRef.currentMinimumLogLevel).pipe(
+        Effect.provide(appLoggerLayer),
+      ),
+    );
+
+    expect(minimum.label).toBe("OFF");
   });
 });
