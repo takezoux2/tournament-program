@@ -64,6 +64,22 @@ describe("redact", () => {
     expect(redact("plain")).toBe("plain");
   });
 
+  it("同じオブジェクトを2つのキーから参照しても、両方とも中身が残る", () => {
+    const shared = { a: 1 };
+    expect(redact({ x: shared, y: shared })).toEqual({
+      x: { a: 1 },
+      y: { a: 1 },
+    });
+  });
+
+  it("同じ配列を2つのキーから参照しても、両方とも中身が残る", () => {
+    const sharedArray = [{ id: "1" }, { id: "2" }];
+    expect(redact({ items: sharedArray, backup: sharedArray })).toEqual({
+      items: [{ id: "1" }, { id: "2" }],
+      backup: [{ id: "1" }, { id: "2" }],
+    });
+  });
+
   it("循環参照でスタックを溢れさせない", () => {
     const node: Record<string, unknown> = { name: "root" };
     node.self = node;

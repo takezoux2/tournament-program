@@ -33,19 +33,29 @@ const walk = (value: unknown, seen: WeakSet<object>): unknown => {
       return CIRCULAR;
     }
     seen.add(value);
-    return value.map((item) => walk(item, seen));
+    const result = value.map((item) => walk(item, seen));
+    // seen は「祖先にいる」を意味する集合。訪問完了後は外さないと、
+    // 循環でない共有参照（同じオブジェクトを複数のキーから参照）が
+    // 二番目の訪問で誤って[circular]になる。
+    seen.delete(value);
+    return result;
   }
   if (isPlainObject(value)) {
     if (seen.has(value)) {
       return CIRCULAR;
     }
     seen.add(value);
-    return Object.fromEntries(
+    const result = Object.fromEntries(
       Object.entries(value).map(([key, item]) => [
         key,
         isSensitiveKey(key) ? REDACTED : walk(item, seen),
       ]),
     );
+    // seen は「祖先にいる」を意味する集合。訪問完了後は外さないと、
+    // 循環でない共有参照（同じオブジェクトを複数のキーから参照）が
+    // 二番目の訪問で誤って[circular]になる。
+    seen.delete(value);
+    return result;
   }
   return value;
 };
