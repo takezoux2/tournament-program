@@ -238,6 +238,9 @@ export type ParticipantIds = {
  * found: false は「この組織のこの大会が見つからない」。存在しない場合と
  * 権限が無い場合を区別しない。呼び出し側は notFound() へ倒す。
  * features/division/setup-store.ts の DivisionSetupOutcome と同じ役割。
+ *
+ * 使うのは大会の所有権を自分で確かめる add スライスだけ。他のスライスは
+ * 対象を where で引けない時点でエラーを投げるため、包む必要がない。
  */
 export type ParticipantOutcome<T> =
   | { found: false }
@@ -959,6 +962,12 @@ EOF
 
 `features/division/set-player-number/` は `Participant.playerNumber`（大会単位の属性）を更新するスライスで、repository のコメント自身が「Division の Json ではない」と書いている。大会の参加者一覧からも同じ操作をするため、責務に合う場所へ移す。
 
+移設にともなう変更は 3 点だけで、重複確認フローの挙動は変えない。
+
+1. Port が受け取る id を `{ organizationId, tournamentId, divisionId }` から `ParticipantIds`（大会までの 2 段）へ狭める。repository は元々 `divisionId` を使っておらず、再検証のためだけに運ばれていた。
+2. `handler.ts` は `divisionId` を**任意**の FormData 項目として読み、空文字なら `null` として `revalidatePlayerNumber` に渡す。
+3. 戻り値から `DivisionSetupOutcome` の包みを外し、`SetPlayerNumberResult` を直接返す。この repository は対象が無ければ `ParticipantNotFoundError` を投げるので `found: false` を返す経路が無く、handler の `notFound()` 分岐は実行されない死んだコードだった。`ParticipantOutcome` は大会の所有権を確かめる add スライス（Task 5）だけが使う。
+
 **Files:**
 - Create: `src/features/participant/set-player-number/schema.ts`（＋`schema.test.ts`）
 - Create: `src/features/participant/set-player-number/repository.ts`（＋`repository.test.ts`）
@@ -978,7 +987,7 @@ EOF
 - Modify: `src/features/division/messages.ts`（対応する `Match.tag` を削除）
 
 **Interfaces:**
-- Consumes: Task 2 の `ParticipantError` / `ParticipantNotFoundError` / `toParticipantError` / `ParticipantIds` / `ParticipantOutcome` / `ParticipantFormState` / `ParticipantFormAction` / `INITIAL_PARTICIPANT_FORM_STATE` / `participantErrorFormState` / `revalidatePlayerNumber`
+- Consumes: Task 2 の `ParticipantError` / `ParticipantNotFoundError` / `toParticipantError` / `ParticipantIds` / `ParticipantFormState` / `ParticipantFormAction` / `INITIAL_PARTICIPANT_FORM_STATE` / `participantErrorFormState` / `revalidatePlayerNumber`
 - Produces:
   - `setPlayerNumberSchema` / `type SetPlayerNumberInput = { participantId: string; playerNumber: string }`
   - `type SetPlayerNumberCommand = SetPlayerNumberInput & { confirmed: boolean }`
@@ -1068,7 +1077,7 @@ import {
   ParticipantNotFoundError,
   toParticipantError,
 } from "../errors";
-import type { ParticipantIds, ParticipantOutcome } from "../scope";
+import type { ParticipantIds } from "../scope";
 import type { SetPlayerNumberInput } from "./schema";
 
 /** confirmed は「重複を承知で確定する」。handler が確認フローから導出する。 */
@@ -1082,24 +1091,21 @@ export type SetPlayerNumberResult = { updated: boolean };
 export type SetPlayerNumberPort = (
   ids: ParticipantIds,
   input: SetPlayerNumberCommand,
-) => Effect.Effect<
-  ParticipantOutcome<SetPlayerNumberResult>,
-  ParticipantError
->;
+) => Effect.Effect<SetPlayerNumberResult, ParticipantError>;
 
 /**
  * 一意制約は無いので、重複チェックと更新を同一トランザクションに入れて
  * 確認フローの根拠にする。
  *
- * 戻り値を ParticipantOutcome で包むのは、大会に直接追加する add スライスと
- * handler の形を揃えるため。この repository は対象が無ければ
- * ParticipantNotFoundError を投げるので found: false は返らない。
+ * 移設元は結果を DivisionSetupOutcome で包んでいたが、この repository は
+ * 対象が無ければ ParticipantNotFoundError を投げるので found: false を
+ * 返す経路が無い。包みを外し、結果をそのまま返す。
  */
 export const setPlayerNumberInDb: SetPlayerNumberPort = (ids, input) =>
   Effect.tryPromise({
     try: () =>
       prisma.$transaction(
-        async (tx): Promise<ParticipantOutcome<SetPlayerNumberResult>> => {
+        async (tx): Promise<SetPlayerNumberResult> => {
           const participant = await tx.participant.findFirst({
             where: {
               id: input.participantId,
@@ -1125,14 +1131,14 @@ export const setPlayerNumberInDb: SetPlayerNumberPort = (ids, input) =>
             select: { id: true },
           });
           if (duplicate && !input.confirmed) {
-            return { found: true, value: { updated: false } };
+            return { updated: false };
           }
 
           await tx.participant.update({
             where: { id: input.participantId },
             data: { playerNumber: input.playerNumber },
           });
-          return { found: true, value: { updated: true } };
+          return { updated: true };
         },
       ),
     catch: (reason) => toParticipantError(reason),
@@ -1181,7 +1187,7 @@ describe("setPlayerNumberInDb", () => {
       .mockResolvedValueOnce({ id: "p1" })
       .mockResolvedValueOnce(null);
 
-    const outcome = await Effect.runPromise(
+    const result = await Effect.runPromise(
       setPlayerNumberInDb(ids, {
         participantId: "p1",
         playerNumber: "7",
@@ -1189,7 +1195,7 @@ describe("setPlayerNumberInDb", () => {
       }),
     );
 
-    expect(outcome).toEqual({ found: true, value: { updated: true } });
+    expect(result).toEqual({ updated: true });
     expect(participantUpdate).toHaveBeenCalledWith({
       where: { id: "p1" },
       data: { playerNumber: "7" },
@@ -1223,7 +1229,7 @@ describe("setPlayerNumberInDb", () => {
       .mockResolvedValueOnce({ id: "p1" })
       .mockResolvedValueOnce({ id: "p2" });
 
-    const outcome = await Effect.runPromise(
+    const result = await Effect.runPromise(
       setPlayerNumberInDb(ids, {
         participantId: "p1",
         playerNumber: "7",
@@ -1231,7 +1237,7 @@ describe("setPlayerNumberInDb", () => {
       }),
     );
 
-    expect(outcome).toEqual({ found: true, value: { updated: false } });
+    expect(result).toEqual({ updated: false });
     expect(participantUpdate).not.toHaveBeenCalled();
   });
 
@@ -1240,7 +1246,7 @@ describe("setPlayerNumberInDb", () => {
       .mockResolvedValueOnce({ id: "p1" })
       .mockResolvedValueOnce({ id: "p2" });
 
-    const outcome = await Effect.runPromise(
+    const result = await Effect.runPromise(
       setPlayerNumberInDb(ids, {
         participantId: "p1",
         playerNumber: "7",
@@ -1248,7 +1254,7 @@ describe("setPlayerNumberInDb", () => {
       }),
     );
 
-    expect(outcome).toEqual({ found: true, value: { updated: true } });
+    expect(result).toEqual({ updated: true });
     expect(participantUpdate).toHaveBeenCalled();
   });
 
@@ -1283,7 +1289,7 @@ describe("setPlayerNumberInDb", () => {
 ```ts
 import type { Effect } from "effect";
 import type { ParticipantError } from "../errors";
-import type { ParticipantIds, ParticipantOutcome } from "../scope";
+import type { ParticipantIds } from "../scope";
 import type {
   SetPlayerNumberCommand,
   SetPlayerNumberPort,
@@ -1294,10 +1300,8 @@ export const setPlayerNumberForParticipant = (
   port: SetPlayerNumberPort,
   ids: ParticipantIds,
   input: SetPlayerNumberCommand,
-): Effect.Effect<
-  ParticipantOutcome<SetPlayerNumberResult>,
-  ParticipantError
-> => port(ids, input);
+): Effect.Effect<SetPlayerNumberResult, ParticipantError> =>
+  port(ids, input);
 ```
 
 - [ ] **Step 5: handler を移し、divisionId を任意にする**
@@ -1308,7 +1312,6 @@ export const setPlayerNumberForParticipant = (
 "use server";
 
 import { Effect, Exit } from "effect";
-import { notFound } from "next/navigation";
 import { requireOrganization } from "@/shared/middleware/require-organization";
 import { participantErrorFormState } from "../effect-to-form-state";
 import { revalidatePlayerNumber } from "../revalidate";
@@ -1355,11 +1358,7 @@ export const setPlayerNumberAction = async (
   if (Exit.isFailure(exit)) {
     return participantErrorFormState(exit.cause);
   }
-  if (!exit.value.found) {
-    notFound();
-  }
-
-  if (!exit.value.value.updated) {
+  if (!exit.value.updated) {
     return {
       error: null,
       confirm: {
@@ -1386,9 +1385,6 @@ import { INITIAL_PARTICIPANT_FORM_STATE } from "../state";
 const requireOrganization = vi.fn();
 const setPlayerNumberInDb = vi.fn();
 const revalidatePlayerNumber = vi.fn();
-const notFound = vi.fn(() => {
-  throw new Error("NEXT_NOT_FOUND");
-});
 
 // 関数呼び出しの順序を追跡するための配列
 let calls: string[] = [];
@@ -1399,7 +1395,6 @@ vi.mock("@/shared/middleware/require-organization", () => ({
     return requireOrganization(slug);
   },
 }));
-vi.mock("next/navigation", () => ({ notFound: () => notFound() }));
 vi.mock("../revalidate", () => ({
   revalidatePlayerNumber: (
     slug: string,
@@ -1449,11 +1444,8 @@ beforeEach(() => {
   requireOrganization.mockReset();
   setPlayerNumberInDb.mockReset();
   revalidatePlayerNumber.mockReset();
-  notFound.mockClear();
   requireOrganization.mockResolvedValue({ organization: { id: "o1" } });
-  setPlayerNumberInDb.mockReturnValue(
-    Effect.succeed({ found: true, value: { updated: true } }),
-  );
+  setPlayerNumberInDb.mockReturnValue(Effect.succeed({ updated: true }));
 });
 
 describe("setPlayerNumberAction", () => {
@@ -1495,7 +1487,7 @@ describe("setPlayerNumberAction", () => {
 
   it("重複していたら確認待ちを返し、再検証しない", async () => {
     setPlayerNumberInDb.mockReturnValue(
-      Effect.succeed({ found: true, value: { updated: false } }),
+      Effect.succeed({ updated: false }),
     );
 
     const state = await setPlayerNumberAction(
@@ -1561,17 +1553,7 @@ describe("setPlayerNumberAction", () => {
     expect(state.error).toBe(
       "対象の参加者が見つかりません。画面を再読み込みしてください",
     );
-  });
-
-  it("大会が無ければ 404 にする", async () => {
-    setPlayerNumberInDb.mockReturnValue(Effect.succeed({ found: false }));
-
-    await expect(
-      setPlayerNumberAction(
-        INITIAL_PARTICIPANT_FORM_STATE,
-        fromDivision("p1", "7"),
-      ),
-    ).rejects.toThrow("NEXT_NOT_FOUND");
+    expect(revalidatePlayerNumber).not.toHaveBeenCalled();
   });
 });
 ```
