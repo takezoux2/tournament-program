@@ -2,14 +2,17 @@
 
 import { useActionState } from "react";
 import {
-  type DivisionFormAction,
-  INITIAL_DIVISION_FORM_STATE,
-} from "@/features/division/state";
+  INITIAL_PARTICIPANT_FORM_STATE,
+  type ParticipantFormAction,
+} from "@/features/participant/state";
 
 /**
  * 選手番号のインライン編集。重複時はサーバが confirm を返すので、
  * その値を confirmedNumber として次の送信に積む。番号を変えて送り直すと
  * サーバ側で不一致になり、改めて確認が求められる。
+ *
+ * divisionId は部門の編集画面から使うときだけ渡す。サーバ側では
+ * 再検証の対象を決めるのに使うだけで、絞り込みには使わない。
  */
 export function PlayerNumberForm({
   participantId,
@@ -25,12 +28,12 @@ export function PlayerNumberForm({
   participantName: string;
   slug: string;
   tournamentId: string;
-  divisionId: string;
-  action: DivisionFormAction;
+  divisionId?: string;
+  action: ParticipantFormAction;
 }) {
   const [state, formAction, pending] = useActionState(
     action,
-    INITIAL_DIVISION_FORM_STATE,
+    INITIAL_PARTICIPANT_FORM_STATE,
   );
 
   return (
@@ -38,7 +41,9 @@ export function PlayerNumberForm({
       <div className="flex items-center gap-2">
         <input type="hidden" name="slug" value={slug} />
         <input type="hidden" name="tournamentId" value={tournamentId} />
-        <input type="hidden" name="divisionId" value={divisionId} />
+        {divisionId !== undefined && (
+          <input type="hidden" name="divisionId" value={divisionId} />
+        )}
         <input type="hidden" name="participantId" value={participantId} />
         <input
           type="hidden"

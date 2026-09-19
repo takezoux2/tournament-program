@@ -18,7 +18,8 @@ vi.mock("@/shared/db/prisma", () => ({
 
 const { setPlayerNumberInDb } = await import("./repository");
 
-const ids = { organizationId: "o1", tournamentId: "t1", divisionId: "d1" };
+// 部門は要らない。選手番号は大会単位の属性で、絞り込みもこの 2 つだけ。
+const ids = { organizationId: "o1", tournamentId: "t1" };
 
 beforeEach(() => {
   participantFindFirst.mockReset();
@@ -33,7 +34,7 @@ describe("setPlayerNumberInDb", () => {
       .mockResolvedValueOnce({ id: "p1" })
       .mockResolvedValueOnce(null);
 
-    const outcome = await Effect.runPromise(
+    const result = await Effect.runPromise(
       setPlayerNumberInDb(ids, {
         participantId: "p1",
         playerNumber: "7",
@@ -41,7 +42,7 @@ describe("setPlayerNumberInDb", () => {
       }),
     );
 
-    expect(outcome).toEqual({ found: true, value: { updated: true } });
+    expect(result).toEqual({ updated: true });
     expect(participantUpdate).toHaveBeenCalledWith({
       where: { id: "p1" },
       data: { playerNumber: "7" },
@@ -70,12 +71,12 @@ describe("setPlayerNumberInDb", () => {
     });
   });
 
-  it("重複があり未確認なら更新せず duplicated を返す", async () => {
+  it("重複があり未確認なら更新せず確認待ちを返す", async () => {
     participantFindFirst
       .mockResolvedValueOnce({ id: "p1" })
       .mockResolvedValueOnce({ id: "p2" });
 
-    const outcome = await Effect.runPromise(
+    const result = await Effect.runPromise(
       setPlayerNumberInDb(ids, {
         participantId: "p1",
         playerNumber: "7",
@@ -83,7 +84,7 @@ describe("setPlayerNumberInDb", () => {
       }),
     );
 
-    expect(outcome).toEqual({ found: true, value: { updated: false } });
+    expect(result).toEqual({ updated: false });
     expect(participantUpdate).not.toHaveBeenCalled();
   });
 
@@ -92,7 +93,7 @@ describe("setPlayerNumberInDb", () => {
       .mockResolvedValueOnce({ id: "p1" })
       .mockResolvedValueOnce({ id: "p2" });
 
-    const outcome = await Effect.runPromise(
+    const result = await Effect.runPromise(
       setPlayerNumberInDb(ids, {
         participantId: "p1",
         playerNumber: "7",
@@ -100,11 +101,11 @@ describe("setPlayerNumberInDb", () => {
       }),
     );
 
-    expect(outcome).toEqual({ found: true, value: { updated: true } });
+    expect(result).toEqual({ updated: true });
     expect(participantUpdate).toHaveBeenCalled();
   });
 
-  it("大会に居ない参加者なら DivisionParticipantNotFoundError", async () => {
+  it("大会に居ない参加者なら ParticipantNotFoundError", async () => {
     participantFindFirst.mockResolvedValueOnce(null);
 
     const exit = await Effect.runPromiseExit(
@@ -120,7 +121,7 @@ describe("setPlayerNumberInDb", () => {
       const failure = Cause.failureOption(exit.cause);
       expect(Option.isSome(failure)).toBe(true);
       if (Option.isSome(failure)) {
-        expect(failure.value._tag).toBe("DivisionParticipantNotFoundError");
+        expect(failure.value._tag).toBe("ParticipantNotFoundError");
       }
     }
     expect(participantUpdate).not.toHaveBeenCalled();

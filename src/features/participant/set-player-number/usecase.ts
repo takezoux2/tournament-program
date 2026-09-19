@@ -1,6 +1,6 @@
 import type { Effect } from "effect";
-import type { DivisionError } from "../errors";
-import type { DivisionIds, DivisionSetupOutcome } from "../setup-store";
+import type { ParticipantError } from "../errors";
+import type { ParticipantIds } from "../scope";
 import type {
   SetPlayerNumberCommand,
   SetPlayerNumberPort,
@@ -9,7 +9,6 @@ import type {
 
 export const setPlayerNumberForParticipant = (
   port: SetPlayerNumberPort,
-  ids: DivisionIds,
+  ids: ParticipantIds,
   input: SetPlayerNumberCommand,
-): Effect.Effect<DivisionSetupOutcome<SetPlayerNumberResult>, DivisionError> =>
-  port(ids, input);
+): Effect.Effect<SetPlayerNumberResult, ParticipantError> => port(ids, input);

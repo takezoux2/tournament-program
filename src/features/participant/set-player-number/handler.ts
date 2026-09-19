@@ -1,22 +1,25 @@
 "use server";
 
 import { Effect, Exit } from "effect";
-import { notFound } from "next/navigation";
 import { requireOrganization } from "@/shared/middleware/require-organization";
-import { divisionErrorFormState } from "../effect-to-form-state";
-import { revalidateDivisionSetup } from "../revalidate";
-import type { DivisionFormState } from "../state";
+import { participantErrorFormState } from "../effect-to-form-state";
+import { revalidatePlayerNumber } from "../revalidate";
+import type { ParticipantFormState } from "../state";
 import { setPlayerNumberInDb } from "./repository";
 import { setPlayerNumberSchema } from "./schema";
 import { setPlayerNumberForParticipant } from "./usecase";
 
 export const setPlayerNumberAction = async (
-  _prevState: DivisionFormState,
+  _prevState: ParticipantFormState,
   formData: FormData,
-): Promise<DivisionFormState> => {
+): Promise<ParticipantFormState> => {
   const slug = String(formData.get("slug") ?? "");
   const tournamentId = String(formData.get("tournamentId") ?? "");
-  const divisionId = String(formData.get("divisionId") ?? "");
+  // 部門の編集画面から送られたときだけ入る。参加者一覧からは空。
+  // 再検証の対象を決めるためだけに使い、絞り込みには使わない。
+  const divisionIdValue = String(formData.get("divisionId") ?? "");
+  const divisionId = divisionIdValue === "" ? null : divisionIdValue;
+
   // Server Action はページを経由せず直接叩ける別の入口なので、ここで独立に確かめる。
   const { organization } = await requireOrganization(slug);
 
@@ -36,19 +39,15 @@ export const setPlayerNumberAction = async (
   const exit = await Effect.runPromiseExit(
     setPlayerNumberForParticipant(
       setPlayerNumberInDb,
-      { organizationId: organization.id, tournamentId, divisionId },
+      { organizationId: organization.id, tournamentId },
       { ...parsed.data, confirmed },
     ),
   );
 
   if (Exit.isFailure(exit)) {
-    return divisionErrorFormState(exit.cause);
+    return participantErrorFormState(exit.cause);
   }
-  if (!exit.value.found) {
-    notFound();
-  }
-
-  if (!exit.value.value.updated) {
+  if (!exit.value.updated) {
     return {
       error: null,
       confirm: {
@@ -58,6 +57,6 @@ export const setPlayerNumberAction = async (
     };
   }
 
-  revalidateDivisionSetup(slug, tournamentId, divisionId);
+  revalidatePlayerNumber(slug, tournamentId, divisionId);
   return { error: null };
 };

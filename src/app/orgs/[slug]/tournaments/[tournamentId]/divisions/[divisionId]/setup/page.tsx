@@ -12,9 +12,9 @@ import {
   listParticipantsInTournament,
 } from "@/features/division/repository";
 import { setMatchNameAction } from "@/features/division/set-match-name/handler";
-import { setPlayerNumberAction } from "@/features/division/set-player-number/handler";
 import { swapSlotsAction } from "@/features/division/swap-slots/handler";
 import { listMembersInOrganization } from "@/features/organization/repository";
+import { setPlayerNumberAction } from "@/features/participant/set-player-number/handler";
 import { findTournamentInOrganization } from "@/features/tournament/repository";
 import { requireOrganization } from "@/shared/middleware/require-organization";
 
