@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const participantFindFirst = vi.fn();
 const participantUpdate = vi.fn();
+const divisionFindMany = vi.fn();
 
 vi.mock("@/shared/db/prisma", () => ({
   prisma: {
@@ -12,18 +13,25 @@ vi.mock("@/shared/db/prisma", () => ({
           findFirst: (args: unknown) => participantFindFirst(args),
           update: (args: unknown) => participantUpdate(args),
         },
+        division: {
+          findMany: (args: unknown) => divisionFindMany(args),
+        },
       }),
   },
 }));
 
 const { setPlayerNumberInDb } = await import("./repository");
 
-const ids = { organizationId: "o1", tournamentId: "t1", divisionId: "d1" };
+// 参加者の所有権判定に部門は要らない。選手番号は大会単位の属性で、
+// 絞り込みもこの 2 つだけ。更新後の再検証対象を出すときだけ division を引く。
+const ids = { organizationId: "o1", tournamentId: "t1" };
 
 beforeEach(() => {
   participantFindFirst.mockReset();
   participantUpdate.mockReset();
+  divisionFindMany.mockReset();
   participantUpdate.mockResolvedValue({ id: "p1" });
+  divisionFindMany.mockResolvedValue([{ id: "d1" }, { id: "d2" }]);
 });
 
 describe("setPlayerNumberInDb", () => {
@@ -33,7 +41,7 @@ describe("setPlayerNumberInDb", () => {
       .mockResolvedValueOnce({ id: "p1" })
       .mockResolvedValueOnce(null);
 
-    const outcome = await Effect.runPromise(
+    const result = await Effect.runPromise(
       setPlayerNumberInDb(ids, {
         participantId: "p1",
         playerNumber: "7",
@@ -41,10 +49,16 @@ describe("setPlayerNumberInDb", () => {
       }),
     );
 
-    expect(outcome).toEqual({ found: true, value: { updated: true } });
+    expect(result).toEqual({ updated: true, divisionIds: ["d1", "d2"] });
     expect(participantUpdate).toHaveBeenCalledWith({
       where: { id: "p1" },
       data: { playerNumber: "7" },
+    });
+    expect(divisionFindMany).toHaveBeenCalledWith({
+      where: {
+        tournament: { id: "t1", organizationId: "o1" },
+      },
+      select: { id: true },
     });
   });
 
@@ -70,12 +84,12 @@ describe("setPlayerNumberInDb", () => {
     });
   });
 
-  it("重複があり未確認なら更新せず duplicated を返す", async () => {
+  it("重複があり未確認なら更新せず確認待ちを返す", async () => {
     participantFindFirst
       .mockResolvedValueOnce({ id: "p1" })
       .mockResolvedValueOnce({ id: "p2" });
 
-    const outcome = await Effect.runPromise(
+    const result = await Effect.runPromise(
       setPlayerNumberInDb(ids, {
         participantId: "p1",
         playerNumber: "7",
@@ -83,8 +97,10 @@ describe("setPlayerNumberInDb", () => {
       }),
     );
 
-    expect(outcome).toEqual({ found: true, value: { updated: false } });
+    expect(result).toEqual({ updated: false });
     expect(participantUpdate).not.toHaveBeenCalled();
+    // 確認待ちのときは再検証の対象が無いので division を引かない。
+    expect(divisionFindMany).not.toHaveBeenCalled();
   });
 
   it("重複があっても確認済みなら更新する", async () => {
@@ -92,7 +108,7 @@ describe("setPlayerNumberInDb", () => {
       .mockResolvedValueOnce({ id: "p1" })
       .mockResolvedValueOnce({ id: "p2" });
 
-    const outcome = await Effect.runPromise(
+    const result = await Effect.runPromise(
       setPlayerNumberInDb(ids, {
         participantId: "p1",
         playerNumber: "7",
@@ -100,11 +116,11 @@ describe("setPlayerNumberInDb", () => {
       }),
     );
 
-    expect(outcome).toEqual({ found: true, value: { updated: true } });
+    expect(result).toEqual({ updated: true, divisionIds: ["d1", "d2"] });
     expect(participantUpdate).toHaveBeenCalled();
   });
 
-  it("大会に居ない参加者なら DivisionParticipantNotFoundError", async () => {
+  it("大会に居ない参加者なら ParticipantNotFoundError", async () => {
     participantFindFirst.mockResolvedValueOnce(null);
 
     const exit = await Effect.runPromiseExit(
@@ -120,7 +136,7 @@ describe("setPlayerNumberInDb", () => {
       const failure = Cause.failureOption(exit.cause);
       expect(Option.isSome(failure)).toBe(true);
       if (Option.isSome(failure)) {
-        expect(failure.value._tag).toBe("DivisionParticipantNotFoundError");
+        expect(failure.value._tag).toBe("ParticipantNotFoundError");
       }
     }
     expect(participantUpdate).not.toHaveBeenCalled();

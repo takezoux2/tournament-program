@@ -2,7 +2,7 @@ import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const findPublicTournament = vi.fn();
-const listParticipantsInTournament = vi.fn();
+const listParticipantsWithDivisions = vi.fn();
 const getOptionalSession = vi.fn();
 const notFound = vi.fn(() => {
   throw new Error("NEXT_NOT_FOUND");
@@ -13,11 +13,11 @@ vi.mock("@/features/tournament/repository", () => ({
   findPublicTournament: (tournamentId: string, viewerUserId: string | null) =>
     findPublicTournament(tournamentId, viewerUserId),
 }));
-vi.mock("@/features/division/repository", () => ({
-  listParticipantsInTournament: (
+vi.mock("@/features/participant/repository", () => ({
+  listParticipantsWithDivisions: (
     organizationId: string,
     tournamentId: string,
-  ) => listParticipantsInTournament(organizationId, tournamentId),
+  ) => listParticipantsWithDivisions(organizationId, tournamentId),
 }));
 vi.mock("@/shared/middleware/require-session", () => ({
   getOptionalSession: () => getOptionalSession(),
@@ -45,13 +45,19 @@ const tournament = {
 describe("PublicParticipantsPage", () => {
   beforeEach(() => {
     findPublicTournament.mockReset();
-    listParticipantsInTournament.mockReset();
+    listParticipantsWithDivisions.mockReset();
     getOptionalSession.mockReset();
     notFound.mockClear();
     findPublicTournament.mockResolvedValue(tournament);
     getOptionalSession.mockResolvedValue(null);
-    listParticipantsInTournament.mockResolvedValue([
-      { id: "p1", name: "佐藤 蓮", nameKana: "サトウ レン", playerNumber: "1" },
+    listParticipantsWithDivisions.mockResolvedValue([
+      {
+        id: "p1",
+        name: "佐藤 蓮",
+        nameKana: "サトウ レン",
+        playerNumber: "1",
+        divisions: [],
+      },
     ]);
   });
 
@@ -73,7 +79,7 @@ describe("PublicParticipantsPage", () => {
   it("参加者はゲートが返した organizationId で絞り込む", async () => {
     await Page(pageProps("t1"));
 
-    expect(listParticipantsInTournament).toHaveBeenCalledWith("o1", "t1");
+    expect(listParticipantsWithDivisions).toHaveBeenCalledWith("o1", "t1");
   });
 
   it("公開対象でなければ notFound を呼び、参加者も引かない", async () => {
@@ -81,7 +87,7 @@ describe("PublicParticipantsPage", () => {
 
     await expect(Page(pageProps("t1"))).rejects.toThrow("NEXT_NOT_FOUND");
     expect(notFound).toHaveBeenCalled();
-    expect(listParticipantsInTournament).not.toHaveBeenCalled();
+    expect(listParticipantsWithDivisions).not.toHaveBeenCalled();
   });
 
   it("参加者を描画する", async () => {
@@ -89,6 +95,22 @@ describe("PublicParticipantsPage", () => {
 
     expect(screen.getByText("佐藤 蓮")).toBeInTheDocument();
     expect(screen.getByText("No.1")).toBeInTheDocument();
+  });
+
+  it("出場部門を出す", async () => {
+    listParticipantsWithDivisions.mockResolvedValue([
+      {
+        id: "p1",
+        name: "佐藤 蓮",
+        nameKana: "サトウ レン",
+        playerNumber: "1",
+        divisions: [{ id: "d1", name: "男子の部" }],
+      },
+    ]);
+
+    render(await Page(pageProps("t1")));
+
+    expect(screen.getByText("男子の部")).toBeInTheDocument();
   });
 
   it("大会ページへ戻るパンくずを出す", async () => {

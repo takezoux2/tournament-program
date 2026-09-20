@@ -2,6 +2,7 @@ import "server-only";
 import { randomUUID } from "node:crypto";
 import type { Effect } from "effect";
 import type { DivisionEntries } from "@/lib/division/types";
+import { nextPlayerNumber } from "@/lib/participant/player-number";
 import {
   DivisionDuplicateEntryError,
   DivisionEntryLimitError,
@@ -60,10 +61,11 @@ const resolveMemberId = async (
 };
 
 /**
- * 次の選手番号。同じ大会で 10 進整数として読める番号の最大値 + 1。
- * 手入力の "A-1" のような番号は序数を持たないので最大値の計算から外す。
+ * この大会で使われている選手番号を集め、次の番号を決める。
+ * 規則そのものは lib/participant/player-number.ts が持つ（大会への
+ * 直接追加と同じ規則にするため）。ここは材料を集めるだけ。
  */
-const nextPlayerNumber = async (
+const nextPlayerNumberFor = async (
   tx: DivisionSetupTx,
   tournamentId: string,
 ): Promise<string> => {
@@ -71,14 +73,7 @@ const nextPlayerNumber = async (
     where: { tournamentId },
     select: { playerNumber: true },
   });
-  const max = rows.reduce(
-    (acc, row) =>
-      /^\d+$/.test(row.playerNumber)
-        ? Math.max(acc, Number(row.playerNumber))
-        : acc,
-    0,
-  );
-  return String(max + 1);
+  return nextPlayerNumber(rows.map((row) => row.playerNumber));
 };
 
 /**
@@ -103,7 +98,7 @@ const resolveParticipantId = async (
     data: {
       tournamentId,
       memberId,
-      playerNumber: await nextPlayerNumber(tx, tournamentId),
+      playerNumber: await nextPlayerNumberFor(tx, tournamentId),
     },
     select: { id: true },
   });

@@ -1,8 +1,9 @@
+import { PlayerNumberForm } from "@/components/participant/PlayerNumberForm";
 import type { DivisionParticipant } from "@/features/division/repository";
 import type { DivisionFormAction } from "@/features/division/state";
+import type { ParticipantFormAction } from "@/features/participant/state";
 import type { DivisionEntry } from "@/lib/division/types";
 import { EntryRowActions } from "./EntryRowActions";
-import { PlayerNumberForm } from "./PlayerNumberForm";
 
 export function EntryList({
   entries,
@@ -23,7 +24,7 @@ export function EntryList({
   divisionId: string;
   reorderAction: DivisionFormAction;
   removeAction: DivisionFormAction;
-  setPlayerNumberAction: DivisionFormAction;
+  setPlayerNumberAction: ParticipantFormAction;
   disabled: boolean;
 }) {
   if (entries.length === 0) {
@@ -74,7 +75,6 @@ export function EntryList({
                     participantName={participant.name}
                     slug={slug}
                     tournamentId={tournamentId}
-                    divisionId={divisionId}
                     action={setPlayerNumberAction}
                   />
                 )}

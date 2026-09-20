@@ -11,6 +11,7 @@ import type {
 import { toSetupView } from "@/features/division/single-elimination/view";
 import type { DivisionFormAction } from "@/features/division/state";
 import type { MemberSummary } from "@/features/organization/repository";
+import type { ParticipantFormAction } from "@/features/participant/state";
 import { resolveMatchNames } from "@/lib/division/match-name";
 import {
   parseDivisionEntries,
@@ -32,7 +33,7 @@ export type DivisionSetupActions = {
   generateMatching: DivisionFormAction;
   swapSlots: DivisionFormAction;
   setMatchName: DivisionFormAction;
-  setPlayerNumber: DivisionFormAction;
+  setPlayerNumber: ParticipantFormAction;
 };
 
 export function DivisionSetup({

@@ -8,6 +8,7 @@ import { isRoundRobinShape } from "@/features/division/round-robin/build";
 import { toCrossTableView } from "@/features/division/round-robin/view";
 import type { DivisionFormAction } from "@/features/division/state";
 import type { MemberSummary } from "@/features/organization/repository";
+import type { ParticipantFormAction } from "@/features/participant/state";
 import { resolveMatchNames } from "@/lib/division/match-name";
 import {
   parseDivisionEntries,
@@ -31,7 +32,7 @@ export type LeagueSetupActions = {
   reorderEntry: DivisionFormAction;
   generateMatching: DivisionFormAction;
   setMatchName: DivisionFormAction;
-  setPlayerNumber: DivisionFormAction;
+  setPlayerNumber: ParticipantFormAction;
 };
 
 export function LeagueSetup({

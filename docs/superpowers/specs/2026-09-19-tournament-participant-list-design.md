@@ -137,19 +137,23 @@ export const revalidateParticipants = (
 ): void;
 
 /**
- * 選手番号を変えたあと。divisionId があれば、その部門の編集画面も再検証する。
- * 番号は大会内で共通なので、参加者一覧（管理・公開）は常に対象。
+ * 選手番号を変えたあと。番号は大会内で共通で、どの部門のエントリー一覧にも
+ * No. として出るため、その大会の全部門の編集画面を再検証する。
  */
 export const revalidatePlayerNumber = (
-  slug: string, tournamentId: string, divisionId: string | null,
+  slug: string, tournamentId: string, divisionIds: readonly string[],
 ): void;
 ```
 
 `revalidateParticipants` は `/orgs/${slug}/tournaments/${tournamentId}/participants` と
 `/t/${tournamentId}/participants` を叩く。`revalidatePlayerNumber` はそれに加えて、
-`divisionId` があれば部門の `""` / `/setup` / `/league` を叩く
+渡された部門ごとに `""` / `/setup` / `/league` を叩く
 （`features/division/revalidate.ts` の `revalidateDivisionSetup` と同じ 3 本。
 兄弟カテゴリなので import はできず、ここに書き写す）。
+
+部門 id は `set-player-number` の repository が更新と同じトランザクションで読んで返す。
+編集がどの画面から来たかを画面側に申告させる形にすると、参加者一覧からの編集では
+部門が分からず、部門の編集画面からの編集でも他の部門が古いままになる。
 
 ### `add/`
 
@@ -199,13 +203,17 @@ export const revalidatePlayerNumber = (
 移設にともなう変更は次の 3 点だけで、重複確認フローの挙動は変えない。
 
 1. Port が受け取る id を `DivisionIds`（`{ organizationId, tournamentId, divisionId }`）から
-   `{ organizationId, tournamentId }` へ狭める。repository は元々 `divisionId` を使っておらず、
-   revalidate のためだけに運ばれていた。
-2. 戻り値の `DivisionSetupOutcome<T>` に相当する型を
-   `ParticipantOutcome<T> = { found: false } | { found: true; value: T }` として
-   `features/participant` 側に持つ。
-3. `handler.ts` は `divisionId` を**任意**の FormData 項目として読み、
-   空文字なら `null` として `revalidatePlayerNumber(slug, tournamentId, null)` を呼ぶ。
+   `ParticipantIds`（`{ organizationId, tournamentId }`）へ狭める。repository は元々
+   `divisionId` を使っておらず、revalidate のためだけに運ばれていた。
+2. 戻り値から `DivisionSetupOutcome<T>` の包みを外し、
+   `SetPlayerNumberResult = { updated: false } | { updated: true; divisionIds: string[] }`
+   を直接返す。この repository は対象が無ければ `ParticipantNotFoundError` を投げるので
+   `found: false` を返す経路が無く、包むと実行されない分岐が残る。
+   `divisionIds` は更新が確定したときだけ、同じトランザクションで読んで返す。
+3. `handler.ts` は `divisionId` を FormData から読まない。再検証の範囲は
+   repository が返す `divisionIds` が決める。
+4. 権限を `requireOrganization` から `requirePermission(slug, "tournament.edit")` へ
+   締める（下の「権限」を参照）。
 
 `features/division` 側に残る `DivisionParticipantNotFoundError` は、この移設で
 `features/division/errors.ts` の `DivisionError` 合併から外す（他に投げる箇所が無いため）。
@@ -233,7 +241,8 @@ export const nextPlayerNumber = (existing: readonly string[]): string;
 `src/components/division/PlayerNumberForm.tsx` を移す。変更点:
 
 - `action` の型を `DivisionFormAction` から `ParticipantFormAction` へ。
-- `divisionId` を省略可能（`divisionId?: string`）にし、省略時は hidden input を出さない。
+- `divisionId` の prop と hidden input を落とす。再検証の範囲はサーバ側が決めるので、
+  画面が編集元の部門を申告する必要がない。
 
 `EntryList`（`src/components/division/EntryList.tsx`）は移設先から import する。
 `action` は元々 props 渡しなので、配線の差し替えだけで済む。
@@ -245,7 +254,7 @@ export const nextPlayerNumber = (existing: readonly string[]): string;
 
 - `No.{playerNumber}` のバッジ、氏名、かな、所属（`team` があるとき）
 - 出場部門名のバッジ列。空なら「出場部門なし」を淡色で出す
-- `canEdit` のとき `PlayerNumberForm`（`divisionId` なし）
+- `canEdit` のとき `PlayerNumberForm`
 - `canEdit` のとき削除ボタン。`divisions.length > 0` の行は `disabled` にし、
   `title` に理由（部門名）を出す
 
@@ -291,10 +300,16 @@ hidden に `slug` / `tournamentId`。見出しは「参加者を追加」。
 | 管理画面の閲覧 | `requireOrganization(slug)` |
 | 追加 | `requirePermission(slug, "tournament.edit")` |
 | 削除 | `requirePermission(slug, "tournament.edit")` |
-| 選手番号の変更 | `requireOrganization(slug)`（移設前と同じ） |
+| 選手番号の変更 | `requirePermission(slug, "tournament.edit")` |
+
+選手番号の変更は移設前は `requireOrganization` のみだった。同じ画面で追加・削除と
+並び、3 つとも 1 つの `canEdit`（= `tournament.edit`）で出し分けている以上、
+番号だけ組織メンバーなら誰でも通るのは画面が示す境界と食い違う。権限を持たない
+メンバーが読み取り専用の画面から Server Action を直接叩いて、公開中の大会の番号を
+書き換えられてしまう。締めた結果、部門の編集画面からの番号変更にも同じ権限が要る。
 
 既存の `add-entry` は組織メンバーなら誰でも叩ける（`requireOrganization` のみ）ため、
-新しい追加はそれより厳しい。揃えるなら `add-entry` 側を締める別作業になるが、
+参加者の追加はそれより厳しい。揃えるなら `add-entry` 側を締める別作業になるが、
 許可が増える方向には倒れないので今回はこのままとする。
 
 ## テスト
@@ -308,13 +323,14 @@ hidden に `slug` / `tournamentId`。見出しは「参加者を追加」。
 - `features/participant/remove/` — repository（エントリー済みで拒否し部門名を返す、
   未エントリーなら削除、Member を消さない、壊れた Json では削除せず
   `ParticipantDataError`）、handler。
-- `features/participant/set-player-number/` — 移設前のテストを移し、`divisionId` なしでも
-  動くこと、`divisionId` の有無で revalidate 対象が変わることを足す。
+- `features/participant/set-player-number/` — 移設前のテストを移し、`tournament.edit` を
+  要求すること、更新が確定したときだけ部門 id を読んで返すこと、全部門が再検証の
+  対象になることを足す。
 - `features/division/errors.test.ts` / `messages.test.ts` — `DivisionParticipantNotFoundError`
   を外した分の更新。
 - コンポーネント — `ParticipantList`（出場部門の表示、エントリー済み行の削除ボタンが disabled、
   `canEdit` による出し分け）、`AddParticipantForm`（メンバー 0 人のとき新規のみ）、
-  `PublicParticipantList`（出場部門の表示、`divisionId` なしでの描画）。
+  `PublicParticipantList`（出場部門の表示、出場部門が空の行）。
 - ページ — 管理画面の `page.test.tsx`（`notFound` の経路、権限による出し分け）と
   公開ページの `page.test.tsx` の更新。
 

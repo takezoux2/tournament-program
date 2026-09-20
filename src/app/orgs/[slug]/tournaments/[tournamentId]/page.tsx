@@ -66,6 +66,13 @@ export default async function TournamentPage({
           )}
 
           <Link
+            href={`/orgs/${slug}/tournaments/${tournament.id}/participants`}
+            className="rounded border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-800"
+          >
+            参加者一覧
+          </Link>
+
+          <Link
             href={`/orgs/${slug}/tournaments/${tournament.id}/matches`}
             className="rounded border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-800"
           >

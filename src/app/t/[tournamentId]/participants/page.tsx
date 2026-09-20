@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { PublicHeader } from "@/components/public/PublicHeader";
 import { PublicParticipantList } from "@/components/public/PublicParticipantList";
 import { PublicPreviewNotice } from "@/components/public/PublicPreviewNotice";
-import { listParticipantsInTournament } from "@/features/division/repository";
+import { listParticipantsWithDivisions } from "@/features/participant/repository";
 import { formatPublicTitle } from "@/features/tournament/format";
 import { findPublicTournament } from "@/features/tournament/repository";
 import { getOptionalSession } from "@/shared/middleware/require-session";
@@ -49,7 +49,7 @@ export default async function PublicParticipantsPage({
   // ゲートが返した organizationId を渡す。この値はゲートで取得済みの行に
   // 由来するため、以降の where はトートロジーにしかならず、公開可否は
   // ゲート単独で決まっている。それでも渡しておくのは無害な多層防御になる。
-  const participants = await listParticipantsInTournament(
+  const participants = await listParticipantsWithDivisions(
     tournament.organizationId,
     tournament.id,
   );

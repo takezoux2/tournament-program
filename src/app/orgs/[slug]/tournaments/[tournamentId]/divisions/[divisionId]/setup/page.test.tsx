@@ -66,7 +66,7 @@ vi.mock("@/features/division/swap-slots/handler", () => ({
 vi.mock("@/features/division/set-match-name/handler", () => ({
   setMatchNameAction: vi.fn(),
 }));
-vi.mock("@/features/division/set-player-number/handler", () => ({
+vi.mock("@/features/participant/set-player-number/handler", () => ({
   setPlayerNumberAction: vi.fn(),
 }));
 
@@ -99,7 +99,7 @@ const { setMatchNameAction } = await import(
   "@/features/division/set-match-name/handler"
 );
 const { setPlayerNumberAction } = await import(
-  "@/features/division/set-player-number/handler"
+  "@/features/participant/set-player-number/handler"
 );
 
 const pageProps = () => ({
