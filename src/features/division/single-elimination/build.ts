@@ -98,6 +98,88 @@ export const buildFromSlots = (slots: SlotSource[]): MatchingConfig => {
   return { version: 1, matches };
 };
 
+/** 1 回戦の 1 試合ぶんのスロット。 */
+export type FirstRoundPair = [SlotSource, SlotSource];
+
+/**
+ * 1 回戦の試合の並びから勝ち上がり木を組み立てる。buildFromSlots と違い
+ * 1 回戦を 2 の冪まで水増ししない。「試合を追加」したら、その 1 試合だけが増える。
+ *
+ * 2 回戦の入力位置を 2 の冪 P まで取り、seedOrder(P) でシード番号が N を超える
+ * 位置を bye にする。seedOrder は k と P+1-k を対にするので、N > P/2 である限り
+ * bye どうしの対は生まれない。残りの位置には 1 回戦の勝者を追加順に詰める
+ * （1 回戦の見た目の並びを入れ替えないため）。
+ * 3 回戦以降は buildFromSlots と同じ規則で組む。
+ */
+export const buildFromFirstRound = (
+  pairs: readonly FirstRoundPair[],
+): MatchingConfig => {
+  if (pairs.length === 0) {
+    return { version: 1, matches: [] };
+  }
+
+  const matches: BracketMatch[] = pairs.map((slots, order) => ({
+    id: matchId(1, order),
+    bracket: "winners",
+    round: 1,
+    order,
+    matchName: DEFAULT_MATCH_NAME,
+    slots: [slots[0], slots[1]],
+  }));
+
+  if (pairs.length === 1) {
+    return { version: 1, matches };
+  }
+
+  const size = nextPowerOfTwo(pairs.length);
+  let nextOrder = 0;
+  const feeds = seedOrder(size).map((seed): SlotSource => {
+    if (seed > pairs.length) {
+      return { kind: "bye" };
+    }
+    const source: SlotSource = {
+      kind: "winnerOf",
+      matchId: matchId(1, nextOrder),
+    };
+    nextOrder += 1;
+    return source;
+  });
+
+  for (let order = 0; order < size / 2; order += 1) {
+    matches.push({
+      id: matchId(2, order),
+      bracket: "winners",
+      round: 2,
+      order,
+      matchName: DEFAULT_MATCH_NAME,
+      slots: [feeds[order * 2], feeds[order * 2 + 1]],
+    });
+  }
+
+  let previousCount = size / 2;
+  let round = 3;
+  while (previousCount > 1) {
+    const count = previousCount / 2;
+    for (let order = 0; order < count; order += 1) {
+      matches.push({
+        id: matchId(round, order),
+        bracket: "winners",
+        round,
+        order,
+        matchName: DEFAULT_MATCH_NAME,
+        slots: [
+          { kind: "winnerOf", matchId: matchId(round - 1, order * 2) },
+          { kind: "winnerOf", matchId: matchId(round - 1, order * 2 + 1) },
+        ],
+      });
+    }
+    previousCount = count;
+    round += 1;
+  }
+
+  return { version: 1, matches };
+};
+
 /**
  * 保存されている組み合わせがトーナメントの形をしているか。
  *
@@ -116,6 +198,10 @@ export const buildFromSlots = (slots: SlotSource[]): MatchingConfig => {
  * 複数ある）を見分けられない（フィルタが空になり every が空配列で
  * true になってしまう）。2 回戦以降が無いときは試合数も見て、1 試合を
  * 超えていれば false にする。
+ *
+ * buildFromFirstRound は 1 回戦が 2 の冪でないとき 2 回戦に bye を置く。
+ * bye は league の星取表に現れない（league は 2 回戦以降を持たない）ので、
+ * 許しても判別は崩れない。
  */
 export const isSingleEliminationShape = (config: MatchingConfig): boolean => {
   const higherRounds = config.matches.filter((match) => match.round >= 2);
@@ -123,7 +209,9 @@ export const isSingleEliminationShape = (config: MatchingConfig): boolean => {
     return config.matches.length <= 1;
   }
   return higherRounds.every((match) =>
-    match.slots.every((slot) => slot.kind === "winnerOf"),
+    match.slots.every(
+      (slot) => slot.kind === "winnerOf" || slot.kind === "bye",
+    ),
   );
 };
 
