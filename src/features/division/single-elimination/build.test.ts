@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { DEFAULT_MATCH_NAME } from "@/lib/division/match-name";
+import { resolveMatchSlots } from "@/lib/division/resolve";
 import type { MatchingConfig, SlotSource } from "@/lib/division/types";
 import { validateMatchingConfig } from "@/lib/division/validate";
 import {
@@ -315,7 +316,9 @@ describe("buildFromFirstRound", () => {
     const config = buildFromFirstRound(emptyPairs(8));
     expect(config.matches).toHaveLength(15);
     const higher = config.matches.filter((m) => m.round >= 2);
-    expect(higher.every((m) => m.slots.every((s) => s.kind === "winnerOf"))).toBe(true);
+    expect(
+      higher.every((m) => m.slots.every((s) => s.kind === "winnerOf")),
+    ).toBe(true);
   });
 
   it("1 回戦の中身と id は入力の順どおり", () => {
@@ -335,8 +338,12 @@ describe("buildFromFirstRound", () => {
     for (let n = 1; n <= 64; n += 1) {
       const config = buildFromFirstRound(emptyPairs(n));
       const round2 = config.matches.filter((m) => m.round === 2);
-      expect(round2.some((m) => m.slots.every((s) => s.kind === "bye"))).toBe(false);
-      expect(validateMatchingConfig(config, { version: 1, entries: [] })).toEqual([]);
+      expect(round2.some((m) => m.slots.every((s) => s.kind === "bye"))).toBe(
+        false,
+      );
+      expect(
+        validateMatchingConfig(config, { version: 1, entries: [] }),
+      ).toEqual([]);
       expect(isSingleEliminationShape(config)).toBe(true);
     }
   });
@@ -344,7 +351,9 @@ describe("buildFromFirstRound", () => {
 
 describe("isSingleEliminationShape（2 回戦以降の bye）", () => {
   it("2 回戦以降に bye があってもトーナメントの形とみなす", () => {
-    expect(isSingleEliminationShape(buildFromFirstRound(emptyPairs(3)))).toBe(true);
+    expect(isSingleEliminationShape(buildFromFirstRound(emptyPairs(3)))).toBe(
+      true,
+    );
   });
 
   it("2 回戦以降に entry があれば形が違う", () => {
@@ -353,10 +362,61 @@ describe("isSingleEliminationShape（2 回戦以降の bye）", () => {
       ...config,
       matches: config.matches.map((m) =>
         m.round === 2
-          ? { ...m, slots: [{ kind: "entry" as const, entryId: "x" }, m.slots[1]] as typeof m.slots }
+          ? {
+              ...m,
+              slots: [
+                { kind: "entry" as const, entryId: "x" },
+                m.slots[1],
+              ] as typeof m.slots,
+            }
           : m,
       ),
     };
     expect(isSingleEliminationShape(broken)).toBe(false);
+  });
+});
+
+describe("buildFromFirstRound の木を resolveMatchSlots で解決する", () => {
+  it("2 回戦の [勝者, bye] は 1 回戦の勝者がそのまま立つ", () => {
+    // N=3 → 2 回戦は m2-0 = [w(m1-0), bye]、m2-1 = [w(m1-1), w(m1-2)]。
+    const config = buildFromFirstRound([
+      [entry("a"), entry("b")],
+      [entry("c"), bye],
+      [entry("d"), bye],
+    ]);
+    expect(config.matches.find((m) => m.id === "m2-0")?.slots).toEqual([
+      { kind: "winnerOf", matchId: "m1-0" },
+      bye,
+    ]);
+
+    const before = resolveMatchSlots(config, { version: 1, matches: [] });
+    expect(before.get("m2-0")?.slots[0]).toEqual({ state: "pending" });
+
+    const resolved = resolveMatchSlots(config, {
+      version: 1,
+      matches: [{ matchId: "m1-0", winnerEntryId: "b" }],
+    });
+    expect(resolved.get("m2-0")).toEqual({
+      slots: [{ state: "entry", entryId: "b" }, { state: "bye" }],
+      winnerEntryId: "b",
+    });
+  });
+
+  it("空の 1 回戦 [bye, bye] から来る 2 回戦のスロットは pending ではなく bye", () => {
+    const config = buildFromFirstRound([
+      [entry("a"), entry("b")],
+      [bye, bye],
+      [entry("c"), bye],
+    ]);
+    expect(config.matches.find((m) => m.id === "m2-1")?.slots).toEqual([
+      { kind: "winnerOf", matchId: "m1-1" },
+      { kind: "winnerOf", matchId: "m1-2" },
+    ]);
+
+    const resolved = resolveMatchSlots(config, { version: 1, matches: [] });
+    expect(resolved.get("m2-1")).toEqual({
+      slots: [{ state: "bye" }, { state: "entry", entryId: "c" }],
+      winnerEntryId: "c",
+    });
   });
 });
