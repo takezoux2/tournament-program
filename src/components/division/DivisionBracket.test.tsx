@@ -12,6 +12,14 @@ vi.mock("@/components/tournament/TournamentFlow", () => ({
   ),
 }));
 
+const editableProps = vi.fn();
+vi.mock("./EditableBracket", () => ({
+  EditableBracket: (props: { nodes: unknown[]; locked: boolean }) => {
+    editableProps(props);
+    return <div data-testid="editable">{props.nodes.length}</div>;
+  },
+}));
+
 const { DivisionBracket } = await import("./DivisionBracket");
 
 const participants = [
@@ -287,5 +295,47 @@ describe("DivisionBracket", () => {
 
     expect(container.querySelector(".h-\\[20rem\\]")).not.toBeNull();
     expect(container.querySelector(".h-\\[28rem\\]")).toBeNull();
+  });
+});
+
+describe("editor", () => {
+  const action = vi.fn(async () => ({ error: null }));
+  const editor = {
+    locked: true,
+    slug: "acme",
+    tournamentId: "t1",
+    divisionId: "d1",
+    members: [],
+    actions: { assignSlot: action, clearSlot: action, removeMatch: action },
+  };
+
+  it("editor を渡すと EditableBracket で描き、locked を渡す", () => {
+    render(
+      <DivisionBracket
+        division={buildDivision()}
+        participants={participants}
+        overallSeq={noSeq}
+        editor={editor}
+      />,
+    );
+    expect(screen.getByTestId("editable")).toBeInTheDocument();
+    expect(screen.queryByTestId("flow")).not.toBeInTheDocument();
+    const props = editableProps.mock.calls.at(-1)?.[0] as {
+      locked: boolean;
+      nodes: unknown[];
+    };
+    expect(props.locked).toBe(true);
+    expect(props.nodes.length).toBeGreaterThan(0);
+  });
+
+  it("editor が無ければ従来どおり TournamentFlow", () => {
+    render(
+      <DivisionBracket
+        division={buildDivision()}
+        participants={participants}
+        overallSeq={noSeq}
+      />,
+    );
+    expect(screen.getByTestId("flow")).toBeInTheDocument();
   });
 });

@@ -1,7 +1,9 @@
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import userEvent from "@testing-library/user-event";
+import { describe, expect, it, vi } from "vitest";
 import type { ResolvedMatch, ResolvedSlot } from "@/features/bracket/types";
 import { MatchCard } from "./MatchCard";
+import { SlotEditContext } from "./slot-edit-context";
 
 const confirmed = (
   id: string,
@@ -291,5 +293,61 @@ describe("MatchCard", () => {
   it("メモが無ければメモボタンを表示しない", () => {
     render(<MatchCard match={{ ...doneMatch, note: null }} />);
     expect(screen.queryByRole("button")).not.toBeInTheDocument();
+  });
+});
+
+const firstRound: ResolvedMatch = {
+  ...doneMatch,
+  id: "m1-0",
+  round: 1,
+  slots: [confirmed("e1", "佐藤 蓮", 1, false), bye],
+  winnerId: null,
+  status: "bye",
+  sourceMatchIds: [null, null],
+};
+
+describe("MatchCard の鉛筆ボタン", () => {
+  it("context が無ければ出さない", () => {
+    render(<MatchCard match={firstRound} />);
+    expect(
+      screen.queryByRole("button", { name: /選手を編集/ }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("1 回戦の両スロットに出し、押すと試合とスロットを伝える", async () => {
+    const onEditSlot = vi.fn();
+    render(
+      <SlotEditContext.Provider value={{ locked: false, onEditSlot }}>
+        <MatchCard match={firstRound} />
+      </SlotEditContext.Provider>,
+    );
+    const buttons = screen.getAllByRole("button", { name: /選手を編集/ });
+    expect(buttons).toHaveLength(2);
+    await userEvent.click(buttons[1]);
+    expect(onEditSlot).toHaveBeenCalledWith("m1-0", 1);
+  });
+
+  it("locked なら押せない", () => {
+    render(
+      <SlotEditContext.Provider value={{ locked: true, onEditSlot: vi.fn() }}>
+        <MatchCard match={firstRound} />
+      </SlotEditContext.Provider>,
+    );
+    for (const button of screen.getAllByRole("button", {
+      name: /選手を編集/,
+    })) {
+      expect(button).toBeDisabled();
+    }
+  });
+
+  it("2 回戦以降には出さない", () => {
+    render(
+      <SlotEditContext.Provider value={{ locked: false, onEditSlot: vi.fn() }}>
+        <MatchCard match={doneMatch} />
+      </SlotEditContext.Provider>,
+    );
+    expect(
+      screen.queryByRole("button", { name: /選手を編集/ }),
+    ).not.toBeInTheDocument();
   });
 });
