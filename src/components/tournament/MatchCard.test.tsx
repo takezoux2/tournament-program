@@ -271,9 +271,7 @@ describe("MatchCard", () => {
   // ため、汎用の文言に落とす。
   it("メモがあり試合名が無ければ「試合のメモ」を読み上げ用ラベルにする", () => {
     render(
-      <MatchCard
-        match={{ ...doneMatch, note: "抗議あり", matchName: null }}
-      />,
+      <MatchCard match={{ ...doneMatch, note: "抗議あり", matchName: null }} />,
     );
     expect(
       screen.getByRole("button", { name: "試合のメモ" }),
@@ -325,6 +323,25 @@ describe("MatchCard の鉛筆ボタン", () => {
     expect(buttons).toHaveLength(2);
     await userEvent.click(buttons[1]);
     expect(onEditSlot).toHaveBeenCalledWith("m1-0", 1);
+  });
+
+  it("ラベルに試合名を含め、試合ごとに区別できる", () => {
+    render(
+      <SlotEditContext.Provider value={{ locked: false, onEditSlot: vi.fn() }}>
+        <MatchCard match={{ ...firstRound, matchName: "第1試合" }} />
+        <MatchCard match={{ ...firstRound, id: "m1-1", matchName: null }} />
+      </SlotEditContext.Provider>,
+    );
+    expect(
+      screen
+        .getAllByRole("button", { name: /の選手を編集/ })
+        .map((button) => button.getAttribute("aria-label")),
+    ).toEqual([
+      "第1試合の上側の選手を編集",
+      "第1試合の下側の選手を編集",
+      "試合の上側の選手を編集",
+      "試合の下側の選手を編集",
+    ]);
   });
 
   it("locked なら押せない", () => {

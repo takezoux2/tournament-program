@@ -74,6 +74,12 @@ export function SlotEditDialog({
     INITIAL_DIVISION_FORM_STATE,
   );
 
+  // 3 つのフォームはそれぞれ自分の state を持つ。先に失敗した操作のエラーが
+  // 後の操作の失敗を隠さないよう、最後に送ったフォームのエラーだけを出す。
+  const [lastSubmitted, setLastSubmitted] = useState<
+    "assign" | "clear" | "remove" | null
+  >(null);
+
   useEffect(() => {
     dialogRef.current?.showModal();
   }, []);
@@ -84,7 +90,14 @@ export function SlotEditDialog({
   useCloseOnSuccess(removeState, close);
 
   const pending = assignPending || clearPending || removePending;
-  const error = assignState.error ?? clearState.error ?? removeState.error;
+  const error =
+    lastSubmitted === "assign"
+      ? assignState.error
+      : lastSubmitted === "clear"
+        ? clearState.error
+        : lastSubmitted === "remove"
+          ? removeState.error
+          : null;
 
   const hidden = (
     <>
@@ -114,7 +127,11 @@ export function SlotEditDialog({
           </p>
         </div>
 
-        <form action={assignAction} className="space-y-3">
+        <form
+          action={assignAction}
+          onSubmit={() => setLastSubmitted("assign")}
+          className="space-y-3"
+        >
           {hidden}
           <input type="hidden" name="mode" value={mode} />
           {members.length > 0 && (
@@ -209,7 +226,10 @@ export function SlotEditDialog({
         <div className="flex flex-wrap justify-between gap-2 border-t border-slate-200 pt-4">
           <div className="flex gap-2">
             {target.occupantName !== null && (
-              <form action={clearAction}>
+              <form
+                action={clearAction}
+                onSubmit={() => setLastSubmitted("clear")}
+              >
                 {hidden}
                 <button
                   type="submit"
@@ -220,7 +240,10 @@ export function SlotEditDialog({
                 </button>
               </form>
             )}
-            <form action={removeAction}>
+            <form
+              action={removeAction}
+              onSubmit={() => setLastSubmitted("remove")}
+            >
               {hidden}
               <button
                 type="submit"

@@ -14,9 +14,7 @@ beforeAll(() => {
   ) {
     this.setAttribute("open", "");
   };
-  HTMLDialogElement.prototype.close = function close(
-    this: HTMLDialogElement,
-  ) {
+  HTMLDialogElement.prototype.close = function close(this: HTMLDialogElement) {
     this.removeAttribute("open");
     this.dispatchEvent(new Event("close"));
   };
@@ -27,7 +25,9 @@ const succeed = vi.fn(async (prev: DivisionFormState) => ({
   succeeded: (prev.succeeded ?? 0) + 1,
 }));
 
-const props = (overrides: Partial<Parameters<typeof SlotEditDialog>[0]> = {}) => ({
+const props = (
+  overrides: Partial<Parameters<typeof SlotEditDialog>[0]> = {},
+) => ({
   target: {
     matchId: "m1-0",
     slotIndex: 1 as const,
@@ -62,7 +62,9 @@ describe("SlotEditDialog", () => {
         })}
       />,
     );
-    await userEvent.click(screen.getByRole("button", { name: "この選手にする" }));
+    await userEvent.click(
+      screen.getByRole("button", { name: "この選手にする" }),
+    );
     await waitFor(() => expect(assignSlot).toHaveBeenCalled());
     const data = assignSlot.mock.calls[0][1] as FormData;
     expect(Object.fromEntries(data)).toMatchObject({
@@ -121,15 +123,55 @@ describe("SlotEditDialog", () => {
       <SlotEditDialog
         {...props({
           onClose,
-          actions: { assignSlot: fail, clearSlot: succeed, removeMatch: succeed },
+          actions: {
+            assignSlot: fail,
+            clearSlot: succeed,
+            removeMatch: succeed,
+          },
         })}
       />,
     );
-    await userEvent.click(screen.getByRole("button", { name: "この選手にする" }));
+    await userEvent.click(
+      screen.getByRole("button", { name: "この選手にする" }),
+    );
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "その参加者はすでにエントリーしています",
     );
     expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it("前の操作のエラーではなく、最後に送った操作のエラーを出す", async () => {
+    const failAssign = vi.fn(async () => ({
+      error: "その参加者はすでにエントリーしています",
+    }));
+    const failClear = vi.fn(async () => ({
+      error: "勝敗が記録されているため変更できません",
+    }));
+    render(
+      <SlotEditDialog
+        {...props({
+          actions: {
+            assignSlot: failAssign,
+            clearSlot: failClear,
+            removeMatch: succeed,
+          },
+        })}
+      />,
+    );
+    await userEvent.click(
+      screen.getByRole("button", { name: "この選手にする" }),
+    );
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "その参加者はすでにエントリーしています",
+    );
+    await userEvent.click(
+      screen.getByRole("button", { name: "スロットを空にする" }),
+    );
+    await waitFor(() =>
+      expect(screen.getByRole("alert")).toHaveTextContent(
+        "勝敗が記録されているため変更できません",
+      ),
+    );
   });
 
   it("メンバーが居なければ新規登録だけを出す", () => {
