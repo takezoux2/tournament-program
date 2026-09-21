@@ -43,6 +43,38 @@ const nextPowerOfTwo = (n: number): number => {
 };
 
 /**
+ * startRound 以降の各ラウンドを、前ラウンドの勝者どうしを組ませて matches に積む。
+ * previousCount は startRound の 1 つ前のラウンドの試合数。1 になるまで半分にしていく。
+ * buildFromSlots（startRound 2）と buildFromFirstRound（startRound 3）で共通の規則。
+ */
+const appendHigherRounds = (
+  matches: BracketMatch[],
+  startRound: number,
+  previousCount: number,
+): void => {
+  let count = previousCount;
+  let round = startRound;
+  while (count > 1) {
+    const nextCount = count / 2;
+    for (let order = 0; order < nextCount; order += 1) {
+      matches.push({
+        id: matchId(round, order),
+        bracket: "winners",
+        round,
+        order,
+        matchName: DEFAULT_MATCH_NAME,
+        slots: [
+          { kind: "winnerOf", matchId: matchId(round - 1, order * 2) },
+          { kind: "winnerOf", matchId: matchId(round - 1, order * 2 + 1) },
+        ],
+      });
+    }
+    count = nextCount;
+    round += 1;
+  }
+};
+
+/**
  * 1 回戦のスロット割当から勝ち上がり木を組み立てる。
  * 入力 slots の長さが 2 の冪でない場合、自動的に { kind: "bye" } でパディングする。
  * これは、配列が括弧全体の唯一の情報源であり、短い配列は「試合が足りない」のではなく
@@ -74,26 +106,7 @@ export const buildFromSlots = (slots: SlotSource[]): MatchingConfig => {
     });
   }
 
-  let previousCount = paddedSlots.length / 2;
-  let round = 2;
-  while (previousCount > 1) {
-    const count = previousCount / 2;
-    for (let order = 0; order < count; order += 1) {
-      matches.push({
-        id: matchId(round, order),
-        bracket: "winners",
-        round,
-        order,
-        matchName: DEFAULT_MATCH_NAME,
-        slots: [
-          { kind: "winnerOf", matchId: matchId(round - 1, order * 2) },
-          { kind: "winnerOf", matchId: matchId(round - 1, order * 2 + 1) },
-        ],
-      });
-    }
-    previousCount = count;
-    round += 1;
-  }
+  appendHigherRounds(matches, 2, paddedSlots.length / 2);
 
   return { version: 1, matches };
 };
@@ -118,13 +131,13 @@ export const buildFromFirstRound = (
     return { version: 1, matches: [] };
   }
 
-  const matches: BracketMatch[] = pairs.map((slots, order) => ({
+  const matches: BracketMatch[] = pairs.map((pair, order) => ({
     id: matchId(1, order),
     bracket: "winners",
     round: 1,
     order,
     matchName: DEFAULT_MATCH_NAME,
-    slots: [slots[0], slots[1]],
+    slots: [pair[0], pair[1]],
   }));
 
   if (pairs.length === 1) {
@@ -156,26 +169,7 @@ export const buildFromFirstRound = (
     });
   }
 
-  let previousCount = size / 2;
-  let round = 3;
-  while (previousCount > 1) {
-    const count = previousCount / 2;
-    for (let order = 0; order < count; order += 1) {
-      matches.push({
-        id: matchId(round, order),
-        bracket: "winners",
-        round,
-        order,
-        matchName: DEFAULT_MATCH_NAME,
-        slots: [
-          { kind: "winnerOf", matchId: matchId(round - 1, order * 2) },
-          { kind: "winnerOf", matchId: matchId(round - 1, order * 2 + 1) },
-        ],
-      });
-    }
-    previousCount = count;
-    round += 1;
-  }
+  appendHigherRounds(matches, 3, size / 2);
 
   return { version: 1, matches };
 };
