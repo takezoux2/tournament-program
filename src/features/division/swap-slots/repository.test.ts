@@ -1,11 +1,14 @@
 import { Effect } from "effect";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { buildDoubleElimination } from "../double-elimination/build";
 import { buildFromSlots } from "../single-elimination/build";
 
 const divisionFindFirst = vi.fn();
 const divisionUpdateMany = vi.fn();
 const participantFindMany = vi.fn();
 
+// シングルエリミはこの経路では編集しない（1 回戦スライスで組む）ため、
+// 汎用の振る舞いはダブルエリミで確かめる。
 // setup-store 経由で実際に組み立てまで走らせるため、mock するのは
 // Prisma の境界だけにする（setup-store 自体はモックしない）。
 vi.mock("@/shared/db/prisma", () => ({
@@ -38,14 +41,17 @@ const entries = {
   })),
 };
 
-const matchingConfig = buildFromSlots(["e1", "e2", "e3", "e4"].map(entry));
+const matchingConfig = buildDoubleElimination(
+  ["e1", "e2", "e3", "e4"].map(entry),
+  "grandFinal",
+);
 
 beforeEach(() => {
   divisionFindFirst.mockReset();
   divisionUpdateMany.mockReset();
   participantFindMany.mockReset();
   divisionFindFirst.mockResolvedValue({
-    format: "SINGLE_ELIMINATION",
+    format: "DOUBLE_ELIMINATION_GRAND_FINAL",
     entries,
     matchingConfig,
     results: { version: 1, matches: [] },
@@ -92,6 +98,22 @@ describe("swapSlotsInDb", () => {
     expect(divisionUpdateMany).not.toHaveBeenCalled();
   });
 
+  it("シングルエリミでは何もしない（1 回戦スライスで編集する）", async () => {
+    divisionFindFirst.mockResolvedValue({
+      format: "SINGLE_ELIMINATION",
+      entries,
+      matchingConfig: buildFromSlots(["e1", "e2", "e3", "e4"].map(entry)),
+      results: { version: 1, matches: [] },
+    });
+
+    const result = await Effect.runPromise(
+      swapSlotsInDb(ids, { indexA: 0, indexB: 3 }),
+    );
+
+    expect(result).toEqual({ found: true, value: { swapped: false } });
+    expect(divisionUpdateMany).not.toHaveBeenCalled();
+  });
+
   it("リーグの部門では入れ替えを受け付けない", async () => {
     // 1 回戦スロットの入れ替えは総当たりに意味が無い。setup-store の
     // 形式チェックが広がったぶん、このスライスで弾く。
@@ -113,12 +135,12 @@ describe("swapSlotsInDb", () => {
     expect(divisionUpdateMany).not.toHaveBeenCalled();
   });
 
-  it("format は SINGLE_ELIMINATION でもリーグの星取表を持つ部門は弾く", async () => {
+  it("format はダブルエリミでもリーグの星取表を持つ部門は弾く", async () => {
     // /edit は format を無条件に書き換えられるので、ROUND_ROBIN で組んだ
-    // 星取表を持ったまま SINGLE_ELIMINATION になった部門が存在しうる。
+    // 星取表を持ったままダブルエリミになった部門が存在しうる。
     // toSlots は 1 回戦しか見ないため、通すと 2 節目以降が丸ごと消える。
     divisionFindFirst.mockResolvedValue({
-      format: "SINGLE_ELIMINATION",
+      format: "DOUBLE_ELIMINATION_GRAND_FINAL",
       entries,
       matchingConfig: {
         version: 1,

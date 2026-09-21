@@ -29,6 +29,13 @@ export const swapSlotsInDb: SwapSlotsPort = (ids, input) =>
       return { next: null, value: { swapped: false } };
     }
 
+    // シングルエリミは 1 回戦の試合・スロットを直接編集するスライス
+    // （add-first-round-match など）で組む。ここで木を組み直すと 2 の冪へ
+    // 詰め直され、試合名も消えるため、この経路では何もしない。
+    if (format === "SINGLE_ELIMINATION") {
+      return { next: null, value: { swapped: false } };
+    }
+
     // /edit は format を無条件に書き換えられるため、リーグの星取表を
     // 持ったままスロット型ブラケットになった部門が存在しうる。その星取表は
     // toSlots で 1 回戦だけ取り出して build に通すと 2 節目以降が

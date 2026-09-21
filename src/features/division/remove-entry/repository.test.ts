@@ -8,6 +8,8 @@ const divisionFindFirst = vi.fn();
 const divisionUpdateMany = vi.fn();
 const participantFindMany = vi.fn();
 
+// シングルエリミはこの経路では編集しない（1 回戦スライスで組む）ため、
+// 汎用の振る舞いはダブルエリミ・リーグで確かめる。
 // setup-store 経由で実際に組み立てまで走らせるため、mock するのは
 // Prisma の境界だけにする（setup-store 自体はモックしない）。
 vi.mock("@/shared/db/prisma", () => ({
@@ -53,7 +55,7 @@ beforeEach(() => {
 describe("removeEntryInDb", () => {
   it("エントリーを外して seed を 0 から詰め直す", async () => {
     divisionFindFirst.mockResolvedValue({
-      format: "SINGLE_ELIMINATION",
+      format: "DOUBLE_ELIMINATION_GRAND_FINAL",
       entries: withEntries(4),
       matchingConfig: { version: 1, matches: [] },
       results: { version: 1, matches: [] },
@@ -74,13 +76,17 @@ describe("removeEntryInDb", () => {
   });
 
   it("組み合わせがあれば残りのシード順から作り直す", async () => {
+    const fiveEntries = withEntries(5);
     divisionFindFirst.mockResolvedValue({
-      format: "SINGLE_ELIMINATION",
-      entries: withEntries(4),
-      matchingConfig: buildFromSlots(["e1", "e2", "e3", "e4"].map(entry)),
+      format: "DOUBLE_ELIMINATION_GRAND_FINAL",
+      entries: fiveEntries,
+      matchingConfig: buildDoubleElimination(
+        generateSlots(fiveEntries.entries),
+        "grandFinal",
+      ),
       results: { version: 1, matches: [] },
     });
-    participantFindMany.mockResolvedValue(participantsFor(4));
+    participantFindMany.mockResolvedValue(participantsFor(5));
 
     const result = await Effect.runPromise(
       removeEntryInDb(ids, { entryId: "e2" }),
@@ -90,34 +96,28 @@ describe("removeEntryInDb", () => {
       found: true,
       value: { removed: true, matching: "regenerated" },
     });
-    // 残り 3 人なので 4 枠に bye が 1 つ入る形へ作り直される。
-    const written = divisionUpdateMany.mock.calls[0][0].data.matchingConfig;
-    expect(written.matches[0].slots).toEqual([entry("e1"), { kind: "bye" }]);
+    // 残り 4 人のシード順から組み直した木になる。
+    const data = divisionUpdateMany.mock.calls[0][0].data;
+    expect(data.matchingConfig).toEqual(
+      buildDoubleElimination(generateSlots(data.entries.entries), "grandFinal"),
+    );
   });
 
-  it("残りが 2 人未満になったら組み合わせを空にする", async () => {
+  it("シングルエリミでは何もしない（1 回戦スライスで編集する）", async () => {
     divisionFindFirst.mockResolvedValue({
       format: "SINGLE_ELIMINATION",
-      entries: withEntries(2),
-      matchingConfig: buildFromSlots(["e1", "e2"].map(entry)),
+      entries: withEntries(3),
+      matchingConfig: buildFromSlots(["e1", "e2", "e3"].map(entry)),
       results: { version: 1, matches: [] },
     });
-    participantFindMany.mockResolvedValue(participantsFor(2));
+    participantFindMany.mockResolvedValue(participantsFor(3));
 
     const result = await Effect.runPromise(
       removeEntryInDb(ids, { entryId: "e2" }),
     );
 
-    // 除去前は matches.length > 0 だが、除去後は 2 人未満で木が作れず空になる。
-    // 除去前だけを見て "regenerated" と報告すると、画面が「再生成しました」と
-    // 嘘をつく。除去後の結果で "cleared" と言い分けていることを確認する。
-    // minimum はトーナメントの下限（2）。
-    expect(result).toEqual({
-      found: true,
-      value: { removed: true, matching: "cleared", minimum: 2 },
-    });
-    const written = divisionUpdateMany.mock.calls[0][0].data.matchingConfig;
-    expect(written.matches).toEqual([]);
+    expect(result).toEqual({ found: true, value: { removed: false } });
+    expect(divisionUpdateMany).not.toHaveBeenCalled();
   });
 
   it("ダブルエリミネーションは残りが形式の下限（3人）を下回ったら組み合わせを空にする", async () => {
@@ -151,7 +151,7 @@ describe("removeEntryInDb", () => {
 
   it("組み合わせが未作成なら再生成しない", async () => {
     divisionFindFirst.mockResolvedValue({
-      format: "SINGLE_ELIMINATION",
+      format: "DOUBLE_ELIMINATION_GRAND_FINAL",
       entries: withEntries(4),
       matchingConfig: { version: 1, matches: [] },
       results: { version: 1, matches: [] },
@@ -170,7 +170,7 @@ describe("removeEntryInDb", () => {
 
   it("知らない entryId なら何も書き込まない", async () => {
     divisionFindFirst.mockResolvedValue({
-      format: "SINGLE_ELIMINATION",
+      format: "DOUBLE_ELIMINATION_GRAND_FINAL",
       entries: withEntries(4),
       matchingConfig: { version: 1, matches: [] },
       results: { version: 1, matches: [] },

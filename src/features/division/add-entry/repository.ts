@@ -29,6 +29,13 @@ export type AddEntryPort = (
 
 export const addEntryInDb: AddEntryPort = (ids, input) =>
   runDivisionSetup<AddEntryResult>(ids, async (tx, current) => {
+    // シングルエリミは 1 回戦の試合・スロットを直接編集するスライス
+    // （add-first-round-match など）で組む。ここで木を組み直すと 2 の冪へ
+    // 詰め直され、試合名も消えるため、この経路では何もしない。
+    if (current.format === "SINGLE_ELIMINATION") {
+      return { next: null, value: { regenerated: false } };
+    }
+
     const limit = maxEntries(current.format);
     if (current.entries.entries.length >= limit) {
       throw new DivisionEntryLimitError({ divisionId: ids.divisionId, limit });
