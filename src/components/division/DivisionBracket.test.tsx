@@ -328,6 +328,27 @@ describe("editor", () => {
     expect(props.nodes.length).toBeGreaterThan(0);
   });
 
+  it("ノードのデータに参加者の memberId を載せない", () => {
+    // 公開ページではノードのデータがそのままクライアントへ送られる。
+    render(
+      <DivisionBracket
+        division={buildDivision()}
+        participants={participants.map((participant, index) => ({
+          ...participant,
+          memberId: `member-${index}`,
+        }))}
+        overallSeq={noSeq}
+        editor={editor}
+      />,
+    );
+    const props = editableProps.mock.calls.at(-1)?.[0] as {
+      nodes: unknown[];
+    };
+    expect(props.nodes.length).toBeGreaterThan(0);
+    expect(JSON.stringify(props.nodes)).not.toContain("memberId");
+    expect(JSON.stringify(props.nodes)).not.toContain("member-0");
+  });
+
   it("editor が無ければ従来どおり TournamentFlow", () => {
     render(
       <DivisionBracket
