@@ -32,6 +32,13 @@ export type ReorderEntryPort = (
 
 export const reorderEntryInDb: ReorderEntryPort = (ids, input) =>
   runDivisionSetup<ReorderEntryResult>(ids, async (_tx, current) => {
+    // シングルエリミは 1 回戦の試合・スロットを直接編集するスライス
+    // （add-first-round-match など）で組む。ここで木を組み直すと 2 の冪へ
+    // 詰め直され、試合名も消えるため、この経路では何もしない。
+    if (current.format === "SINGLE_ELIMINATION") {
+      return { next: null, value: { moved: false } };
+    }
+
     const reordered = reorderEntries(
       current.entries.entries,
       input.entryId,

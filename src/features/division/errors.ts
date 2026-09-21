@@ -103,6 +103,24 @@ export class DivisionWinReasonNotAllowedError extends Data.TaggedError(
   readonly winReason: string;
 }> {}
 
+/** 1 回戦の試合数が上限に達していることを表す。 */
+export class DivisionFirstRoundLimitError extends Data.TaggedError(
+  "DivisionFirstRoundLimitError",
+)<{
+  readonly divisionId: string;
+  readonly limit: number;
+}> {}
+
+/**
+ * 組み合わせがトーナメントの形をしていないのに、1 回戦を部分編集しようとしたことを表す。
+ * /edit で format を書き換えた部門で起きうる。生成し直せば直る。
+ */
+export class DivisionShapeMismatchError extends Data.TaggedError(
+  "DivisionShapeMismatchError",
+)<{
+  readonly divisionId: string;
+}> {}
+
 export type DivisionError =
   | DivisionOrderConflictError
   | UnexpectedDivisionError
@@ -116,7 +134,9 @@ export type DivisionError =
   | DivisionRevisionConflictError
   | DivisionSlotNotDecidedError
   | DivisionResultNotRecordedError
-  | DivisionWinReasonNotAllowedError;
+  | DivisionWinReasonNotAllowedError
+  | DivisionFirstRoundLimitError
+  | DivisionShapeMismatchError;
 
 /**
  * DivisionError の全タグをコンパイラに列挙させるための対照表。
@@ -141,6 +161,8 @@ const divisionErrorTags: Record<DivisionError["_tag"], true> = {
   DivisionSlotNotDecidedError: true,
   DivisionResultNotRecordedError: true,
   DivisionWinReasonNotAllowedError: true,
+  DivisionFirstRoundLimitError: true,
+  DivisionShapeMismatchError: true,
 };
 
 /**

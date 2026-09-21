@@ -69,6 +69,18 @@ vi.mock("@/features/division/set-match-name/handler", () => ({
 vi.mock("@/features/participant/set-player-number/handler", () => ({
   setPlayerNumberAction: vi.fn(),
 }));
+vi.mock("@/features/division/add-first-round-match/handler", () => ({
+  addFirstRoundMatchAction: vi.fn(),
+}));
+vi.mock("@/features/division/remove-first-round-match/handler", () => ({
+  removeFirstRoundMatchAction: vi.fn(),
+}));
+vi.mock("@/features/division/assign-slot/handler", () => ({
+  assignSlotAction: vi.fn(),
+}));
+vi.mock("@/features/division/clear-slot/handler", () => ({
+  clearSlotAction: vi.fn(),
+}));
 
 // actions プロップに何を渡したかを見たいので、受け取った props を控えるダミーに差し替える。
 const divisionSetupProps = vi.fn();
@@ -76,6 +88,14 @@ vi.mock("@/components/division/DivisionSetup", () => ({
   DivisionSetup: (props: unknown) => {
     divisionSetupProps(props);
     return <div>setup</div>;
+  },
+}));
+
+const bracketEditorSetupProps = vi.fn();
+vi.mock("@/components/division/BracketEditorSetup", () => ({
+  BracketEditorSetup: (props: unknown) => {
+    bracketEditorSetupProps(props);
+    return <div>bracket-setup</div>;
   },
 }));
 
@@ -100,6 +120,18 @@ const { setMatchNameAction } = await import(
 );
 const { setPlayerNumberAction } = await import(
   "@/features/participant/set-player-number/handler"
+);
+const { addFirstRoundMatchAction } = await import(
+  "@/features/division/add-first-round-match/handler"
+);
+const { removeFirstRoundMatchAction } = await import(
+  "@/features/division/remove-first-round-match/handler"
+);
+const { assignSlotAction } = await import(
+  "@/features/division/assign-slot/handler"
+);
+const { clearSlotAction } = await import(
+  "@/features/division/clear-slot/handler"
 );
 
 const pageProps = () => ({
@@ -146,6 +178,7 @@ beforeEach(() => {
   listMembersInOrganization.mockResolvedValue([]);
   listOverallOrderSources.mockResolvedValue(new Map());
   divisionSetupProps.mockClear();
+  bracketEditorSetupProps.mockClear();
 });
 
 describe("DivisionSetupPage", () => {
@@ -153,7 +186,7 @@ describe("DivisionSetupPage", () => {
     render(await DivisionSetupPage(pageProps()));
 
     expect(requireOrganization).toHaveBeenCalledWith("acme");
-    expect(screen.getByText("setup")).toBeInTheDocument();
+    expect(screen.getByText("bracket-setup")).toBeInTheDocument();
   });
 
   it("パンくずに大会と部門を出す", async () => {
@@ -201,23 +234,28 @@ describe("DivisionSetupPage", () => {
     expect(screen.getByText("setup")).toBeInTheDocument();
   });
 
-  it("大会 id で通し番号を読み、DivisionSetup にそのまま渡す", async () => {
+  it("大会 id で通し番号を読み、BracketEditorSetup にそのまま渡す", async () => {
     const overallSeq = new Map([["d1:m1-0", 1]]);
     listOverallOrderSources.mockResolvedValue(overallSeq);
 
     render(await DivisionSetupPage(pageProps()));
 
     expect(listOverallOrderSources).toHaveBeenCalledWith("t1");
-    expect(divisionSetupProps).toHaveBeenCalledTimes(1);
-    const { overallSeq: passed } = divisionSetupProps.mock.calls[0][0] as {
+    expect(bracketEditorSetupProps).toHaveBeenCalledTimes(1);
+    const { overallSeq: passed } = bracketEditorSetupProps.mock.calls[0][0] as {
       overallSeq: unknown;
     };
     expect(passed).toBe(overallSeq);
   });
 
-  it("7 つの Server Action をそれぞれ対応する actions のプロパティに渡す", async () => {
+  it("7 つの Server Action をそれぞれ対応する actions のプロパティに渡す（ダブルエリミネーション）", async () => {
     // 7 つとも別モジュールの vi.fn() なので参照が異なる。取り違えて渡すと
     // toBe が落ちる。同じ関数を使い回すダミーでは検出できない観点。
+    findDivisionInTournament.mockResolvedValue({
+      ...division,
+      format: "DOUBLE_ELIMINATION_GRAND_FINAL",
+    });
+
     render(await DivisionSetupPage(pageProps()));
 
     expect(divisionSetupProps).toHaveBeenCalledTimes(1);
@@ -232,5 +270,21 @@ describe("DivisionSetupPage", () => {
     expect(actions.setMatchName).toBe(setMatchNameAction);
     expect(actions.setPlayerNumber).toBe(setPlayerNumberAction);
     expect(actions).not.toHaveProperty("reorderMatches");
+  });
+
+  it("シングルエリミは BracketEditorSetup に 6 つのアクションを渡す", async () => {
+    render(await DivisionSetupPage(pageProps()));
+    const props = bracketEditorSetupProps.mock.calls[0][0] as {
+      actions: Record<string, unknown>;
+    };
+    expect(props.actions).toEqual({
+      addFirstRoundMatch: addFirstRoundMatchAction,
+      removeFirstRoundMatch: removeFirstRoundMatchAction,
+      assignSlot: assignSlotAction,
+      clearSlot: clearSlotAction,
+      generateMatching: generateMatchingAction,
+      setMatchName: setMatchNameAction,
+    });
+    expect(divisionSetupProps).not.toHaveBeenCalled();
   });
 });

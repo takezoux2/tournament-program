@@ -46,6 +46,13 @@ export type RemoveEntryPort = (
 
 export const removeEntryInDb: RemoveEntryPort = (ids, input) =>
   runDivisionSetup<RemoveEntryResult>(ids, async (_tx, current) => {
+    // シングルエリミは 1 回戦の試合・スロットを直接編集するスライス
+    // （add-first-round-match など）で組む。ここで木を組み直すと 2 の冪へ
+    // 詰め直され、試合名も消えるため、この経路では何もしない。
+    if (current.format === "SINGLE_ELIMINATION") {
+      return { next: null, value: { removed: false } };
+    }
+
     const remaining = current.entries.entries.filter(
       (entry) => entry.id !== input.entryId,
     );

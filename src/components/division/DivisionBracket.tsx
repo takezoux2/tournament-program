@@ -18,6 +18,7 @@ import {
   parseDivisionResults,
   parseMatchingConfig,
 } from "@/lib/division/parse";
+import { type BracketEditor, EditableBracket } from "./EditableBracket";
 import { Notice } from "./Notice";
 
 export function DivisionBracket({
@@ -25,6 +26,7 @@ export function DivisionBracket({
   participants,
   overallSeq,
   heightClassName = "h-[28rem]",
+  editor,
 }: {
   division: DivisionDetail;
   participants: DivisionParticipant[];
@@ -37,6 +39,8 @@ export function DivisionBracket({
    * 呼び出し側は必ず文字列リテラルで渡すこと。
    */
   heightClassName?: string;
+  /** 渡すと 1 回戦のスロットに鉛筆を出す編集モード。setup 画面だけが渡す */
+  editor?: BracketEditor;
 }) {
   // Json は DB の列で、アプリの外から壊れた値が入りうる。パースの失敗は
   // この区画で受け止め、ページ全体は落とさない。
@@ -84,7 +88,14 @@ export function DivisionBracket({
     matchingConfig: parsed.matchingConfig,
     results: parsed.results,
     resultConfig,
-    participants,
+    // memberId は setup 画面の候補絞り込み用で、ブラケットには要らない。
+    // 公開ページではノードのデータがクライアントへ送られるため、
+    // 描画に使う項目だけを渡して内部 id が紛れ込まないようにする。
+    participants: participants.map(({ id, name, team }) => ({
+      id,
+      name,
+      team,
+    })),
     matchNames: resolveMatchNames(
       parsed.matchingConfig,
       division.id,
@@ -118,7 +129,15 @@ export function DivisionBracket({
     <div
       className={`${heightClassName} rounded border border-slate-200 bg-white`}
     >
-      <TournamentFlow nodes={elements.nodes} edges={elements.edges} />
+      {editor === undefined ? (
+        <TournamentFlow nodes={elements.nodes} edges={elements.edges} />
+      ) : (
+        <EditableBracket
+          nodes={elements.nodes}
+          edges={elements.edges}
+          {...editor}
+        />
+      )}
     </div>
   );
 }

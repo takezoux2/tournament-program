@@ -1,6 +1,10 @@
+"use client";
+
 import { MatchNoteButton } from "@/components/result/MatchNoteButton";
+import { PencilIcon } from "@/components/ui/PencilIcon";
 import { NODE_HEIGHT, NODE_WIDTH } from "@/features/bracket/layout-bracket";
 import type { ResolvedMatch, ResolvedSlot } from "@/features/bracket/types";
+import { useSlotEdit } from "./slot-edit-context";
 
 function slotLabel(slot: ResolvedSlot): string {
   if (slot.state === "bye") return "BYE";
@@ -27,6 +31,7 @@ function SlotRow({
   winReason,
   reserveTopRight = false,
   decided,
+  edit,
 }: {
   matchId: string;
   slot: ResolvedSlot;
@@ -35,6 +40,7 @@ function SlotRow({
   /** 右上に重ねるメモボタンのぶん、右端を空けるか */
   reserveTopRight?: boolean;
   decided: boolean;
+  edit?: { locked: boolean; label: string; onEdit: () => void };
 }) {
   return (
     <div
@@ -63,6 +69,22 @@ function SlotRow({
           {winReason}
         </span>
       )}
+      {edit !== undefined && (
+        // ブラケットはノードの選択もドラッグも切っているため、React Flow が
+        // ノードに pointer-events: none を付ける。メモボタンと同じく
+        // pointer-events-auto と nodrag / nopan でこのボタンだけ押せるようにする。
+        <span className="nodrag nopan pointer-events-auto shrink-0">
+          <button
+            type="button"
+            onClick={edit.onEdit}
+            disabled={edit.locked}
+            aria-label={edit.label}
+            className="rounded p-0.5 text-slate-500 hover:bg-slate-100 hover:text-slate-800 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            <PencilIcon />
+          </button>
+        </span>
+      )}
     </div>
   );
 }
@@ -73,6 +95,18 @@ export function MatchCard({ match }: { match: ResolvedMatch }) {
   const hasSlotScore = match.slots.some((slot) => slot.score !== null);
   const hasNote = match.note !== null && match.note !== "";
   const decided = match.winnerId !== null;
+
+  const slotEdit = useSlotEdit();
+  // 選手を直接置けるのは勝者側 1 回戦だけ。2 回戦以降は勝ち上がりで決まる。
+  const editFor = (index: 0 | 1) =>
+    slotEdit !== null && match.bracket === "winners" && match.round === 1
+      ? {
+          locked: slotEdit.locked,
+          // 1 回戦の鉛筆はブラケット上にいくつも並ぶので、試合名で区別できる名前にする。
+          label: `${match.matchName ?? "試合"}の${index === 0 ? "上" : "下"}側の選手を編集`,
+          onEdit: () => slotEdit.onEditSlot(match.id, index),
+        }
+      : undefined;
 
   return (
     <div
@@ -88,6 +122,7 @@ export function MatchCard({ match }: { match: ResolvedMatch }) {
         winReason={match.winReason}
         reserveTopRight={hasNote}
         decided={decided}
+        edit={editFor(0)}
       />
       <SlotRow
         matchId={match.id}
@@ -95,6 +130,7 @@ export function MatchCard({ match }: { match: ResolvedMatch }) {
         index={1}
         winReason={match.winReason}
         decided={decided}
+        edit={editFor(1)}
       />
       {match.score && !hasSlotScore ? (
         <span
@@ -125,9 +161,7 @@ export function MatchCard({ match }: { match: ResolvedMatch }) {
         <MatchNoteButton
           note={match.note}
           label={
-            match.matchName !== null
-              ? `${match.matchName}のメモ`
-              : "試合のメモ"
+            match.matchName !== null ? `${match.matchName}のメモ` : "試合のメモ"
           }
         />
       </span>
