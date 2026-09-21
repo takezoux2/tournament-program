@@ -144,7 +144,7 @@ SINGLE_ELIMINATION 以外は拒否する。変更後は setup ページを reval
 
 ## クライアント構成
 
-- `DivisionBracket` に `editable?: boolean` を追加。true のとき `EditableBracket`（client）を使う。
+- `DivisionBracket` に `editor?: BracketEditor` を追加。渡されたとき `EditableBracket`（client）を使う。
 - `EditableBracket` は `SlotEditContext`（`onEditSlot(matchId, slotIndex)`、`locked`）を提供し、
   `TournamentFlow` と `SlotEditDialog` を描画する。
 - `MatchNode` / `MatchCard` は context がある場合のみ、1 回戦のスロットに鉛筆を出す。
