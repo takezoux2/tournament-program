@@ -1,10 +1,15 @@
 import { notFound } from "next/navigation";
+import { BracketEditorSetup } from "@/components/division/BracketEditorSetup";
 import { DivisionSetup } from "@/components/division/DivisionSetup";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { addEntryAction } from "@/features/division/add-entry/handler";
+import { addFirstRoundMatchAction } from "@/features/division/add-first-round-match/handler";
+import { assignSlotAction } from "@/features/division/assign-slot/handler";
+import { clearSlotAction } from "@/features/division/clear-slot/handler";
 import { generateMatchingAction } from "@/features/division/generate-matching/handler";
 import { isSlotBracketFormat } from "@/features/division/matching-strategy";
 import { removeEntryAction } from "@/features/division/remove-entry/handler";
+import { removeFirstRoundMatchAction } from "@/features/division/remove-first-round-match/handler";
 import { reorderEntryAction } from "@/features/division/reorder-entry/handler";
 import {
   findDivisionInTournament,
@@ -67,23 +72,42 @@ export default async function DivisionSetupPage({
           {division.name} のエントリー・組み合わせ
         </h1>
 
-        <DivisionSetup
-          division={division}
-          participants={participants}
-          members={members}
-          slug={slug}
-          tournamentId={tournament.id}
-          overallSeq={overallSeq}
-          actions={{
-            addEntry: addEntryAction,
-            removeEntry: removeEntryAction,
-            reorderEntry: reorderEntryAction,
-            generateMatching: generateMatchingAction,
-            swapSlots: swapSlotsAction,
-            setMatchName: setMatchNameAction,
-            setPlayerNumber: setPlayerNumberAction,
-          }}
-        />
+        {division.format === "SINGLE_ELIMINATION" ? (
+          <BracketEditorSetup
+            division={division}
+            participants={participants}
+            members={members}
+            slug={slug}
+            tournamentId={tournament.id}
+            overallSeq={overallSeq}
+            actions={{
+              addFirstRoundMatch: addFirstRoundMatchAction,
+              removeFirstRoundMatch: removeFirstRoundMatchAction,
+              assignSlot: assignSlotAction,
+              clearSlot: clearSlotAction,
+              generateMatching: generateMatchingAction,
+              setMatchName: setMatchNameAction,
+            }}
+          />
+        ) : (
+          <DivisionSetup
+            division={division}
+            participants={participants}
+            members={members}
+            slug={slug}
+            tournamentId={tournament.id}
+            overallSeq={overallSeq}
+            actions={{
+              addEntry: addEntryAction,
+              removeEntry: removeEntryAction,
+              reorderEntry: reorderEntryAction,
+              generateMatching: generateMatchingAction,
+              swapSlots: swapSlotsAction,
+              setMatchName: setMatchNameAction,
+              setPlayerNumber: setPlayerNumberAction,
+            }}
+          />
+        )}
       </div>
     </main>
   );

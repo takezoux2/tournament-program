@@ -91,13 +91,13 @@ describe("listParticipantsInTournament", () => {
         id: "p1",
         team: "青葉クラブ",
         playerNumber: "1",
-        member: { name: "佐藤 蓮", nameKana: "サトウ レン" },
+        member: { id: "m1", name: "佐藤 蓮", nameKana: "サトウ レン" },
       },
       {
         id: "p2",
         team: null,
         playerNumber: "2",
-        member: { name: "鈴木 陽菜", nameKana: "スズキ ハルナ" },
+        member: { id: "m2", name: "鈴木 陽菜", nameKana: "スズキ ハルナ" },
       },
     ]);
 
@@ -116,6 +116,7 @@ describe("listParticipantsInTournament", () => {
         nameKana: "サトウ レン",
         playerNumber: "1",
         team: "青葉クラブ",
+        memberId: "m1",
       },
       {
         id: "p2",
@@ -123,6 +124,7 @@ describe("listParticipantsInTournament", () => {
         nameKana: "スズキ ハルナ",
         playerNumber: "2",
         team: undefined,
+        memberId: "m2",
       },
     ]);
   });

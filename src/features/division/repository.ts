@@ -34,6 +34,11 @@ export type DivisionParticipant = {
   /** 選手番号。大会単位で Participant が持つ */
   playerNumber: string;
   team?: string;
+  /**
+   * 参加者の Member。setup 画面が「この部門に配置済みの人」を
+   * メンバーの選択肢から除くのに使う。一覧以外の経路では埋めないので省略可能。
+   */
+  memberId?: string;
 };
 
 /**
@@ -91,7 +96,7 @@ export const listParticipantsInTournament = async (
       id: true,
       team: true,
       playerNumber: true,
-      member: { select: { name: true, nameKana: true } },
+      member: { select: { id: true, name: true, nameKana: true } },
     },
   });
 
@@ -102,6 +107,7 @@ export const listParticipantsInTournament = async (
     playerNumber: row.playerNumber,
     // bracket 側の Participant.team は省略可能なプロパティ。null は運ばない。
     team: row.team ?? undefined,
+    memberId: row.member.id,
   }));
 };
 
