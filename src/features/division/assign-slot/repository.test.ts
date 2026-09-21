@@ -146,6 +146,38 @@ describe("assignSlotInDb", () => {
     expect(divisionUpdateMany).not.toHaveBeenCalled();
   });
 
+  it("スロットに置かれていない既存エントリーは、足さずにそのエントリーを置く", async () => {
+    divisionFindFirst.mockResolvedValue({
+      format: "SINGLE_ELIMINATION",
+      entries: {
+        version: 1,
+        entries: [
+          { id: "a", participantId: "p-a", seed: 0 },
+          { id: "orphan", participantId: "p-new", seed: 1 },
+        ],
+      },
+      matchingConfig: buildFromFirstRound([[e("a"), bye]]),
+      results: { version: 1, matches: [] },
+    });
+    const result = await Effect.runPromise(
+      assignSlotInDb(ids, {
+        matchId: "m1-0",
+        slotIndex: 1,
+        member: { mode: "existing", memberId: "m-2" },
+      }),
+    );
+    expect(result).toEqual({ found: true, value: null });
+    const data = divisionUpdateMany.mock.calls[0][0].data;
+    expect(data.entries.entries).toEqual([
+      { id: "a", participantId: "p-a", seed: 0 },
+      { id: "orphan", participantId: "p-new", seed: 1 },
+    ]);
+    expect(firstRoundPairs(data.matchingConfig)[0]).toEqual([
+      e("a"),
+      e("orphan"),
+    ]);
+  });
+
   it("1 回戦に無い試合は Member を作る前に DivisionMatchNotFoundError", async () => {
     const exit = await Effect.runPromiseExit(
       assignSlotInDb(ids, {

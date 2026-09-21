@@ -10,6 +10,7 @@ import {
 import { runFirstRoundEdit } from "../first-round-store";
 import type { DivisionIds, DivisionSetupOutcome } from "../setup-store";
 import {
+  firstRoundPairs,
   removeEntries,
   setFirstRoundSlot,
 } from "../single-elimination/first-round";
@@ -47,25 +48,37 @@ export const assignSlotInDb: AssignSlotPort = (ids, input) =>
 
     // 同じ人が 2 つのスロットに居るとトーナメントが成り立たない。
     // 同じスロットに同じ人を選び直した場合も、エラーで知らせて何もしない。
-    if (
-      current.entries.entries.some(
-        (entry) => entry.participantId === participantId,
-      )
-    ) {
-      throw new DivisionDuplicateEntryError({ divisionId: ids.divisionId });
+    // スロットに置かれていないエントリー（試合の削除で外れたものや旧画面で
+    // 登録したもの）はそのまま使い回し、エントリーを重複させない。
+    const existing = current.entries.entries.find(
+      (entry) => entry.participantId === participantId,
+    );
+    if (existing !== undefined) {
+      const isPlaced = firstRoundPairs(current.matchingConfig).some((pair) =>
+        pair.some(
+          (slot) => slot.kind === "entry" && slot.entryId === existing.id,
+        ),
+      );
+      if (isPlaced) {
+        throw new DivisionDuplicateEntryError({ divisionId: ids.divisionId });
+      }
     }
 
     const maxSeed = current.entries.entries.reduce(
       (max, entry) => Math.max(max, entry.seed),
       -1,
     );
-    const added = { id: randomUUID(), participantId, seed: maxSeed + 1 };
+    const entry = existing ?? {
+      id: randomUUID(),
+      participantId,
+      seed: maxSeed + 1,
+    };
 
     const placed = setFirstRoundSlot(
       current.matchingConfig,
       input.matchId,
       input.slotIndex,
-      { kind: "entry", entryId: added.id },
+      { kind: "entry", entryId: entry.id },
     );
     if (placed === null) {
       throw new DivisionMatchNotFoundError({ matchId: input.matchId });
@@ -74,7 +87,13 @@ export const assignSlotInDb: AssignSlotPort = (ids, input) =>
     const pushedOut =
       placed.replaced.kind === "entry" ? [placed.replaced.entryId] : [];
     const entries = removeEntries(
-      { version: 1, entries: [...current.entries.entries, added] },
+      {
+        version: 1,
+        entries:
+          existing === undefined
+            ? [...current.entries.entries, entry]
+            : current.entries.entries,
+      },
       pushedOut,
     );
 

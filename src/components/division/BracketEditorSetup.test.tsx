@@ -24,6 +24,15 @@ const actions = {
 };
 
 const e = (id: string) => ({ kind: "entry" as const, entryId: id });
+const bye = { kind: "bye" } as const;
+const noMatches = { version: 1, matches: [] };
+const twoEntries = {
+  version: 1,
+  entries: [
+    { id: "a", participantId: "p1", seed: 0 },
+    { id: "b", participantId: "p2", seed: 1 },
+  ],
+};
 const division = (overrides: Partial<DivisionDetail> = {}): DivisionDetail => ({
   id: "d1",
   name: "男子",
@@ -104,12 +113,35 @@ describe("BracketEditorSetup", () => {
     ).toBeInTheDocument();
   });
 
-  it("エントリーはあるが組み合わせが無ければ、生成ボタンを出してブラケットは出さない", () => {
-    renderSetup(division({ matchingConfig: { version: 1, matches: [] } }));
+  it("生成できる数のエントリーがあり組み合わせが無ければ、生成ボタンを出してブラケットは出さない", () => {
+    renderSetup(division({ entries: twoEntries, matchingConfig: noMatches }));
     expect(
       screen.getByRole("button", { name: "組み合わせを生成" }),
     ).toBeInTheDocument();
     expect(bracketProps).not.toHaveBeenCalled();
+    // 「試合を追加」ボタンは無いので、その案内も出さない
+    expect(screen.getByText("まだ組み合わせがありません")).toBeInTheDocument();
+    expect(
+      screen.queryByText("「試合を追加」で 1 回戦の試合を作ります"),
+    ).not.toBeInTheDocument();
+  });
+
+  it("エントリーが 1 件だけで組み合わせが無ければ、生成ではなく「試合を追加」を出す", () => {
+    renderSetup(division({ matchingConfig: noMatches }));
+    expect(screen.getByRole("button", { name: "試合を追加" })).toBeEnabled();
+    expect(
+      screen.queryByRole("button", { name: "組み合わせを生成" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("スロットに置かれていないエントリーのメンバーは候補に残す", () => {
+    renderSetup(
+      division({ matchingConfig: buildFromFirstRound([[bye, bye]]) }),
+    );
+    const props = bracketProps.mock.calls[0][0] as {
+      editor: { members: { id: string }[] };
+    };
+    expect(props.editor.members.map((m) => m.id)).toEqual(["m1", "m2"]);
   });
 
   it("何も無ければ「試合を追加」だけで始められる", () => {

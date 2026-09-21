@@ -2,7 +2,9 @@ import type {
   DivisionDetail,
   DivisionParticipant,
 } from "@/features/division/repository";
+import { minEntries } from "@/features/division/matching-strategy";
 import { isSingleEliminationShape } from "@/features/division/single-elimination/build";
+import { firstRoundPairs } from "@/features/division/single-elimination/first-round";
 import type { DivisionFormAction } from "@/features/division/state";
 import type { MemberSummary } from "@/features/organization/repository";
 import { AddFirstRoundMatchButton } from "./AddFirstRoundMatchButton";
@@ -57,15 +59,27 @@ export function BracketEditorSetup({
 
   // /edit で format を書き換えた部門は league の星取表を持っていることがある。
   // また、旧画面でエントリーだけ登録して生成していない部門もある。
-  // どちらも生成し直せば編集できる形になる。
+  // どちらも生成し直せば編集できる形になる。ただし生成できる人数に
+  // 満たないエントリーしか無いと生成は失敗するので、そのときは
+  // エディタを出して「試合を追加」から組めるようにする。
   const mismatched = !isSingleEliminationShape(parsed.matchingConfig);
   const needsGeneration =
     mismatched ||
     (parsed.matchingConfig.matches.length === 0 &&
-      parsed.entries.entries.length > 0);
+      parsed.entries.entries.length >= minEntries("SINGLE_ELIMINATION"));
 
+  // 候補から外すのは 1 回戦のスロットに置かれているエントリーの人だけ。
+  // スロットに置かれていないエントリー（試合の削除で外れたものや旧画面で
+  // 登録したもの）の人は、割り当て時にそのエントリーを使い回す。
+  const placedEntryIds = new Set(
+    firstRoundPairs(parsed.matchingConfig).flatMap((pair) =>
+      pair.flatMap((slot) => (slot.kind === "entry" ? [slot.entryId] : [])),
+    ),
+  );
   const placedParticipantIds = new Set(
-    parsed.entries.entries.map((entry) => entry.participantId),
+    parsed.entries.entries
+      .filter((entry) => placedEntryIds.has(entry.id))
+      .map((entry) => entry.participantId),
   );
   const placedMemberIds = new Set(
     participants
@@ -140,7 +154,11 @@ export function BracketEditorSetup({
         tournamentId={tournamentId}
         setMatchNameAction={actions.setMatchName}
         mismatched={mismatched}
-        emptyMessage="「試合を追加」で 1 回戦の試合を作ります"
+        emptyMessage={
+          needsGeneration
+            ? "まだ組み合わせがありません"
+            : "「試合を追加」で 1 回戦の試合を作ります"
+        }
       />
     </div>
   );
