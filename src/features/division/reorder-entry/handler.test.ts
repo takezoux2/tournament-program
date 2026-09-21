@@ -51,7 +51,10 @@ beforeEach(() => {
   reorderEntryInDb.mockReset();
   revalidateDivisionSetup.mockReset();
   notFound.mockClear();
-  requireOrganization.mockResolvedValue({ organization: { id: "o1" } });
+  requireOrganization.mockResolvedValue({
+    organization: { id: "o1" },
+    session: { user: { id: "u1" } },
+  });
   reorderEntryInDb.mockReturnValue(
     Effect.succeed({
       found: true,

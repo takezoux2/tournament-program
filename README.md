@@ -54,6 +54,7 @@ Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/bui
 | `MAILTRAP_TEST_INBOX_ID` | `MAILTRAP_SANDBOX="1"` のとき必須の受信箱 ID |
 | `MAIL_FROM_ADDRESS` | 確認メールの差出人アドレス。未設定でも既定値で動く |
 | `MAIL_FROM_NAME` | 確認メールの差出人名。未設定でも既定値で動く |
+| `LOG_LEVEL` | Server Action の操作ログの最小レベル（`Debug` / `Info` / `Warning` / `Error` など）。未設定なら `NODE_ENV=production` で `Info`、それ以外で `Debug` |
 
 ### デプロイ順序
 

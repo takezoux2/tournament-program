@@ -52,7 +52,10 @@ beforeEach(() => {
   requirePermission.mockReset();
   setPlayerNumberInDb.mockReset();
   revalidatePlayerNumber.mockReset();
-  requirePermission.mockResolvedValue({ organization: { id: "o1" } });
+  requirePermission.mockResolvedValue({
+    organization: { id: "o1" },
+    session: { user: { id: "u1" } },
+  });
   setPlayerNumberInDb.mockReturnValue(
     Effect.succeed({ updated: true, divisionIds: ["d1", "d2"] }),
   );

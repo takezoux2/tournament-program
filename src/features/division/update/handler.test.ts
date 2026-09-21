@@ -63,6 +63,7 @@ beforeEach(() => {
   redirect.mockReset();
   requireOrganization.mockResolvedValue({
     organization,
+    session: { user: { id: "u1" } },
     permissionCodes: [...PERMISSION_CODES],
     ability: defineAbilityFor(PERMISSION_CODES),
   });

@@ -1,6 +1,7 @@
 "use server";
 
-import { Effect, Exit } from "effect";
+import { Exit } from "effect";
+import { runOperationExit } from "@/shared/lib/logger/run-operation";
 import { requirePermission } from "@/shared/middleware/require-organization";
 import { participantErrorFormState } from "../effect-to-form-state";
 import { revalidatePlayerNumber } from "../revalidate";
@@ -17,7 +18,10 @@ export const setPlayerNumberAction = async (
   const tournamentId = String(formData.get("tournamentId") ?? "");
 
   // Server Action はページを経由せず直接叩ける別の入口なので、ここで独立に確かめる。
-  const { organization } = await requirePermission(slug, "tournament.edit");
+  const { organization, session } = await requirePermission(
+    slug,
+    "tournament.edit",
+  );
 
   const parsed = setPlayerNumberSchema.safeParse({
     participantId: String(formData.get("participantId") ?? ""),
@@ -32,7 +36,17 @@ export const setPlayerNumberAction = async (
   const confirmedNumber = String(formData.get("confirmedNumber") ?? "");
   const confirmed = confirmedNumber === parsed.data.playerNumber;
 
-  const exit = await Effect.runPromiseExit(
+  const exit = await runOperationExit(
+    "participant.set-player-number",
+    {
+      request: { ...parsed.data, confirmed },
+      // 選手番号は参加者に付くもので、部門をまたいで1つなので divisionId は持たない。
+      context: {
+        userId: session.user.id,
+        organizationId: organization.id,
+        tournamentId,
+      },
+    },
     setPlayerNumberForParticipant(
       setPlayerNumberInDb,
       { organizationId: organization.id, tournamentId },

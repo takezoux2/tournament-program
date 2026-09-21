@@ -51,7 +51,10 @@ beforeEach(() => {
   swapSlotsInDb.mockReset();
   revalidateDivisionSetup.mockReset();
   notFound.mockClear();
-  requireOrganization.mockResolvedValue({ organization: { id: "o1" } });
+  requireOrganization.mockResolvedValue({
+    organization: { id: "o1" },
+    session: { user: { id: "u1" } },
+  });
   swapSlotsInDb.mockReturnValue(
     Effect.succeed({ found: true, value: { swapped: true } }),
   );

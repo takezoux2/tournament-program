@@ -47,7 +47,10 @@ beforeEach(() => {
   recordResultInDb.mockReset();
   revalidateDivisionResults.mockReset();
   notFound.mockClear();
-  requireOrganization.mockResolvedValue({ organization: { id: "o1" } });
+  requireOrganization.mockResolvedValue({
+    organization: { id: "o1" },
+    session: { user: { id: "u1" } },
+  });
   recordResultInDb.mockReturnValue(
     Effect.succeed({ found: true, value: { recorded: true } }),
   );
@@ -126,7 +129,10 @@ describe("recordResultAction", () => {
   });
 
   it("成功のたびに succeeded が増える（初期状態と、連続した成功を区別するため）", async () => {
-    const first = await recordResultAction({ error: null }, formData(validInput));
+    const first = await recordResultAction(
+      { error: null },
+      formData(validInput),
+    );
     const second = await recordResultAction(first, formData(validInput));
 
     expect(first.succeeded).toBe(1);

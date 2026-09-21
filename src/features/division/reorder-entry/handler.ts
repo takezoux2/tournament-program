@@ -1,7 +1,8 @@
 "use server";
 
-import { Effect, Exit } from "effect";
+import { Exit } from "effect";
 import { notFound } from "next/navigation";
+import { runOperationExit } from "@/shared/lib/logger/run-operation";
 import { requireOrganization } from "@/shared/middleware/require-organization";
 import { divisionErrorFormState } from "../effect-to-form-state";
 import { revalidateDivisionSetup } from "../revalidate";
@@ -36,7 +37,7 @@ export const reorderEntryAction = async (
   const tournamentId = String(formData.get("tournamentId") ?? "");
   const divisionId = String(formData.get("divisionId") ?? "");
   // Server Action はページを経由せず直接叩ける別の入口なので、ここで独立に確かめる。
-  const { organization } = await requireOrganization(slug);
+  const { organization, session } = await requireOrganization(slug);
 
   const parsed = reorderEntrySchema.safeParse({
     entryId: String(formData.get("entryId") ?? ""),
@@ -46,7 +47,17 @@ export const reorderEntryAction = async (
     return { error: parsed.error.issues[0].message };
   }
 
-  const exit = await Effect.runPromiseExit(
+  const exit = await runOperationExit(
+    "division.reorder-entry",
+    {
+      request: parsed.data,
+      context: {
+        userId: session.user.id,
+        organizationId: organization.id,
+        tournamentId,
+        divisionId,
+      },
+    },
     reorderEntry(
       reorderEntryInDb,
       { organizationId: organization.id, tournamentId, divisionId },
