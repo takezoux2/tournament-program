@@ -34,7 +34,7 @@
 3. 2 回戦の入力位置数 P = nextPowerOfTwo(N)。`seedOrder(P)` で各位置のシード番号を求め、
    シード番号 > N の位置を bye、それ以外の位置に 1 回戦の勝者を**追加順に**詰める。
    seedOrder は k と P+1-k を対にするので、N > P/2 である限り bye どうしの対は生まれない。
-   - 例 N=3（P=4）: 2 回戦 `[w0, w1] [w2, bye]`
+   - 例 N=3（P=4）: 2 回戦 `[w0, bye] [w1, w2]`
    - 例 N=5（P=8）: 2 回戦 `[w0, bye] [w1, w2] [w3, bye] [w4, bye]`
 4. 3 回戦以降は既存 `buildFromSlots` と同じく `winnerOf m{r-1}-{2o}` / `m{r-1}-{2o+1}`。
 5. 全試合の `matchName` は `DEFAULT_MATCH_NAME`（名前の引き継ぎは呼び出し側）。
@@ -51,7 +51,7 @@
 
 - 2 回戦以降: 同じ id の試合があればその名前を引き継ぐ。
 - 1 回戦: 追加では id が変わらないので同じ id で引き継ぐ。削除では後続の order が 1 つ詰まるため、
-  `firstRoundIdMap`（旧 id → 新 id）で、詰める前の同じ試合の名前を新しい id へ引き継ぐ。
+  `firstRoundIdMap`（旧 id → 新 id。削除した試合は null）で、詰める前の同じ試合の名前を新しい id へ引き継ぐ。
 
 ### 空きスロット
 
