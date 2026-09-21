@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { DEFAULT_MATCH_NAME } from "@/lib/division/match-name";
 import type { MatchingConfig } from "@/lib/division/types";
 import { buildFromFirstRound, type FirstRoundPair } from "./build";
 import {
@@ -17,6 +18,11 @@ const threeMatches: FirstRoundPair[] = [
   [entry("a"), entry("b")],
   [entry("c"), bye],
   [entry("d"), entry("e")],
+];
+
+const twoMatches: FirstRoundPair[] = [
+  [entry("a"), entry("b")],
+  [entry("c"), entry("d")],
 ];
 
 const rename = (
@@ -63,6 +69,15 @@ describe("addFirstRoundMatch", () => {
         .every((m) => m.slots.every((s) => s.kind === "winnerOf")),
     ).toBe(true);
   });
+
+  it("2→3 で回戦の深さが変わっても、決勝の名前は新しい決勝に付く", () => {
+    const named = rename(buildFromFirstRound(twoMatches), "m2-0", "決勝");
+    const config = addFirstRoundMatch(named);
+    // 2 試合の決勝は round2、3 試合になると決勝は round3 に深くなる
+    expect(nameOf(config, "m3-0")).toBe("決勝");
+    expect(nameOf(config, "m2-0")).toBe(DEFAULT_MATCH_NAME);
+    expect(nameOf(config, "m2-1")).toBe(DEFAULT_MATCH_NAME);
+  });
 });
 
 describe("removeFirstRoundMatch", () => {
@@ -107,6 +122,18 @@ describe("removeFirstRoundMatch", () => {
     const config = buildFromFirstRound(threeMatches);
     expect(removeFirstRoundMatch(config, "m2-0")).toBeNull();
     expect(removeFirstRoundMatch(config, "nope")).toBeNull();
+  });
+
+  it("3→2 で回戦の深さが変わっても、決勝の名前は新しい決勝に付く", () => {
+    let config = buildFromFirstRound(threeMatches);
+    config = rename(config, "m2-0", "準決勝A");
+    config = rename(config, "m3-0", "決勝");
+    const result = removeFirstRoundMatch(config, "m1-0");
+    // 3 試合の決勝は round3、2 試合になると決勝は round2 に浅くなる
+    expect(result && nameOf(result.config, "m2-0")).toBe("決勝");
+    expect(result?.config.matches.some((m) => m.matchName === "準決勝A")).toBe(
+      false,
+    );
   });
 });
 
