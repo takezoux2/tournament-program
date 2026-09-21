@@ -1,5 +1,4 @@
 import { DIVISION_FORMAT_LABELS } from "@/features/division/format";
-import { toMatchOrderView } from "@/features/division/match-name-view";
 import {
   isSlotBracketFormat,
   matchesSlotBracketShape,
@@ -12,19 +11,15 @@ import { toSetupView } from "@/features/division/single-elimination/view";
 import type { DivisionFormAction } from "@/features/division/state";
 import type { MemberSummary } from "@/features/organization/repository";
 import type { ParticipantFormAction } from "@/features/participant/state";
-import { resolveMatchNames } from "@/lib/division/match-name";
-import {
-  parseDivisionEntries,
-  parseDivisionResults,
-  parseMatchingConfig,
-} from "@/lib/division/parse";
 import { AddEntryForm } from "./AddEntryForm";
 import { DivisionBracket } from "./DivisionBracket";
 import { EntryList } from "./EntryList";
 import { GenerateMatchingForm } from "./GenerateMatchingForm";
+import { LockedNotice } from "./LockedNotice";
 import { MatchingSection } from "./MatchingSection";
-import { MatchOrderList } from "./MatchOrderList";
+import { MatchNameSection } from "./MatchNameSection";
 import { Notice } from "./Notice";
+import { parseSetupData } from "./parse-setup-data";
 
 export type DivisionSetupActions = {
   addEntry: DivisionFormAction;
@@ -68,20 +63,8 @@ export function DivisionSetup({
     );
   }
 
-  // Json は DB の列で、アプリの外から壊れた値が入りうる。パースの失敗は
-  // ここで受け止め、ページ全体は落とさない。
-  let parsed: {
-    entries: ReturnType<typeof parseDivisionEntries>;
-    matchingConfig: ReturnType<typeof parseMatchingConfig>;
-    results: ReturnType<typeof parseDivisionResults>;
-  };
-  try {
-    parsed = {
-      entries: parseDivisionEntries(division.entries),
-      matchingConfig: parseMatchingConfig(division.matchingConfig),
-      results: parseDivisionResults(division.results),
-    };
-  } catch {
+  const parsed = parseSetupData(division);
+  if (parsed === null) {
     return <Notice>部門のデータを読み込めませんでした</Notice>;
   }
 
@@ -100,11 +83,7 @@ export function DivisionSetup({
 
   return (
     <div className="space-y-6">
-      {locked && (
-        <output className="block rounded border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-          勝敗が記録されているため、エントリーと組み合わせは変更できません
-        </output>
-      )}
+      {locked && <LockedNotice />}
 
       <section className="space-y-3">
         <h2 className="text-sm font-bold text-slate-700">エントリー</h2>
@@ -163,28 +142,18 @@ export function DivisionSetup({
         )}
       </section>
 
-      <section className="space-y-3">
-        <h2 className="text-sm font-bold text-slate-700">試合名</h2>
-        {/* 試合名の変更は構造を変えないため、locked でも編集できる */}
-        {mismatched ? (
-          <Notice>組み合わせを作り直すと、ここに試合が出ます</Notice>
-        ) : (
-          <MatchOrderList
-            rows={toMatchOrderView(
-              parsed.matchingConfig,
-              parsed.entries,
-              participants,
-              format,
-              resolveMatchNames(parsed.matchingConfig, division.id, overallSeq),
-            )}
-            slug={slug}
-            tournamentId={tournamentId}
-            divisionId={division.id}
-            setMatchNameAction={actions.setMatchName}
-            emptyMessage="まだ組み合わせがありません"
-          />
-        )}
-      </section>
+      <MatchNameSection
+        division={division}
+        entries={parsed.entries}
+        matchingConfig={parsed.matchingConfig}
+        participants={participants}
+        overallSeq={overallSeq}
+        slug={slug}
+        tournamentId={tournamentId}
+        setMatchNameAction={actions.setMatchName}
+        mismatched={mismatched}
+        emptyMessage="まだ組み合わせがありません"
+      />
 
       <section className="space-y-3">
         <h2 className="text-sm font-bold text-slate-700">プレビュー</h2>

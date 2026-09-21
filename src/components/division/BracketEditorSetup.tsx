@@ -1,4 +1,3 @@
-import { toMatchOrderView } from "@/features/division/match-name-view";
 import type {
   DivisionDetail,
   DivisionParticipant,
@@ -6,17 +5,13 @@ import type {
 import { isSingleEliminationShape } from "@/features/division/single-elimination/build";
 import type { DivisionFormAction } from "@/features/division/state";
 import type { MemberSummary } from "@/features/organization/repository";
-import { resolveMatchNames } from "@/lib/division/match-name";
-import {
-  parseDivisionEntries,
-  parseDivisionResults,
-  parseMatchingConfig,
-} from "@/lib/division/parse";
 import { AddFirstRoundMatchButton } from "./AddFirstRoundMatchButton";
 import { DivisionBracket } from "./DivisionBracket";
 import { GenerateMatchingForm } from "./GenerateMatchingForm";
-import { MatchOrderList } from "./MatchOrderList";
+import { LockedNotice } from "./LockedNotice";
+import { MatchNameSection } from "./MatchNameSection";
 import { Notice } from "./Notice";
+import { parseSetupData } from "./parse-setup-data";
 
 export type BracketEditorSetupActions = {
   addFirstRoundMatch: DivisionFormAction;
@@ -51,20 +46,8 @@ export function BracketEditorSetup({
   overallSeq: ReadonlyMap<string, number>;
   actions: BracketEditorSetupActions;
 }) {
-  // Json は DB の列で、アプリの外から壊れた値が入りうる。パースの失敗は
-  // ここで受け止め、ページ全体は落とさない。
-  let parsed: {
-    entries: ReturnType<typeof parseDivisionEntries>;
-    matchingConfig: ReturnType<typeof parseMatchingConfig>;
-    results: ReturnType<typeof parseDivisionResults>;
-  };
-  try {
-    parsed = {
-      entries: parseDivisionEntries(division.entries),
-      matchingConfig: parseMatchingConfig(division.matchingConfig),
-      results: parseDivisionResults(division.results),
-    };
-  } catch {
+  const parsed = parseSetupData(division);
+  if (parsed === null) {
     return <Notice>部門のデータを読み込めませんでした</Notice>;
   }
 
@@ -97,11 +80,7 @@ export function BracketEditorSetup({
 
   return (
     <div className="space-y-6">
-      {locked && (
-        <output className="block rounded border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-          勝敗が記録されているため、エントリーと組み合わせは変更できません
-        </output>
-      )}
+      {locked && <LockedNotice />}
 
       <section className="space-y-3">
         <h2 className="text-sm font-bold text-slate-700">プレビュー</h2>
@@ -151,28 +130,18 @@ export function BracketEditorSetup({
         )}
       </section>
 
-      <section className="space-y-3">
-        <h2 className="text-sm font-bold text-slate-700">試合名</h2>
-        {/* 試合名の変更は構造を変えないため、locked でも編集できる */}
-        {mismatched ? (
-          <Notice>組み合わせを作り直すと、ここに試合が出ます</Notice>
-        ) : (
-          <MatchOrderList
-            rows={toMatchOrderView(
-              parsed.matchingConfig,
-              parsed.entries,
-              participants,
-              division.format,
-              resolveMatchNames(parsed.matchingConfig, division.id, overallSeq),
-            )}
-            slug={slug}
-            tournamentId={tournamentId}
-            divisionId={division.id}
-            setMatchNameAction={actions.setMatchName}
-            emptyMessage="「試合を追加」で 1 回戦の試合を作ります"
-          />
-        )}
-      </section>
+      <MatchNameSection
+        division={division}
+        entries={parsed.entries}
+        matchingConfig={parsed.matchingConfig}
+        participants={participants}
+        overallSeq={overallSeq}
+        slug={slug}
+        tournamentId={tournamentId}
+        setMatchNameAction={actions.setMatchName}
+        mismatched={mismatched}
+        emptyMessage="「試合を追加」で 1 回戦の試合を作ります"
+      />
     </div>
   );
 }
