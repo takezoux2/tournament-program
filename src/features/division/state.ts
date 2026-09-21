@@ -13,8 +13,9 @@ export type DivisionFormState = {
   /**
    * 成功のたびに 1 増える。成功時の戻り値が初期状態と同じ形になる
    * アクション（結果登録）で、両者を区別するために使う。真偽値では
-   * 同じ行での連続した成功を見分けられない。設定するのは
-   * record-result だけで、他スライスでは undefined のまま。
+   * 同じ行での連続した成功を見分けられない。設定するのは record-result と、
+   * スロット編集モーダルを閉じる合図に使う assign-slot / clear-slot /
+   * remove-first-round-match。他スライスでは undefined のまま。
    */
   succeeded?: number;
 };

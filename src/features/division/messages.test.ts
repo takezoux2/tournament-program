@@ -3,12 +3,14 @@ import {
   DivisionDataError,
   DivisionDuplicateEntryError,
   DivisionEntryLimitError,
+  DivisionFirstRoundLimitError,
   DivisionMemberNotFoundError,
   DivisionNotEnoughEntriesError,
   DivisionOrderConflictError,
   DivisionResultNotRecordedError,
   DivisionResultsRecordedError,
   DivisionRevisionConflictError,
+  DivisionShapeMismatchError,
   DivisionSlotNotDecidedError,
   DivisionWinReasonNotAllowedError,
   UnexpectedDivisionError,
@@ -113,5 +115,19 @@ describe("divisionErrorMessage（追加分）", () => {
         new DivisionWinReasonNotAllowedError({ winReason: "反則負け" }),
       ),
     ).toBe("その勝因は選べません。画面を再読み込みしてください");
+  });
+
+  it("1 回戦の上限", () => {
+    expect(
+      divisionErrorMessage(
+        new DivisionFirstRoundLimitError({ divisionId: "d1", limit: 64 }),
+      ),
+    ).toBe("1回戦は64試合までです");
+  });
+
+  it("トーナメントの形でない組み合わせ", () => {
+    expect(
+      divisionErrorMessage(new DivisionShapeMismatchError({ divisionId: "d1" })),
+    ).toBe("この組み合わせはトーナメントの形ではありません。作り直してください");
   });
 });

@@ -60,5 +60,13 @@ export const divisionErrorMessage: (error: DivisionError) => string =
       "DivisionWinReasonNotAllowedError",
       () => "その勝因は選べません。画面を再読み込みしてください",
     ),
+    Match.tag(
+      "DivisionFirstRoundLimitError",
+      (error) => `1回戦は${error.limit}試合までです`,
+    ),
+    Match.tag(
+      "DivisionShapeMismatchError",
+      () => "この組み合わせはトーナメントの形ではありません。作り直してください",
+    ),
     Match.exhaustive,
   );
