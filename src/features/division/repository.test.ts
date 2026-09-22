@@ -23,6 +23,7 @@ vi.mock("@/shared/db/prisma", () => ({
 
 const {
   findDivisionInTournament,
+  listDivisionDetailsInTournament,
   listDivisionsInTournament,
   listOverallOrderSources,
   listParticipantsInTournament,
@@ -233,5 +234,29 @@ describe("listOverallOrderSources", () => {
     // 保存された並びを使わない場合でも、部門内の実施順から末尾に足されるので
     // 通し番号自体は付く。
     expect(overallSeq.get(overallSeqKey("d1", "m1"))).toBe(1);
+  });
+});
+
+describe("listDivisionDetailsInTournament", () => {
+  it("組織と大会を where に入れ、order 昇順で Json 列まで引く", async () => {
+    findMany.mockResolvedValue([]);
+
+    await listDivisionDetailsInTournament("o1", "t1");
+
+    expect(findMany).toHaveBeenCalledWith({
+      where: { tournament: { id: "t1", organizationId: "o1" } },
+      orderBy: { order: "asc" },
+      select: {
+        id: true,
+        name: true,
+        order: true,
+        format: true,
+        entries: true,
+        matchingConfig: true,
+        results: true,
+        resultConfig: true,
+        createdAt: true,
+      },
+    });
   });
 });

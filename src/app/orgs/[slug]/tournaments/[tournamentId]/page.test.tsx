@@ -159,9 +159,10 @@ describe("TournamentPage", () => {
   it("参加者一覧への導線を出す", async () => {
     render(await Page(pageProps("tennis", "t1")));
 
-    expect(
-      screen.getByRole("link", { name: "参加者一覧" }),
-    ).toHaveAttribute("href", "/orgs/tennis/tournaments/t1/participants");
+    expect(screen.getByRole("link", { name: "参加者一覧" })).toHaveAttribute(
+      "href",
+      "/orgs/tennis/tournaments/t1/participants",
+    );
   });
 
   it("試合一覧ページへの導線を出す", async () => {
@@ -193,6 +194,15 @@ describe("TournamentPage", () => {
     ).toHaveAttribute("href", "/t/t1");
   });
 
+  it("印刷用ページを新しいタブで開く導線を出す", async () => {
+    const element = await Page(pageProps("tennis", "t1"));
+    render(element);
+
+    const link = screen.getByRole("link", { name: "印刷用PDF" });
+    expect(link).toHaveAttribute("href", "/t/t1/print");
+    expect(link).toHaveAttribute("target", "_blank");
+  });
+
   it("部門の作成ページへの導線を出す", async () => {
     const element = await Page(pageProps("tennis", "t1"));
     render(element);
@@ -212,25 +222,27 @@ describe("TournamentPage", () => {
     const element = await Page(pageProps("tennis", "t1"));
     render(element);
 
-    expect(screen.getByRole("button", { name: "公開する" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "公開する" }),
+    ).toBeInTheDocument();
   });
 
-  it.each(["IN_PROGRESS", "COMPLETED"] as const)(
-    "公開済み（%s）の大会には公開ボタンを出さない",
-    async (status) => {
-      findTournamentInOrganization.mockResolvedValue({
-        ...tournament,
-        status,
-      });
+  it.each([
+    "IN_PROGRESS",
+    "COMPLETED",
+  ] as const)("公開済み（%s）の大会には公開ボタンを出さない", async (status) => {
+    findTournamentInOrganization.mockResolvedValue({
+      ...tournament,
+      status,
+    });
 
-      const element = await Page(pageProps("tennis", "t1"));
-      render(element);
+    const element = await Page(pageProps("tennis", "t1"));
+    render(element);
 
-      expect(
-        screen.queryByRole("button", { name: "公開する" }),
-      ).not.toBeInTheDocument();
-    },
-  );
+    expect(
+      screen.queryByRole("button", { name: "公開する" }),
+    ).not.toBeInTheDocument();
+  });
 
   it("tournament.edit を持たなければ、準備中でも公開ボタンを出さない", async () => {
     const codes = PERMISSION_CODES.filter((code) => code !== "tournament.edit");
