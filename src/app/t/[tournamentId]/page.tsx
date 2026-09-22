@@ -79,6 +79,12 @@ export default async function PublicTournamentPage({
           >
             参加者一覧
           </Link>
+          <Link
+            href={`/t/${tournament.id}/print`}
+            className="col-span-2 rounded border border-slate-300 bg-white px-4 py-3 text-center text-sm font-medium text-slate-800"
+          >
+            印刷用PDF
+          </Link>
         </div>
 
         <section className="space-y-2">

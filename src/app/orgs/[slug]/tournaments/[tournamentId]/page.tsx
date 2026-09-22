@@ -92,6 +92,16 @@ export default async function TournamentPage({
           >
             公開ページを開く
           </Link>
+
+          {/* 印刷は公開ページの印刷用画面を使う。準備中でもメンバーは公開ゲートを通れる */}
+          <Link
+            href={`/t/${tournament.id}/print`}
+            target="_blank"
+            rel="noreferrer"
+            className="rounded border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-800"
+          >
+            印刷用PDF
+          </Link>
         </div>
 
         <div className="flex items-center justify-between pt-4">

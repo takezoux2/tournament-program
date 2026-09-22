@@ -112,6 +112,15 @@ describe("PublicTournamentPage", () => {
     );
   });
 
+  it("印刷用ページへの導線を出す", async () => {
+    render(await Page(pageProps("t1")));
+
+    expect(screen.getByRole("link", { name: "印刷用PDF" })).toHaveAttribute(
+      "href",
+      "/t/t1/print",
+    );
+  });
+
   it("部門を公開ブラケットページへのリンクとして出す", async () => {
     render(await Page(pageProps("t1")));
 
