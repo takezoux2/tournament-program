@@ -80,6 +80,13 @@ describe("PrintBracket", () => {
     expect(screen.getByText("決勝")).toBeInTheDocument();
   });
 
+  it("試合名はカードの幅で切れる見出し用の svg に入れる", () => {
+    renderBracket(bracket, []);
+
+    const matchName = screen.getByText("決勝");
+    expect(matchName.closest("svg")).toHaveAttribute("width", "220");
+  });
+
   it("結果があれば勝者を太字にし、スコアを添える", () => {
     renderBracket(bracket, [{ matchId: "m1", winnerId: "a", score: "3-1" }]);
 

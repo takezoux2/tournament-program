@@ -4,7 +4,11 @@ import {
   type Position,
   type SectionLabel,
 } from "@/features/bracket/layout-bracket";
-import { bracketViewBox, connectorPath } from "@/features/bracket/svg-geometry";
+import {
+  bracketViewBox,
+  connectorPath,
+  MATCH_NAME_HEIGHT,
+} from "@/features/bracket/svg-geometry";
 import type { ResolvedMatch, ResolvedSlot } from "@/features/bracket/types";
 
 // モノクロ印刷でも読めるよう、色は濃淡だけで分ける
@@ -77,22 +81,33 @@ const MatchCard = ({
 
   return (
     <g data-testid={`print-match-${match.id}`}>
-      {match.matchName !== null && (
-        <text x={position.x} y={position.y - 3} fontSize={10} fill={MUTED}>
-          {match.matchName}
-        </text>
-      )}
-      {summary !== "" && (
-        <text
-          x={position.x + NODE_WIDTH}
-          y={position.y - 3}
-          fontSize={10}
-          textAnchor="end"
-          fill={INK}
-        >
-          {summary}
-        </text>
-      )}
+      {/* 試合名・スコアの見出しも、カード本体と同じく入れ子 svg で自分の幅に切る。
+          そうしないと試合名が長い参加者名でも欄いっぱいに書けてしまい、
+          右のスコアと衝突したり、右端の列で viewBox からはみ出したりする */}
+      <svg
+        x={position.x}
+        y={position.y - MATCH_NAME_HEIGHT}
+        width={NODE_WIDTH}
+        height={MATCH_NAME_HEIGHT}
+        aria-hidden="true"
+      >
+        {match.matchName !== null && (
+          <text x={0} y={MATCH_NAME_HEIGHT - 3} fontSize={10} fill={MUTED}>
+            {match.matchName}
+          </text>
+        )}
+        {summary !== "" && (
+          <text
+            x={NODE_WIDTH}
+            y={MATCH_NAME_HEIGHT - 3}
+            fontSize={10}
+            textAnchor="end"
+            fill={INK}
+          >
+            {summary}
+          </text>
+        )}
+      </svg>
       {/* 入れ子の svg は既定で overflow: hidden なので、長い名前はカードの枠で切れる */}
       {/* 全体を role="img" で 1 枚絵として公開しているので、内側の入れ子 svg は隠す */}
       <svg
