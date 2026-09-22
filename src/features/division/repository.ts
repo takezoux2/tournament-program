@@ -56,6 +56,19 @@ export const listDivisionsInTournament = (
     select: { id: true, name: true, order: true, format: true },
   });
 
+/** 部門の詳細（Json 4 列込み）。1 件引きと一覧引きで列をずらさないよう共有する。 */
+const DIVISION_DETAIL_SELECT = {
+  id: true,
+  name: true,
+  order: true,
+  format: true,
+  entries: true,
+  matchingConfig: true,
+  results: true,
+  resultConfig: true,
+  createdAt: true,
+} as const;
+
 /**
  * 組織 → 大会 → 部門の 3 段の所有権を where に入れる。
  * id だけで引いて後から所属を検証する形にすると、検証を書き忘れた箇所が
@@ -68,17 +81,22 @@ export const findDivisionInTournament = (
 ): Promise<DivisionDetail | null> =>
   prisma.division.findFirst({
     where: { id: divisionId, tournament: { id: tournamentId, organizationId } },
-    select: {
-      id: true,
-      name: true,
-      order: true,
-      format: true,
-      entries: true,
-      matchingConfig: true,
-      results: true,
-      resultConfig: true,
-      createdAt: true,
-    },
+    select: DIVISION_DETAIL_SELECT,
+  });
+
+/**
+ * 大会の全部門を詳細込みで order 昇順に返す。印刷ページが全部門の表を
+ * 1 度に描くために使う（部門ごとに findDivisionInTournament を呼ぶと
+ * 部門数だけクエリが増える）。所有権の where は listDivisionsInTournament と同じ。
+ */
+export const listDivisionDetailsInTournament = (
+  organizationId: string,
+  tournamentId: string,
+): Promise<DivisionDetail[]> =>
+  prisma.division.findMany({
+    where: { tournament: { id: tournamentId, organizationId } },
+    orderBy: { order: "asc" },
+    select: DIVISION_DETAIL_SELECT,
   });
 
 /**
