@@ -80,6 +80,17 @@ describe("PrintBracket", () => {
     expect(screen.getByText("決勝")).toBeInTheDocument();
   });
 
+  it("小さいトーナメント表は実寸のまま、最小サイズ (1100x700) まで viewBox を広げる", () => {
+    renderBracket(bracket, []);
+
+    const svg = screen.getByRole("img", { name: "トーナメント表" });
+    const [, , width, height] = (svg.getAttribute("viewBox") ?? "")
+      .split(" ")
+      .map(Number);
+    expect(width).toBeGreaterThanOrEqual(1100);
+    expect(height).toBeGreaterThanOrEqual(700);
+  });
+
   it("試合名はカードの幅で切れる見出し用の svg に入れる", () => {
     renderBracket(bracket, []);
 

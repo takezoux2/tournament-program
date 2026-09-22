@@ -7,6 +7,7 @@ import {
 import {
   bracketViewBox,
   connectorPath,
+  expandViewBoxToMinimum,
   MATCH_NAME_HEIGHT,
 } from "@/features/bracket/svg-geometry";
 import type { ResolvedMatch, ResolvedSlot } from "@/features/bracket/types";
@@ -153,7 +154,9 @@ export function PrintBracket({
   positions: Map<string, Position>;
   labels: SectionLabel[];
 }) {
-  const box = bracketViewBox(positions.values(), labels);
+  const box = expandViewBoxToMinimum(
+    bracketViewBox(positions.values(), labels),
+  );
 
   const connectors = matches.flatMap((match) =>
     match.sourceMatchIds.flatMap((sourceId, index) => {
@@ -187,7 +190,7 @@ export function PrintBracket({
         <text
           key={label.id}
           x={label.position.x}
-          y={label.position.y + 14}
+          y={label.position.y + 10}
           fontSize={14}
           fontWeight={700}
           fill={INK}

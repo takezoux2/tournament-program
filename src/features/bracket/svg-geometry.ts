@@ -11,6 +11,15 @@ const VIEWBOX_PADDING = 16;
 /** 試合名はカードの上に置くので、そのぶん上へ広げる */
 export const MATCH_NAME_HEIGHT = 12;
 
+/**
+ * viewBox の最小の幅・高さ。A4 横向きの本文相当（約 1032×650px）を安全側に
+ * 丸めた値。3 試合程度の小さいトーナメント表は外接矩形も小さく、これを
+ * そのまま viewBox にすると親の箱いっぱいまで拡大されて文字だけ大きく印刷
+ * されてしまう。仕様上は縮小のみ許すため、拡大が起きないよう下限を設ける。
+ */
+const MIN_VIEWBOX_WIDTH = 1100;
+const MIN_VIEWBOX_HEIGHT = 700;
+
 export type ViewBox = { x: number; y: number; width: number; height: number };
 
 /**
@@ -41,6 +50,20 @@ export function bracketViewBox(
     y: top - VIEWBOX_PADDING,
     width: right - left + VIEWBOX_PADDING * 2,
     height: bottom - top + VIEWBOX_PADDING * 2,
+  };
+}
+
+/**
+ * viewBox の幅・高さを最小サイズまで広げる。x/y はそのままにして右・下だけ
+ * 広げるので、内容は左上を基準にした実寸のまま描かれ、拡大縮小はされない。
+ * 最小サイズ以上の viewBox（大きいトーナメント表）はそのまま返す。
+ */
+export function expandViewBoxToMinimum(box: ViewBox): ViewBox {
+  return {
+    x: box.x,
+    y: box.y,
+    width: Math.max(box.width, MIN_VIEWBOX_WIDTH),
+    height: Math.max(box.height, MIN_VIEWBOX_HEIGHT),
   };
 }
 

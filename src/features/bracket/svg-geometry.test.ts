@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { bracketViewBox, connectorPath } from "./svg-geometry";
+import {
+  bracketViewBox,
+  connectorPath,
+  expandViewBoxToMinimum,
+} from "./svg-geometry";
 
 describe("bracketViewBox", () => {
   it("カードの外接矩形に、試合名の高さと余白を足す", () => {
@@ -32,6 +36,19 @@ describe("bracketViewBox", () => {
 
   it("カードが無ければ大きさ 0 を返す", () => {
     expect(bracketViewBox([])).toEqual({ x: 0, y: 0, width: 0, height: 0 });
+  });
+});
+
+describe("expandViewBoxToMinimum", () => {
+  it("最小サイズより小さい外接矩形は、x/y を保ったまま最小サイズまで広げる", () => {
+    expect(
+      expandViewBoxToMinimum({ x: -16, y: -28, width: 552, height: 220 }),
+    ).toEqual({ x: -16, y: -28, width: 1100, height: 700 });
+  });
+
+  it("最小サイズ以上の外接矩形はそのまま返す", () => {
+    const box = { x: -16, y: -28, width: 1400, height: 900 };
+    expect(expandViewBoxToMinimum(box)).toEqual(box);
   });
 });
 
