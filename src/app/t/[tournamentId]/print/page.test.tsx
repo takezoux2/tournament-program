@@ -79,7 +79,10 @@ const division = {
       },
     ],
   },
-  results: { version: 1, matches: [] },
+  results: {
+    version: 1,
+    matches: [{ matchId: "m1", winnerEntryId: "e1" }],
+  },
   resultConfig: null,
   createdAt: new Date("2026-08-01T00:00:00Z"),
 };
@@ -166,6 +169,24 @@ describe("PublicPrintPage", () => {
     render(await Page(pageProps("t1")));
 
     expect(screen.getByText(/この大会は準備中です/)).toBeInTheDocument();
+  });
+
+  it("results=0 ならブラケットの勝者も太字にしない（空欄モード）", async () => {
+    render(await Page(pageProps("t1", { results: "0" })));
+
+    expect(screen.getByText("No.1 佐藤 蓮")).toHaveAttribute(
+      "font-weight",
+      "400",
+    );
+  });
+
+  it("results 未指定ならブラケットの勝者を太字にする", async () => {
+    render(await Page(pageProps("t1")));
+
+    expect(screen.getByText("No.1 佐藤 蓮")).toHaveAttribute(
+      "font-weight",
+      "700",
+    );
   });
 
   it("タイトルに「印刷用」を付ける", async () => {
