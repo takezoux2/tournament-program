@@ -58,16 +58,41 @@ const CellContent = ({ cell }: { cell: LeagueTableCell }) => {
 /**
  * 勝敗込みの星取表と順位表を 1 つにまとめた表。
  * 行・列はどちらも順位順で渡ってくる（並べ替えはドメイン側の責務）。
- * 人数が増えると横に広がるので、横スクロールできる箱に入れる。
+ * 画面では人数が増えると横に広がるので、横スクロールできる箱に入れる。
+ * 紙はスクロールできないので、print ではページ幅いっぱいの表にする。
  */
-export function LeagueResultTable({ table }: { table: LeagueTableView }) {
+export function LeagueResultTable({
+  table,
+  print = false,
+  showStandings = true,
+}: {
+  table: LeagueTableView;
+  /** 印刷ページ向け。横スクロールの箱をやめる */
+  print?: boolean;
+  /**
+   * false で順位・勝・分・敗・勝点のマスを空欄にする。印刷の空欄モードでは
+   * 結果を数えないので、全員 0 の集計は並べず手書きの欄として残す。
+   */
+  showStandings?: boolean;
+}) {
   if (table.headers.length === 0) {
     return <p className="text-sm text-slate-600">まだエントリーがありません</p>;
   }
 
+  const standing = (value: number): number | null =>
+    showStandings ? value : null;
+
   return (
-    <div className="overflow-x-auto rounded border border-slate-200 bg-white">
-      <table className="min-w-full border-collapse text-sm">
+    <div
+      className={
+        print
+          ? "rounded border border-slate-400 bg-white"
+          : "overflow-x-auto rounded border border-slate-200 bg-white"
+      }
+    >
+      <table
+        className={`${print ? "w-full" : "min-w-full"} border-collapse text-sm`}
+      >
         <thead>
           <tr>
             <th scope="col" className={headerClassName}>
@@ -98,7 +123,9 @@ export function LeagueResultTable({ table }: { table: LeagueTableView }) {
         <tbody>
           {table.rows.map((row) => (
             <tr key={row.entryId}>
-              <td className={`${numberClassName} font-medium`}>{row.rank}</td>
+              <td className={`${numberClassName} font-medium`}>
+                {standing(row.rank)}
+              </td>
               <th
                 scope="row"
                 className="whitespace-nowrap border-b border-slate-100 px-3 py-2 text-left font-medium text-slate-800"
@@ -114,10 +141,12 @@ export function LeagueResultTable({ table }: { table: LeagueTableView }) {
                   <CellContent cell={cell} />
                 </td>
               ))}
-              <td className={numberClassName}>{row.wins}</td>
-              <td className={numberClassName}>{row.draws}</td>
-              <td className={numberClassName}>{row.losses}</td>
-              <td className={`${numberClassName} font-medium`}>{row.points}</td>
+              <td className={numberClassName}>{standing(row.wins)}</td>
+              <td className={numberClassName}>{standing(row.draws)}</td>
+              <td className={numberClassName}>{standing(row.losses)}</td>
+              <td className={`${numberClassName} font-medium`}>
+                {standing(row.points)}
+              </td>
             </tr>
           ))}
         </tbody>

@@ -196,3 +196,27 @@ describe("LeagueResultTable", () => {
     expect(within(row).getAllByRole("cell")[2]).toHaveTextContent(/^決勝$/);
   });
 });
+
+describe("LeagueResultTable（印刷向け）", () => {
+  it("showStandings={false} なら集計の数字を出さない", () => {
+    render(<LeagueResultTable table={table} showStandings={false} />);
+
+    expect(screen.queryByText("4")).not.toBeInTheDocument();
+    // 列そのものは残す（手書きの欄になる）
+    expect(
+      screen.getByRole("columnheader", { name: "勝点" }),
+    ).toBeInTheDocument();
+  });
+
+  it("既定では集計の数字を出す", () => {
+    render(<LeagueResultTable table={table} />);
+
+    expect(screen.getByText("4")).toBeInTheDocument();
+  });
+
+  it("print なら横スクロールの箱に入れない", () => {
+    const { container } = render(<LeagueResultTable table={table} print />);
+
+    expect(container.firstChild).not.toHaveClass("overflow-x-auto");
+  });
+});

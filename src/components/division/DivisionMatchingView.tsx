@@ -2,19 +2,12 @@ import type {
   DivisionDetail,
   DivisionParticipant,
 } from "@/features/division/repository";
-import { isRoundRobinShape } from "@/features/division/round-robin/build";
-import { toLeagueTableView } from "@/features/division/round-robin/standings";
-import { resolveMatchNames } from "@/lib/division/match-name";
-import {
-  parseDivisionEntries,
-  parseDivisionResults,
-  parseMatchingConfig,
-} from "@/lib/division/parse";
 import { DivisionBracket } from "./DivisionBracket";
 import { LeagueResultTable } from "./LeagueResultTable";
 import { Notice } from "./Notice";
+import { prepareLeagueTable } from "./prepare-league-table";
 
-/** リーグの結果表。Json のパースと形の検査をこの区画で受け止める。 */
+/** リーグの結果表。Json のパースと形の検査は prepareLeagueTable が受け止める。 */
 const LeagueSection = ({
   division,
   participants,
@@ -24,45 +17,11 @@ const LeagueSection = ({
   participants: DivisionParticipant[];
   overallSeq: ReadonlyMap<string, number>;
 }) => {
-  // Json は DB の列で、アプリの外から壊れた値が入りうる。パースの失敗は
-  // ここで受け止め、ページ全体は落とさない。
-  let parsed: {
-    entries: ReturnType<typeof parseDivisionEntries>;
-    matchingConfig: ReturnType<typeof parseMatchingConfig>;
-    results: ReturnType<typeof parseDivisionResults>;
-  };
-  try {
-    parsed = {
-      entries: parseDivisionEntries(division.entries),
-      matchingConfig: parseMatchingConfig(division.matchingConfig),
-      results: parseDivisionResults(division.results),
-    };
-  } catch {
-    return <Notice>部門のデータを読み込めませんでした</Notice>;
+  const prepared = prepareLeagueTable(division, participants, overallSeq);
+  if (prepared.kind === "notice") {
+    return <Notice>{prepared.message}</Notice>;
   }
-
-  if (parsed.matchingConfig.matches.length === 0) {
-    return <Notice>組み合わせが未作成です</Notice>;
-  }
-
-  // /edit は format を無条件に書き換えられるので、トーナメントの木を
-  // 持ったままリーグになった部門が存在しうる。その木を結果表として
-  // 描くと嘘になるため、案内だけ出す（編集画面の LeagueSetup と同じ扱い）。
-  if (!isRoundRobinShape(parsed.matchingConfig)) {
-    return <Notice>この対戦表はリーグの形ではありません</Notice>;
-  }
-
-  return (
-    <LeagueResultTable
-      table={toLeagueTableView(
-        parsed.matchingConfig,
-        parsed.entries,
-        parsed.results,
-        participants,
-        resolveMatchNames(parsed.matchingConfig, division.id, overallSeq),
-      )}
-    />
-  );
+  return <LeagueResultTable table={prepared.table} />;
 };
 
 /**
