@@ -219,4 +219,30 @@ describe("LeagueResultTable（印刷向け）", () => {
 
     expect(container.firstChild).not.toHaveClass("overflow-x-auto");
   });
+
+  it("print なら table-fixed でページ幅に収め、見出しは折り返す", () => {
+    render(<LeagueResultTable table={table} print />);
+
+    expect(screen.getByRole("table")).toHaveClass("table-fixed", "w-full");
+    const header = screen.getByRole("columnheader", { name: "勝点" });
+    expect(header).toHaveClass("whitespace-normal", "break-words");
+    expect(header).not.toHaveClass("whitespace-nowrap");
+  });
+
+  it("画面表示では見出しを折り返さない（従来どおり）", () => {
+    render(<LeagueResultTable table={table} />);
+
+    const header = screen.getByRole("columnheader", { name: "勝点" });
+    expect(header).toHaveClass("whitespace-nowrap");
+    expect(header).not.toHaveClass("whitespace-normal");
+  });
+
+  it("print なら試合名を text-slate-600 で濃く出す（画面は淡色のまま）", () => {
+    const { rerender } = render(<LeagueResultTable table={table} print />);
+
+    expect(screen.getAllByText("第1試合")[0]).toHaveClass("text-slate-600");
+
+    rerender(<LeagueResultTable table={table} />);
+    expect(screen.getAllByText("第1試合")[0]).toHaveClass("text-slate-400");
+  });
 });

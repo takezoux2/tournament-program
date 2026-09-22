@@ -11,17 +11,34 @@ const OUTCOME_MARKS: Record<LeagueOutcome, { mark: string; label: string }> = {
   draw: { mark: "△", label: "引き分け" },
 };
 
-const headerClassName =
-  "whitespace-nowrap border-b border-slate-200 px-3 py-2 text-xs font-medium text-slate-500";
+/**
+ * セル共通の余白と改行規則。画面は横スクロールできるので詰めず、印刷は
+ * table-fixed でページ幅に収めるため詰めて、はみ出す名前は折り返す。
+ */
+const cellSpacing = (print: boolean): string =>
+  print
+    ? "whitespace-normal break-words px-1 py-1"
+    : "whitespace-nowrap px-3 py-2";
 
-const numberClassName =
-  "whitespace-nowrap border-b border-slate-100 px-3 py-2 text-center text-sm text-slate-800";
+const headerClassName = (print: boolean): string =>
+  `${cellSpacing(print)} border-b border-slate-200 text-xs font-medium text-slate-500`;
+
+const numberClassName = (print: boolean): string =>
+  `${cellSpacing(print)} border-b border-slate-100 text-center text-sm text-slate-800`;
 
 /**
  * 1 マスの中身。対戦済みは印を大きく、試合名を小さく添える。
  * 未実施は試合名だけを淡色で出し、「まだ」であることを見た目で分ける。
+ * 試合名の淡色（text-slate-400）はモノクロ印刷では薄すぎるので、印刷では
+ * text-slate-600 に濃くする。
  */
-const CellContent = ({ cell }: { cell: LeagueTableCell }) => {
+const CellContent = ({
+  cell,
+  print,
+}: {
+  cell: LeagueTableCell;
+  print: boolean;
+}) => {
   switch (cell.kind) {
     case "self":
       return <>—</>;
@@ -31,7 +48,9 @@ const CellContent = ({ cell }: { cell: LeagueTableCell }) => {
       // 展開は toLeagueTableView の上（DivisionMatchingView）で済んでいる。
       // 「第◯試合」の形は試合名そのものが決めるので、ここでは飾りを足さない。
       const number = (
-        <span className="block text-[10px] text-slate-400">
+        <span
+          className={`block text-[10px] ${print ? "text-slate-600" : "text-slate-400"}`}
+        >
           {cell.matchName}
         </span>
       );
@@ -91,31 +110,35 @@ export function LeagueResultTable({
       }
     >
       <table
-        className={`${print ? "w-full" : "min-w-full"} border-collapse text-sm`}
+        className={`${print ? "w-full table-fixed" : "min-w-full"} border-collapse text-sm`}
       >
         <thead>
           <tr>
-            <th scope="col" className={headerClassName}>
+            <th scope="col" className={headerClassName(print)}>
               順位
             </th>
-            <th scope="col" className={`${headerClassName} text-left`}>
+            <th scope="col" className={`${headerClassName(print)} text-left`}>
               名前
             </th>
             {table.headers.map((header) => (
-              <th key={header.entryId} scope="col" className={headerClassName}>
+              <th
+                key={header.entryId}
+                scope="col"
+                className={headerClassName(print)}
+              >
                 {header.label}
               </th>
             ))}
-            <th scope="col" className={headerClassName}>
+            <th scope="col" className={headerClassName(print)}>
               勝
             </th>
-            <th scope="col" className={headerClassName}>
+            <th scope="col" className={headerClassName(print)}>
               分
             </th>
-            <th scope="col" className={headerClassName}>
+            <th scope="col" className={headerClassName(print)}>
               敗
             </th>
-            <th scope="col" className={headerClassName}>
+            <th scope="col" className={headerClassName(print)}>
               勝点
             </th>
           </tr>
@@ -123,12 +146,12 @@ export function LeagueResultTable({
         <tbody>
           {table.rows.map((row) => (
             <tr key={row.entryId}>
-              <td className={`${numberClassName} font-medium`}>
+              <td className={`${numberClassName(print)} font-medium`}>
                 {standing(row.rank)}
               </td>
               <th
                 scope="row"
-                className="whitespace-nowrap border-b border-slate-100 px-3 py-2 text-left font-medium text-slate-800"
+                className={`${cellSpacing(print)} border-b border-slate-100 text-left font-medium text-slate-800`}
               >
                 {row.label}
               </th>
@@ -136,15 +159,15 @@ export function LeagueResultTable({
                 <td
                   // 列の並びは headers と 1 対 1 なので、列の entryId を鍵にする
                   key={table.headers[index].entryId}
-                  className="whitespace-nowrap border-b border-slate-100 px-3 py-2 text-center text-xs text-slate-600"
+                  className={`${cellSpacing(print)} border-b border-slate-100 text-center text-xs text-slate-600`}
                 >
-                  <CellContent cell={cell} />
+                  <CellContent cell={cell} print={print} />
                 </td>
               ))}
-              <td className={numberClassName}>{standing(row.wins)}</td>
-              <td className={numberClassName}>{standing(row.draws)}</td>
-              <td className={numberClassName}>{standing(row.losses)}</td>
-              <td className={`${numberClassName} font-medium`}>
+              <td className={numberClassName(print)}>{standing(row.wins)}</td>
+              <td className={numberClassName(print)}>{standing(row.draws)}</td>
+              <td className={numberClassName(print)}>{standing(row.losses)}</td>
+              <td className={`${numberClassName(print)} font-medium`}>
                 {standing(row.points)}
               </td>
             </tr>
