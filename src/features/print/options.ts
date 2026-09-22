@@ -27,10 +27,10 @@ export const printHref = (
 ): string =>
   `/t/${tournamentId}/print?paper=${options.paper}&results=${options.results ? "1" : "0"}`;
 
-/** 用紙の短辺・長辺（mm） */
-const PAPER_MM: Record<PaperSize, { short: number; long: number }> = {
-  a4: { short: 210, long: 297 },
-  a3: { short: 297, long: 420 },
+/** 用紙の短辺（mm）。部門ページは横向きなので、本文の高さの計算に使うのは短辺だけ */
+const PAPER_SHORT_MM: Record<PaperSize, number> = {
+  a4: 210,
+  a3: 297,
 };
 
 const PAGE_MARGIN_MM = 12;
@@ -42,7 +42,7 @@ const DIVISION_HEADING_MM = 14;
  * 印刷時はこの値で本文の箱の高さを固定し、1 部門を 1 ページに収める。
  */
 export const divisionBodyHeightMm = (paper: PaperSize): number =>
-  PAPER_MM[paper].short - PAGE_MARGIN_MM * 2 - DIVISION_HEADING_MM;
+  PAPER_SHORT_MM[paper] - PAGE_MARGIN_MM * 2 - DIVISION_HEADING_MM;
 
 /**
  * 印刷用の CSS。用紙サイズは実行時に決まるので Tailwind のクラスでは書けず、
