@@ -67,26 +67,3 @@ export const placeEntry = (
 
   return next;
 };
-
-/**
- * 2 つのスロットを入れ替える。入れ替えられないときは null を返し、
- * 呼び出し側が「何も起きなかった」として扱えるようにする。
- * bye も対象にできるので「空きへ移す」も同じ操作で表現できる。
- */
-export const swapSlots = (
-  slots: SlotSource[],
-  indexA: number,
-  indexB: number,
-): SlotSource[] | null => {
-  const inRange = (index: number): boolean =>
-    Number.isInteger(index) && index >= 0 && index < slots.length;
-
-  if (!inRange(indexA) || !inRange(indexB) || indexA === indexB) {
-    return null;
-  }
-
-  const next = [...slots];
-  next[indexA] = slots[indexB];
-  next[indexB] = slots[indexA];
-  return next;
-};

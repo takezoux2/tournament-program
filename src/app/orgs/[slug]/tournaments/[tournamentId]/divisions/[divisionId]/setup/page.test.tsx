@@ -47,27 +47,12 @@ vi.mock("@/features/organization/repository", () => ({
     listMembersInOrganization(organizationId),
 }));
 
-// 7 つの Server Action は "use server" を持つので、テストでは差し替える。
-vi.mock("@/features/division/add-entry/handler", () => ({
-  addEntryAction: vi.fn(),
-}));
-vi.mock("@/features/division/remove-entry/handler", () => ({
-  removeEntryAction: vi.fn(),
-}));
-vi.mock("@/features/division/reorder-entry/handler", () => ({
-  reorderEntryAction: vi.fn(),
-}));
+// 6 つの Server Action は "use server" を持つので、テストでは差し替える。
 vi.mock("@/features/division/generate-matching/handler", () => ({
   generateMatchingAction: vi.fn(),
 }));
-vi.mock("@/features/division/swap-slots/handler", () => ({
-  swapSlotsAction: vi.fn(),
-}));
 vi.mock("@/features/division/set-match-name/handler", () => ({
   setMatchNameAction: vi.fn(),
-}));
-vi.mock("@/features/participant/set-player-number/handler", () => ({
-  setPlayerNumberAction: vi.fn(),
 }));
 vi.mock("@/features/division/add-first-round-match/handler", () => ({
   addFirstRoundMatchAction: vi.fn(),
@@ -83,14 +68,6 @@ vi.mock("@/features/division/clear-slot/handler", () => ({
 }));
 
 // actions プロップに何を渡したかを見たいので、受け取った props を控えるダミーに差し替える。
-const divisionSetupProps = vi.fn();
-vi.mock("@/components/division/DivisionSetup", () => ({
-  DivisionSetup: (props: unknown) => {
-    divisionSetupProps(props);
-    return <div>setup</div>;
-  },
-}));
-
 const bracketEditorSetupProps = vi.fn();
 vi.mock("@/components/division/BracketEditorSetup", () => ({
   BracketEditorSetup: (props: unknown) => {
@@ -100,26 +77,11 @@ vi.mock("@/components/division/BracketEditorSetup", () => ({
 }));
 
 const { default: DivisionSetupPage } = await import("./page");
-const { addEntryAction } = await import(
-  "@/features/division/add-entry/handler"
-);
-const { removeEntryAction } = await import(
-  "@/features/division/remove-entry/handler"
-);
-const { reorderEntryAction } = await import(
-  "@/features/division/reorder-entry/handler"
-);
 const { generateMatchingAction } = await import(
   "@/features/division/generate-matching/handler"
 );
-const { swapSlotsAction } = await import(
-  "@/features/division/swap-slots/handler"
-);
 const { setMatchNameAction } = await import(
   "@/features/division/set-match-name/handler"
-);
-const { setPlayerNumberAction } = await import(
-  "@/features/participant/set-player-number/handler"
 );
 const { addFirstRoundMatchAction } = await import(
   "@/features/division/add-first-round-match/handler"
@@ -177,7 +139,6 @@ beforeEach(() => {
   listParticipantsInTournament.mockResolvedValue([]);
   listMembersInOrganization.mockResolvedValue([]);
   listOverallOrderSources.mockResolvedValue(new Map());
-  divisionSetupProps.mockClear();
   bracketEditorSetupProps.mockClear();
 });
 
@@ -223,17 +184,6 @@ describe("DivisionSetupPage", () => {
     );
   });
 
-  it("ダブルエリミネーションも 404 にせず描く", async () => {
-    findDivisionInTournament.mockResolvedValue({
-      ...division,
-      format: "DOUBLE_ELIMINATION_GRAND_FINAL",
-    });
-
-    render(await DivisionSetupPage(pageProps()));
-
-    expect(screen.getByText("setup")).toBeInTheDocument();
-  });
-
   it("大会 id で通し番号を読み、BracketEditorSetup にそのまま渡す", async () => {
     const overallSeq = new Map([["d1:m1-0", 1]]);
     listOverallOrderSources.mockResolvedValue(overallSeq);
@@ -248,31 +198,9 @@ describe("DivisionSetupPage", () => {
     expect(passed).toBe(overallSeq);
   });
 
-  it("7 つの Server Action をそれぞれ対応する actions のプロパティに渡す（ダブルエリミネーション）", async () => {
-    // 7 つとも別モジュールの vi.fn() なので参照が異なる。取り違えて渡すと
-    // toBe が落ちる。同じ関数を使い回すダミーでは検出できない観点。
-    findDivisionInTournament.mockResolvedValue({
-      ...division,
-      format: "DOUBLE_ELIMINATION_GRAND_FINAL",
-    });
-
-    render(await DivisionSetupPage(pageProps()));
-
-    expect(divisionSetupProps).toHaveBeenCalledTimes(1);
-    const { actions } = divisionSetupProps.mock.calls[0][0] as {
-      actions: Record<string, unknown>;
-    };
-    expect(actions.addEntry).toBe(addEntryAction);
-    expect(actions.removeEntry).toBe(removeEntryAction);
-    expect(actions.reorderEntry).toBe(reorderEntryAction);
-    expect(actions.generateMatching).toBe(generateMatchingAction);
-    expect(actions.swapSlots).toBe(swapSlotsAction);
-    expect(actions.setMatchName).toBe(setMatchNameAction);
-    expect(actions.setPlayerNumber).toBe(setPlayerNumberAction);
-    expect(actions).not.toHaveProperty("reorderMatches");
-  });
-
   it("シングルエリミは BracketEditorSetup に 6 つのアクションを渡す", async () => {
+    // 6 つとも別モジュールの vi.fn() なので参照が異なる。取り違えて渡すと
+    // toEqual が落ちる。同じ関数を使い回すダミーでは検出できない観点。
     render(await DivisionSetupPage(pageProps()));
     const props = bracketEditorSetupProps.mock.calls[0][0] as {
       actions: Record<string, unknown>;
@@ -285,6 +213,5 @@ describe("DivisionSetupPage", () => {
       generateMatching: generateMatchingAction,
       setMatchName: setMatchNameAction,
     });
-    expect(divisionSetupProps).not.toHaveBeenCalled();
   });
 });

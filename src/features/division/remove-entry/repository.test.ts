@@ -1,15 +1,14 @@
 import { Effect } from "effect";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { buildDoubleElimination } from "../double-elimination/build";
+import { buildRoundRobin } from "../round-robin/build";
 import { buildFromSlots } from "../single-elimination/build";
-import { generateSlots } from "../single-elimination/edit";
 
 const divisionFindFirst = vi.fn();
 const divisionUpdateMany = vi.fn();
 const participantFindMany = vi.fn();
 
 // シングルエリミはこの経路では編集しない（1 回戦スライスで組む）ため、
-// 汎用の振る舞いはダブルエリミ・リーグで確かめる。
+// 汎用の振る舞いはリーグで確かめる。
 // setup-store 経由で実際に組み立てまで走らせるため、mock するのは
 // Prisma の境界だけにする（setup-store 自体はモックしない）。
 vi.mock("@/shared/db/prisma", () => ({
@@ -55,7 +54,7 @@ beforeEach(() => {
 describe("removeEntryInDb", () => {
   it("エントリーを外して seed を 0 から詰め直す", async () => {
     divisionFindFirst.mockResolvedValue({
-      format: "DOUBLE_ELIMINATION_GRAND_FINAL",
+      format: "ROUND_ROBIN",
       entries: withEntries(4),
       matchingConfig: { version: 1, matches: [] },
       results: { version: 1, matches: [] },
@@ -78,12 +77,9 @@ describe("removeEntryInDb", () => {
   it("組み合わせがあれば残りのシード順から作り直す", async () => {
     const fiveEntries = withEntries(5);
     divisionFindFirst.mockResolvedValue({
-      format: "DOUBLE_ELIMINATION_GRAND_FINAL",
+      format: "ROUND_ROBIN",
       entries: fiveEntries,
-      matchingConfig: buildDoubleElimination(
-        generateSlots(fiveEntries.entries),
-        "grandFinal",
-      ),
+      matchingConfig: buildRoundRobin(fiveEntries.entries),
       results: { version: 1, matches: [] },
     });
     participantFindMany.mockResolvedValue(participantsFor(5));
@@ -96,11 +92,9 @@ describe("removeEntryInDb", () => {
       found: true,
       value: { removed: true, matching: "regenerated" },
     });
-    // 残り 4 人のシード順から組み直した木になる。
+    // 残り 4 人のシード順から組み直した総当たりになる。
     const data = divisionUpdateMany.mock.calls[0][0].data;
-    expect(data.matchingConfig).toEqual(
-      buildDoubleElimination(generateSlots(data.entries.entries), "grandFinal"),
-    );
+    expect(data.matchingConfig).toEqual(buildRoundRobin(data.entries.entries));
   });
 
   it("シングルエリミでは何もしない（1 回戦スライスで編集する）", async () => {
@@ -120,38 +114,9 @@ describe("removeEntryInDb", () => {
     expect(divisionUpdateMany).not.toHaveBeenCalled();
   });
 
-  it("ダブルエリミネーションは残りが形式の下限（3人）を下回ったら組み合わせを空にする", async () => {
-    // ダブルエリミは 2 人だと敗者側が作れず、SINGLE_ELIMINATION より下限が高い（3人）。
-    // "cleared" の通知が「2 人未満」を決め打ちすると、3人→2人でも
-    // まだ 2 人「以上」残っているのに嘘の文言になる。形式ごとの minimum が
-    // 結果に乗っていることを確かめる。
-    const threeEntries = withEntries(3);
-    divisionFindFirst.mockResolvedValue({
-      format: "DOUBLE_ELIMINATION_GRAND_FINAL",
-      entries: threeEntries,
-      matchingConfig: buildDoubleElimination(
-        generateSlots(threeEntries.entries),
-        "grandFinal",
-      ),
-      results: { version: 1, matches: [] },
-    });
-    participantFindMany.mockResolvedValue(participantsFor(3));
-
-    const result = await Effect.runPromise(
-      removeEntryInDb(ids, { entryId: "e2" }),
-    );
-
-    expect(result).toEqual({
-      found: true,
-      value: { removed: true, matching: "cleared", minimum: 3 },
-    });
-    const written = divisionUpdateMany.mock.calls[0][0].data.matchingConfig;
-    expect(written.matches).toEqual([]);
-  });
-
   it("組み合わせが未作成なら再生成しない", async () => {
     divisionFindFirst.mockResolvedValue({
-      format: "DOUBLE_ELIMINATION_GRAND_FINAL",
+      format: "ROUND_ROBIN",
       entries: withEntries(4),
       matchingConfig: { version: 1, matches: [] },
       results: { version: 1, matches: [] },
@@ -170,7 +135,7 @@ describe("removeEntryInDb", () => {
 
   it("知らない entryId なら何も書き込まない", async () => {
     divisionFindFirst.mockResolvedValue({
-      format: "DOUBLE_ELIMINATION_GRAND_FINAL",
+      format: "ROUND_ROBIN",
       entries: withEntries(4),
       matchingConfig: { version: 1, matches: [] },
       results: { version: 1, matches: [] },
@@ -271,43 +236,6 @@ describe("removeEntryInDb", () => {
     expect(written.matchingConfig.matches).toEqual([]);
     // 削除そのものは反映されている（運営者が上限以下まで減らしていける）。
     expect(written.entries.entries).toHaveLength(127);
-  });
-
-  it("ダブルエリミネーションの上限を超えたエントリーが残っていれば、削除しても組み合わせは空のまま", async () => {
-    // SINGLE_ELIMINATION（128 人まで）を /edit で DOUBLE_ELIMINATION_GRAND_FINAL
-    // （64 人まで）に切り替えた直後の部門は、生成ボタンを経由していない
-    // 上限超過のエントリーと肥大化したブラケット形の matchingConfig を持ちうる。
-    // 1 人消しても 69 人でまだ上限（64 人）を超えているため、
-    // regenerateMatching は空を返し、リーグと同じく clearedOverCap になる。
-    const entries = Array.from({ length: 70 }, (_, index) => ({
-      id: `e${index + 1}`,
-      participantId: `p${index + 1}`,
-      seed: index,
-    }));
-    divisionFindFirst.mockResolvedValue({
-      format: "DOUBLE_ELIMINATION_GRAND_FINAL",
-      entries: { version: 1, entries },
-      matchingConfig: buildDoubleElimination(
-        generateSlots(entries),
-        "grandFinal",
-      ),
-      results: { version: 1, matches: [] },
-    });
-    participantFindMany.mockResolvedValue(
-      entries.map((e) => ({ id: e.participantId })),
-    );
-
-    const result = await Effect.runPromise(
-      removeEntryInDb(ids, { entryId: "e1" }),
-    );
-
-    expect(result).toEqual({
-      found: true,
-      value: { removed: true, matching: "clearedOverCap", limit: 64 },
-    });
-    const written = divisionUpdateMany.mock.calls[0][0].data;
-    expect(written.matchingConfig.matches).toEqual([]);
-    expect(written.entries.entries).toHaveLength(69);
   });
 
   it("リーグでも残りが 2 人未満なら組み合わせを空にする", async () => {

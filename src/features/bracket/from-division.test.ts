@@ -1,6 +1,4 @@
 import { describe, expect, it } from "vitest";
-import { buildDoubleElimination } from "@/features/division/double-elimination/build";
-import { generateSlots } from "@/features/division/single-elimination/edit";
 import type {
   DivisionEntries,
   DivisionResults,
@@ -408,63 +406,5 @@ describe("fromDivision", () => {
       "佐藤 蓮",
       "鈴木 陽菜",
     ]);
-  });
-
-  it("ダブルエリミネーションは loserOf と bracket を保って変換する", () => {
-    const entries = {
-      version: 1 as const,
-      entries: [0, 1, 2, 3].map((seed) => ({
-        id: `e${seed + 1}`,
-        participantId: `p${seed + 1}`,
-        seed,
-      })),
-    };
-    const matchingConfig = buildDoubleElimination(
-      generateSlots(entries.entries),
-      "grandFinal",
-    );
-    const converted = fromDivision(
-      buildInput({
-        format: "DOUBLE_ELIMINATION_GRAND_FINAL",
-        entries,
-        matchingConfig,
-        participants: [1, 2, 3, 4].map((n) => ({ id: `p${n}`, name: `P${n}` })),
-      }),
-    );
-    expect(converted).not.toBeNull();
-    const losers = converted?.bracket.matches.find((m) => m.id === "l1-0");
-    expect(losers).toMatchObject({
-      bracket: "losers",
-      slots: [
-        { kind: "loserOf", matchId: "m1-0" },
-        { kind: "loserOf", matchId: "m1-1" },
-      ],
-    });
-    expect(converted?.bracket.matches.find((m) => m.id === "f")?.bracket).toBe(
-      "final",
-    );
-  });
-
-  it("ダブルエリミネーションで存在しない試合の loserOf は null", () => {
-    expect(
-      fromDivision(
-        buildInput({
-          format: "DOUBLE_ELIMINATION_THIRD_PLACE",
-          matchingConfig: {
-            version: 1,
-            matches: [
-              {
-                id: "l1-0",
-                bracket: "losers",
-                round: 2,
-                order: 0,
-                matchName: "1",
-                slots: [{ kind: "loserOf", matchId: "nope" }, { kind: "bye" }],
-              },
-            ],
-          },
-        }),
-      ),
-    ).toBeNull();
   });
 });

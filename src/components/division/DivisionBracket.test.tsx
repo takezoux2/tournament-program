@@ -1,8 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import { buildDoubleElimination } from "@/features/division/double-elimination/build";
 import type { DivisionDetail } from "@/features/division/repository";
-import { generateSlots } from "@/features/division/single-elimination/edit";
 
 // @xyflow/react は jsdom で実寸を測れないため、描画そのものは差し替える。
 // ここで確かめたいのは「描くか、どんな案内を出すか」の分岐。
@@ -246,41 +244,6 @@ describe("DivisionBracket", () => {
     );
 
     expect(container.querySelector(".h-\\[28rem\\]")).not.toBeNull();
-  });
-
-  it("ダブルエリミネーションは試合とセクションラベルを描く", () => {
-    const entries = {
-      version: 1 as const,
-      entries: [
-        { id: "e1", participantId: "p1", seed: 0 },
-        { id: "e2", participantId: "p2", seed: 1 },
-        { id: "e3", participantId: "p3", seed: 2 },
-      ],
-    };
-    render(
-      <DivisionBracket
-        division={buildDivision({
-          format: "DOUBLE_ELIMINATION_GRAND_FINAL",
-          entries,
-          matchingConfig: buildDoubleElimination(
-            generateSlots(entries.entries),
-            "grandFinal",
-          ),
-        })}
-        participants={[
-          ...participants,
-          {
-            id: "p3",
-            name: "高橋 湊",
-            nameKana: "タカハシ ミナト",
-            playerNumber: "3",
-          },
-        ]}
-        overallSeq={noSeq}
-      />,
-    );
-    // 4 枠: 勝者側 3 + 敗者側 2 + 決勝 1 + ラベル 3
-    expect(screen.getByTestId("flow")).toHaveTextContent("9");
   });
 
   it("heightClassName を渡すとその高さを使う", () => {

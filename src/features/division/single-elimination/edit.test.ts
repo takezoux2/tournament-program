@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { DivisionEntry, SlotSource } from "@/lib/division/types";
-import { generateSlots, placeEntry, swapSlots } from "./edit";
+import { generateSlots, placeEntry } from "./edit";
 
 const entries = (count: number): DivisionEntry[] =>
   Array.from({ length: count }, (_, index) => ({
@@ -87,28 +87,5 @@ describe("placeEntry", () => {
 
   it("組み合わせが未作成なら何もしない", () => {
     expect(placeEntry([], "x")).toEqual([]);
-  });
-});
-
-describe("swapSlots", () => {
-  it("2 つのスロットを入れ替える", () => {
-    const slots = [entry("a"), entry("b"), entry("c"), bye];
-    expect(swapSlots(slots, 0, 3)).toEqual([
-      bye,
-      entry("b"),
-      entry("c"),
-      entry("a"),
-    ]);
-  });
-
-  it("同じ添字なら null", () => {
-    expect(swapSlots([entry("a"), entry("b")], 1, 1)).toBeNull();
-  });
-
-  it("範囲外の添字なら null", () => {
-    const slots = [entry("a"), entry("b")];
-    expect(swapSlots(slots, -1, 0)).toBeNull();
-    expect(swapSlots(slots, 0, 2)).toBeNull();
-    expect(swapSlots(slots, 0, 1.5)).toBeNull();
   });
 });
