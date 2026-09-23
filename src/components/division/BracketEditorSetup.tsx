@@ -5,6 +5,7 @@ import type {
 } from "@/features/division/repository";
 import { isSingleEliminationShape } from "@/features/division/single-elimination/build";
 import { firstRoundPairs } from "@/features/division/single-elimination/first-round";
+import type { SlotSourceOption } from "@/features/division/slot-source-options";
 import type { DivisionFormAction } from "@/features/division/state";
 import type { MemberSummary } from "@/features/organization/repository";
 import { AddFirstRoundMatchButton } from "./AddFirstRoundMatchButton";
@@ -39,6 +40,7 @@ export function BracketEditorSetup({
   overallSeq,
   actions,
   entryLabels,
+  sourceOptions,
 }: {
   division: DivisionDetail;
   participants: DivisionParticipant[];
@@ -50,6 +52,8 @@ export function BracketEditorSetup({
   actions: BracketEditorSetupActions;
   /** 参照エントリーの表示名（entryId → 名前）。呼び出し側が entry-source から作る */
   entryLabels?: ReadonlyMap<string, string>;
+  /** 参照できる他部門。ページが buildSlotSourceOptions で作って渡す */
+  sourceOptions: SlotSourceOption[];
 }) {
   const parsed = parseSetupData(division);
   if (parsed === null) {
@@ -145,6 +149,7 @@ export function BracketEditorSetup({
                   clearSlot: actions.clearSlot,
                   removeMatch: actions.removeFirstRoundMatch,
                 },
+                sourceOptions,
               }}
             />
           </>

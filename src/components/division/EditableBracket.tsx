@@ -5,6 +5,7 @@ import { useCallback, useMemo, useState } from "react";
 import { SlotEditContext } from "@/components/tournament/slot-edit-context";
 import { TournamentFlow } from "@/components/tournament/TournamentFlow";
 import type { BracketFlowNode } from "@/features/bracket/to-flow-elements";
+import type { SlotSourceOption } from "@/features/division/slot-source-options";
 import type { MemberSummary } from "@/features/organization/repository";
 import {
   type SlotEditActions,
@@ -20,6 +21,8 @@ export type BracketEditor = {
   /** 選べるメンバー。この部門に配置済みの人は呼び出し側で除いておく */
   members: MemberSummary[];
   actions: SlotEditActions;
+  /** 参照できる他部門。SlotEditDialog がモードの選択肢に使う */
+  sourceOptions: SlotSourceOption[];
 };
 
 /**
@@ -36,6 +39,7 @@ export function EditableBracket({
   divisionId,
   members,
   actions,
+  sourceOptions,
 }: BracketEditor & { nodes: BracketFlowNode[]; edges: Edge[] }) {
   const [target, setTarget] = useState<SlotEditTarget | null>(null);
 
@@ -70,6 +74,7 @@ export function EditableBracket({
           members={members}
           actions={actions}
           onClose={() => setTarget(null)}
+          sourceOptions={sourceOptions}
         />
       )}
     </SlotEditContext.Provider>

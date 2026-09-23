@@ -18,6 +18,7 @@ import {
   loadEntrySourceContext,
 } from "@/features/division/repository";
 import { setMatchNameAction } from "@/features/division/set-match-name/handler";
+import { buildSlotSourceOptions } from "@/features/division/slot-source-options";
 import { swapSlotsAction } from "@/features/division/swap-slots/handler";
 import { listMembersInOrganization } from "@/features/organization/repository";
 import { setPlayerNumberAction } from "@/features/participant/set-player-number/handler";
@@ -99,6 +100,10 @@ export default async function DivisionSetupPage({
               setMatchName: setMatchNameAction,
             }}
             entryLabels={entrySources.views.get(division.id)?.labels}
+            sourceOptions={buildSlotSourceOptions(
+              entrySources.divisions,
+              division.id,
+            )}
           />
         ) : (
           <DivisionSetup

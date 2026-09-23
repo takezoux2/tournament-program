@@ -70,6 +70,7 @@ const renderSetup = (d = division()) =>
       tournamentId="t1"
       overallSeq={new Map()}
       actions={actions}
+      sourceOptions={[]}
     />,
   );
 
