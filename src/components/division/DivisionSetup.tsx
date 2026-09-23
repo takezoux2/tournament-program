@@ -100,6 +100,7 @@ export function DivisionSetup({
           removeAction={actions.removeEntry}
           setPlayerNumberAction={actions.setPlayerNumber}
           disabled={locked}
+          entryLabels={entryLabels}
         />
         <AddEntryForm
           action={actions.addEntry}

@@ -108,4 +108,24 @@ describe("EntryList", () => {
       screen.getByLabelText(`${participants[0].name}の選手番号`),
     ).toHaveValue(participants[0].playerNumber);
   });
+
+  it("参照エントリーは仮名を出し、選手番号の変更は出さない", () => {
+    render(
+      <EntryList
+        {...props}
+        entries={[
+          {
+            id: "x1",
+            seed: 0,
+            source: { kind: "leagueRank", divisionId: "d2", rank: 1 },
+          },
+        ]}
+        participants={[]}
+        entryLabels={new Map([["x1", "予選リーグA 1位"]])}
+      />,
+    );
+
+    expect(screen.getByText("予選リーグA 1位")).toBeInTheDocument();
+    expect(screen.queryByText("（不明な参加者）")).not.toBeInTheDocument();
+  });
 });
