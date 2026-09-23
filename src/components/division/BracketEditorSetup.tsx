@@ -79,7 +79,10 @@ export function BracketEditorSetup({
   const placedParticipantIds = new Set(
     parsed.entries.entries
       .filter((entry) => placedEntryIds.has(entry.id))
-      .map((entry) => entry.participantId),
+      .flatMap((entry) =>
+        // 参照エントリーは Member を持たないので候補の絞り込みには効かない
+        entry.participantId === undefined ? [] : [entry.participantId],
+      ),
   );
   const placedMemberIds = new Set(
     participants

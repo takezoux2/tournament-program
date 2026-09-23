@@ -31,9 +31,13 @@ export const validateEntries = (
   for (const id of duplicates(list.map((entry) => entry.id))) {
     errors.push(`entries[].id が重複しています: ${id}`);
   }
-  for (const participantId of duplicates(
-    list.map((entry) => entry.participantId),
-  )) {
+  // 参照エントリー（source 付き）は participantId を持たないので、重複検査と
+  // 存在検査の対象から外す。同じ参照を二重に置くことの検査は保存側
+  // （features/division/assign-slot）が行う。
+  const participantIds = list.flatMap((entry) =>
+    entry.participantId === undefined ? [] : [entry.participantId],
+  );
+  for (const participantId of duplicates(participantIds)) {
     errors.push(`同じ参加者が二重にエントリーしています: ${participantId}`);
   }
   for (const seed of duplicates(list.map((entry) => entry.seed))) {
@@ -41,11 +45,9 @@ export const validateEntries = (
   }
 
   const known = new Set(existingParticipantIds);
-  for (const entry of list) {
-    if (!known.has(entry.participantId)) {
-      errors.push(
-        `participantId がこの大会に存在しません: ${entry.participantId}`,
-      );
+  for (const participantId of participantIds) {
+    if (!known.has(participantId)) {
+      errors.push(`participantId がこの大会に存在しません: ${participantId}`);
     }
   }
 

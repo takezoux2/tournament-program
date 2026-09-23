@@ -31,7 +31,11 @@ export const createSlotLabeler = (
   const nameByEntryId = new Map(
     entries.entries.map((entry) => [
       entry.id,
-      participantById.get(entry.participantId) ?? null,
+      // 参照エントリー（participantId を持たない）は名前を引けない。
+      // 仮名は呼び出し側が entryLabels で渡す（Task 4 で足す）。
+      entry.participantId === undefined
+        ? null
+        : participantById.get(entry.participantId) ?? null,
     ]),
   );
 

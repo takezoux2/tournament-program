@@ -1,11 +1,28 @@
+/**
+ * エントリーが何に由来するか。未設定 = 従来どおり participantId が実在の
+ * 参加者を指す。source 付きのエントリーは、参照先の結果が出るまで誰なのかが
+ * 決まらない（決勝トーナメントに「予選リーグAの1位」を置く用途）。
+ *
+ * 誰なのかは保存しない。表示のたびに参照先から引き直す
+ * （lib/division/entry-source.ts）。保存すると、参照先の結果を訂正したときにこちらが
+ * 古いまま残るため。
+ */
+export type EntrySource =
+  | { kind: "matchWinner"; divisionId: string; matchId: string }
+  | { kind: "matchLoser"; divisionId: string; matchId: string }
+  /** rank は 1 始まり。同順位で絞れないときは未確定として扱う */
+  | { kind: "leagueRank"; divisionId: string; rank: number };
+
 /** Division.entries の 1 要素。「誰がこの部門に何番シードで出るか」。 */
 export type DivisionEntry = {
   /** 部門内で一意。matchingConfig / results はこの id で参照する */
   id: string;
-  /** Participant.id */
-  participantId: string;
+  /** Participant.id。参照エントリー（source 付き）は持たない */
+  participantId?: string;
   /** 部門内でのシード順。0 始まり */
   seed: number;
+  /** 参照エントリーのときだけ持つ。participantId と両方無い形は parse が弾く */
+  source?: EntrySource;
 };
 
 /** Division.entries の全体。 */

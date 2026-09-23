@@ -239,7 +239,9 @@ export const toLeagueTableView = (
   const labelByEntryId = new Map(
     sortedBySeed.map((entry) => [
       entry.id,
-      nameById.get(entry.participantId) ?? UNKNOWN_PARTICIPANT_LABEL,
+      (entry.participantId === undefined
+        ? undefined
+        : nameById.get(entry.participantId)) ?? UNKNOWN_PARTICIPANT_LABEL,
     ]),
   );
 

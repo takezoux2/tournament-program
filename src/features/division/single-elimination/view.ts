@@ -46,7 +46,9 @@ export const toSetupView = (
   const nameByEntryId = new Map(
     entries.entries.map((entry) => [
       entry.id,
-      participantById.get(entry.participantId) ?? null,
+      (entry.participantId === undefined
+        ? undefined
+        : participantById.get(entry.participantId)) ?? null,
     ]),
   );
 

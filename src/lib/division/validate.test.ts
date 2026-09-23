@@ -82,6 +82,25 @@ describe("validateEntries", () => {
   it("空のエントリーは妥当とする", () => {
     expect(validateEntries(entries(), [])).toEqual([]);
   });
+
+  it("参照エントリーは participantId が無くても通す", () => {
+    const errors = validateEntries(
+      {
+        version: 1,
+        entries: [
+          { id: "e1", participantId: "p1", seed: 0 },
+          {
+            id: "e2",
+            seed: 1,
+            source: { kind: "leagueRank", divisionId: "d2", rank: 1 },
+          },
+        ],
+      },
+      ["p1"],
+    );
+
+    expect(errors).toEqual([]);
+  });
 });
 
 describe("validateMatchingConfig", () => {

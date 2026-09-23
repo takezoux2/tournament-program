@@ -96,9 +96,14 @@ export function fromDivision(
   const participants: Participant[] = [];
   const entryIds = new Set<string>();
   for (const entry of input.entries.entries) {
-    const source = sourceById.get(entry.participantId);
+    const source =
+      entry.participantId === undefined
+        ? undefined
+        : sourceById.get(entry.participantId);
     if (!source) {
       // エントリーの参照先が欠けている＝データ不整合。描かない。
+      // 参照エントリーもここへ来る（名前が無い）。Task 5 で entryLabels を
+      // 見るようにするまでは、ブラケットを描かず案内に倒す。
       return null;
     }
     entryIds.add(entry.id);

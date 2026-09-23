@@ -44,7 +44,10 @@ export function EntryList({
 
       <ul className="space-y-2">
         {entries.map((entry, index) => {
-          const participant = participantById.get(entry.participantId);
+          const participant =
+            entry.participantId === undefined
+              ? undefined
+              : participantById.get(entry.participantId);
           return (
             <li
               key={entry.id}

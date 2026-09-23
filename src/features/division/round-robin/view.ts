@@ -14,7 +14,10 @@ const labeledEntries = (
       entryId: entry.id,
       // 名前を引けなくても行は出す。参加者一覧が古いだけで編集不能に
       // なるのは困る。文言は lib/division/label.ts と揃える。
-      label: nameById.get(entry.participantId) ?? "（不明な参加者）",
+      label:
+        (entry.participantId === undefined
+          ? undefined
+          : nameById.get(entry.participantId)) ?? "（不明な参加者）",
     }));
 };
 

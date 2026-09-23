@@ -6,6 +6,7 @@ import type {
   DivisionEntry,
   DivisionResultConfig,
   DivisionResults,
+  EntrySource,
   MatchingConfig,
   MatchResultRecord,
   MatchScoreEntry,
@@ -49,6 +50,42 @@ const asInt = (value: unknown, path: string): number =>
   typeof value === "number" && Number.isInteger(value)
     ? value
     : fail(path, "整数");
+
+const asNonEmptyString = (value: unknown, path: string): string => {
+  const raw = asString(value, path);
+  return raw === "" ? fail(path, "空でない文字列") : raw;
+};
+
+/** リーグ順位。1 位から数える。 */
+const asRank = (value: unknown, path: string): number => {
+  const raw = asInt(value, path);
+  return raw < 1 ? fail(path, "1 以上の整数") : raw;
+};
+
+const parseEntrySource = (value: unknown, path: string): EntrySource => {
+  const record = asRecord(value, path);
+  const kind = asString(record.kind, `${path}.kind`);
+  switch (kind) {
+    case "matchWinner":
+    case "matchLoser":
+      return {
+        kind,
+        divisionId: asNonEmptyString(record.divisionId, `${path}.divisionId`),
+        matchId: asNonEmptyString(record.matchId, `${path}.matchId`),
+      };
+    case "leagueRank":
+      return {
+        kind,
+        divisionId: asNonEmptyString(record.divisionId, `${path}.divisionId`),
+        rank: asRank(record.rank, `${path}.rank`),
+      };
+    default:
+      return fail(
+        `${path}.kind`,
+        "matchWinner / matchLoser / leagueRank のいずれか",
+      );
+  }
+};
 
 const asArray = (value: unknown, path: string): unknown[] =>
   Array.isArray(value) ? value : fail(path, "配列");
@@ -110,13 +147,29 @@ const parseMatchScoreEntry = (
   };
 };
 
+/**
+ * 参加者エントリーと参照エントリーの両方を読む。どちらでもない
+ * （participantId も source も無い）要素は、表示も解決もできないので弾く。
+ */
 const parseDivisionEntry = (value: unknown, path: string): DivisionEntry => {
   const record = asRecord(value, path);
-  return {
+  const entry: DivisionEntry = {
     id: asString(record.id, `${path}.id`),
-    participantId: asString(record.participantId, `${path}.participantId`),
     seed: asInt(record.seed, `${path}.seed`),
   };
+  if (record.participantId !== undefined) {
+    entry.participantId = asString(
+      record.participantId,
+      `${path}.participantId`,
+    );
+  }
+  if (record.source !== undefined && record.source !== null) {
+    entry.source = parseEntrySource(record.source, `${path}.source`);
+  }
+  if (entry.participantId === undefined && entry.source === undefined) {
+    return fail(path, "participantId または source");
+  }
+  return entry;
 };
 
 const parseSlotSource = (value: unknown, path: string): SlotSource => {
