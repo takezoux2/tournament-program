@@ -1,4 +1,5 @@
 import type { DivisionFormat } from "@/generated/prisma/enums";
+import { matchPositionLabel } from "./label";
 import { type ResolvedMatch, resolveMatchSlots } from "./resolve";
 import { type LeagueRankRow, leagueRankOrder } from "./standings";
 import type {
@@ -19,7 +20,7 @@ export type EntrySourceDivision = {
   entries: DivisionEntries;
   matchingConfig: MatchingConfig;
   results: DivisionResults;
-  /** 展開済みの試合名（試合 id → 表示名）。無ければ試合の matchName で代用する */
+  /** 展開済みの試合名（試合 id → 表示名）。無ければ部門内の位置で代用する */
   matchNames?: ReadonlyMap<string, string>;
 };
 
@@ -42,10 +43,12 @@ const UNKNOWN_PARTICIPANT_LABEL = "（不明な参加者）";
 /**
  * 仮名。画面・公開・印刷・結果入力が同じ文字列を出すよう、ここだけが作る。
  *
- * 試合名は展開済みのもの（{{OverallSeq}} 入り）を優先する。無ければ試合の
- * matchName（テンプレートそのもの）を使う。standings.ts の readMatches と
- * 同じ倒し方（`matchNames.get(id) ?? match.matchName`）で、部門内の位置
- * （回戦・順番）は使わない。
+ * 試合名は展開済みのもの（{{OverallSeq}} 入り）を最優先する。展開済みが
+ * 無ければ、部門内の位置（「1回戦 (1)」）を使う。match.matchName は生成直後
+ * だと `第{{OverallSeq}}試合` のような未展開のテンプレートそのものなので、
+ * これをそのまま仮名に使うと `{{OverallSeq}}` が画面・印刷・公開ページに
+ * 出てしまう。位置が無いリーグ（matchPositionLabel が空文字を返す）だけは、
+ * 最後の手段として match.matchName をそのまま出す。
  */
 const sourceLabel = (
   source: EntrySource,
@@ -60,7 +63,10 @@ const sourceLabel = (
   if (match === undefined) {
     return BROKEN_SOURCE_LABEL;
   }
-  const name = target.matchNames?.get(source.matchId) ?? match.matchName;
+  const position = matchPositionLabel(match, target.format);
+  const name =
+    target.matchNames?.get(source.matchId) ??
+    (position === "" ? match.matchName : position);
   return `${target.name} ${name}の${
     source.kind === "matchWinner" ? "勝者" : "敗者"
   }`;

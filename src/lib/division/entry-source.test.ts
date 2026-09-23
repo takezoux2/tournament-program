@@ -101,7 +101,7 @@ describe("resolveEntrySources", () => {
     expect(resolved.get("d9")?.get("x1")).toEqual({
       state: "resolved",
       participantId: "p2",
-      label: "予選トーナメント m1の勝者",
+      label: "予選トーナメント 1回戦 (1)の勝者",
     });
     // 参加者エントリーは表に載せない
     expect(resolved.get("d9")?.has("x2")).toBe(false);
@@ -120,7 +120,7 @@ describe("resolveEntrySources", () => {
 
     expect(resolved.get("d9")?.get("x1")).toEqual({
       state: "pending",
-      label: "予選トーナメント m1の勝者",
+      label: "予選トーナメント 1回戦 (1)の勝者",
     });
   });
 
@@ -172,7 +172,7 @@ describe("resolveEntrySources", () => {
 
     expect(resolveEntrySources([withBye, final]).get("d9")?.get("x1")).toEqual({
       state: "broken",
-      label: "予選トーナメント m1の敗者",
+      label: "予選トーナメント 1回戦 (1)の敗者",
     });
   });
 
@@ -332,7 +332,7 @@ describe("resolveEntrySources", () => {
     expect(resolved.get("d9")?.get("x1")).toEqual({
       state: "resolved",
       participantId: "p1",
-      label: "中間トーナメント g1の勝者",
+      label: "中間トーナメント 1回戦 (1)の勝者",
     });
   });
 
@@ -372,7 +372,7 @@ describe("resolveEntrySources", () => {
 
     expect(resolved.get("da")?.get("a1")).toEqual({
       state: "ambiguous",
-      label: "部門B mbの勝者",
+      label: "部門B 1回戦 (1)の勝者",
       reason: "cycle",
     });
   });
@@ -394,6 +394,31 @@ describe("resolveEntrySources", () => {
     expect(
       resolveEntrySources([named, final]).get("d9")?.get("x1")?.label,
     ).toBe("予選トーナメント 第5試合の勝者");
+  });
+
+  it("リーグの試合を参照した仮名は位置が無いので matchName をそのまま使う", () => {
+    const final = finalDivision([
+      {
+        id: "x1",
+        seed: 0,
+        source: { kind: "matchWinner", divisionId: "d2", matchId: "n1" },
+      },
+      { id: "x2", participantId: "p9", seed: 1 },
+    ]);
+    const resolved = resolveEntrySources([
+      league([
+        { matchId: "n1", winnerEntryId: "l1" },
+        { matchId: "n2", winnerEntryId: "l1" },
+        { matchId: "n3", winnerEntryId: "l2" },
+      ]),
+      final,
+    ]);
+
+    expect(resolved.get("d9")?.get("x1")).toEqual({
+      state: "resolved",
+      participantId: "p1",
+      label: "予選リーグA n1の勝者",
+    });
   });
 });
 
