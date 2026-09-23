@@ -41,7 +41,7 @@ export const createSlotLabeler = (
       // 仮名は呼び出し側が entryLabels で渡す（Task 4 で足す）。
       entry.participantId === undefined
         ? null
-        : participantById.get(entry.participantId) ?? null,
+        : (participantById.get(entry.participantId) ?? null),
     ]),
   );
 

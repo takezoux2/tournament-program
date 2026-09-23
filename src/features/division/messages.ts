@@ -79,7 +79,8 @@ export const divisionErrorMessage: (error: DivisionError) => string =
     ),
     Match.tag(
       "DivisionShapeMismatchError",
-      () => "この組み合わせはトーナメントの形ではありません。作り直してください",
+      () =>
+        "この組み合わせはトーナメントの形ではありません。作り直してください",
     ),
     Match.tag(
       "DivisionEntrySourceInvalidError",

@@ -116,7 +116,9 @@ describe("createSlotLabeler", () => {
       [],
     );
 
-    expect(labelSlot({ kind: "entry", entryId: "x1" })).toBe("（不明な参加者）");
+    expect(labelSlot({ kind: "entry", entryId: "x1" })).toBe(
+      "（不明な参加者）",
+    );
   });
 });
 

@@ -128,8 +128,12 @@ describe("divisionErrorMessage（追加分）", () => {
 
   it("トーナメントの形でない組み合わせ", () => {
     expect(
-      divisionErrorMessage(new DivisionShapeMismatchError({ divisionId: "d1" })),
-    ).toBe("この組み合わせはトーナメントの形ではありません。作り直してください");
+      divisionErrorMessage(
+        new DivisionShapeMismatchError({ divisionId: "d1" }),
+      ),
+    ).toBe(
+      "この組み合わせはトーナメントの形ではありません。作り直してください",
+    );
   });
 
   it("参照先が使えない理由ごとの文言を返す", () => {
