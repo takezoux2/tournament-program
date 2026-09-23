@@ -107,6 +107,14 @@ export type ResolvedEntry =
   **訪問済み集合で必ず止め**、循環を見つけたら
   `{ state: "ambiguous", reason: "cycle" }` にする。読み出しで例外は投げない。
 - 参照先の部門・試合・順位が見つからなければ `broken`。
+- **注意**: `matchWinner` / `matchLoser` が持つ `matchId` は試合そのものではなく、
+  組み合わせの中の位置を指す（試合 id は `m{round}-{order}` のように決定的で、
+  `buildFromSlots` が組み立て直しても同じ位置には同じ id が振られる。
+  `docs/code-design/architecture.md` の「シングルエリミネーション」節参照）。
+  参照先の組み合わせを作り直すと、同じ `matchId` が別の対戦を指すようになり、
+  参照は「生き残った」まま黙って別カードの勝者・敗者を指す。これを検知する
+  手段は無い（保存前後で `matchId` が同じかどうかしか比較できず、それが
+  「同じ試合」を意味しない）。
 
 ### 仮名（label）の文言
 
