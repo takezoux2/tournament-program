@@ -68,10 +68,15 @@ export type DivisionEntry = {
 
 ## 解決ロジック（本体）
 
-新しい純関数モジュール `src/features/division/entry-source.ts` を置く。
-`lib` ではなく `features/division` に置くのは、順位付け
-（`features/division/round-robin/standings.ts`）を使うため。同じ feature の中なので
-横断依存にはならない。DB は触らず、渡された値だけで決まる純関数にする。
+新しい純関数モジュール `src/lib/division/entry-source.ts` を置く。DB は触らず、
+渡された値だけで決まる純関数にする。
+
+`lib` に置くのは、設定画面（`features/division`）と結果入力（`features/schedule`）の
+両方が使うため。`docs/code-design/architecture.md` は features 同列の依存を禁じて
+いるので、両方から見える下位共通層へ下ろす（`lib/division/resolve.ts` と同じ向き）。
+これに伴い、順位付けの純粋部分（`rankStandings` / `readMatches`）も
+`src/lib/division/standings.ts` へ移し、星取表（`toLeagueTableView`）は
+`features/division/round-robin/` に残す。
 
 入力は「同じ大会の全部門のスナップショット」（`divisionId` → `format` /
 `entries` / `matchingConfig` / `results`）と、対象部門の id。
@@ -91,9 +96,11 @@ export type ResolvedEntry =
 - `matchWinner` / `matchLoser` は参照先部門の `resolveMatchSlots` を使う。
   BYE による不戦勝もこれで自動的に効く。BYE を含む試合には敗者が生まれないため、
   その試合を `matchLoser` で参照している枠は `broken` にする。
-- `leagueRank` は `features/division/round-robin/standings.ts` の順位
-  （勝点 → 勝ち数 → 直接対決）を使う。同じ `rank` が複数いれば
-  `{ state: "ambiguous", reason: "tie" }`。
+- `leagueRank` は `src/lib/division/standings.ts` の順位（勝点 → 勝ち数 → 直接対決）を
+  使う。同じ `rank` が複数いれば `{ state: "ambiguous", reason: "tie" }`。
+- `leagueRank` は参照先リーグの**全試合に記録が入るまで `pending`** にする。途中の
+  順位で確定させると、残りの試合で順位がひっくり返ったときに決勝の組み合わせが
+  黙って変わるため。
 - 参照先のエントリーがさらに別部門を参照している場合は再帰する。
   **訪問済み集合で必ず止め**、循環を見つけたら
   `{ state: "ambiguous", reason: "cycle" }` にする。読み出しで例外は投げない。
@@ -123,8 +130,9 @@ export type ResolvedEntry =
 
 - `createSlotLabeler(matchNames, entries, participants, resolved)` … 解決結果の表を
   受け取り、`resolved` に `label` があればそれを、なければ従来どおり参加者名を出す。
-- `from-division.ts` … `participants` に「id = entryId、name = 仮名」の擬似参加者を
-  混ぜる。ブラケット描画と印刷は無改修で仮名が出る。
+- `from-division.ts` … 入力に `entryLabels`（entryId → 表示名）を足す。参加者から
+  名前を引けないエントリーはこの表から引く。ブラケット描画と印刷は
+  `prepareBracket` のオプション 1 つで仮名が出る。
 - `EntryList` … 参照エントリーの行は仮名と参照先（`予選リーグA`）を出し、
   選手番号フォームは出さない。
 
