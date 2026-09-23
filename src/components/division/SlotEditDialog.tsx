@@ -295,6 +295,10 @@ export function SlotEditDialog({
                   参照する試合
                 </label>
                 <select
+                  // 部門を切り替えると <option> が丸ごと入れ替わる。value を
+                  // 制御していないので、key で作り直させて選択状態をブラウザ
+                  // 任せにしない（前の部門の選択がそのまま残る余地を無くす）。
+                  key={matchDivisionId}
                   id={`${titleId}-match`}
                   name="sourceMatchId"
                   className="w-full rounded border border-slate-300 px-3 py-2 text-sm"
