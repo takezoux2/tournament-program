@@ -232,7 +232,8 @@ export const resolveEntrySources = (
     // MatchResultRecord.winnerEntryId のコメント参照）。前者は pending でよいが
     // 後者は結果が出ても永久に埋まらないので、記録そのものを見て区別する。
     const isDraw = target.results.matches.some(
-      (record) => record.matchId === source.matchId && record.winnerEntryId === null,
+      (record) =>
+        record.matchId === source.matchId && record.winnerEntryId === null,
     );
     if (source.kind === "matchWinner") {
       // 両スロットが BYE の試合には勝ち上がる人が居ない。resolveMatchSlots は
@@ -341,7 +342,9 @@ export const entrySourceParticipantIds = (
 ): Map<string, string> =>
   new Map(
     [...resolved].flatMap(([entryId, entry]) =>
-      entry.state === "resolved" ? [[entryId, entry.participantId] as const] : [],
+      entry.state === "resolved"
+        ? [[entryId, entry.participantId] as const]
+        : [],
     ),
   );
 
