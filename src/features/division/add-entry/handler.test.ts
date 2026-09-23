@@ -122,7 +122,7 @@ describe("addEntryAction", () => {
       formData({ mode: "existing", memberId: "m1" }),
     );
 
-    expect(state.error).toBe("その参加者はすでにエントリーしています");
+    expect(state.error).toBe("すでに同じエントリーが登録されています");
   });
 
   it("リーグの組み合わせを作り直したときは専用の通知を返す", async () => {

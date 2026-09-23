@@ -124,6 +124,23 @@ describe("resolveEntrySources", () => {
     });
   });
 
+  it("matchLoser で勝者が未記録なら pending になること", () => {
+    const final = finalDivision([
+      {
+        id: "x1",
+        seed: 0,
+        source: { kind: "matchLoser", divisionId: "d1", matchId: "m1" },
+      },
+      { id: "x2", participantId: "p3", seed: 1 },
+    ]);
+    const resolved = resolveEntrySources([qualifier(), final]);
+
+    expect(resolved.get("d9")?.get("x1")).toEqual({
+      state: "pending",
+      label: "予選トーナメント 1回戦 (1)の敗者",
+    });
+  });
+
   it("敗者も解決する", () => {
     const final = finalDivision([
       {
@@ -173,6 +190,42 @@ describe("resolveEntrySources", () => {
     expect(resolveEntrySources([withBye, final]).get("d9")?.get("x1")).toEqual({
       state: "broken",
       label: "予選トーナメント 1回戦 (1)の敗者",
+    });
+  });
+
+  it("BYE の不戦勝で勝ち上がった人を勝者参照が解決すること", () => {
+    // 片側だけ BYE の試合。「両側 BYE は broken」というガード
+    // （resolved.slots.every(slot => slot.state === "bye")）が、将来
+    // every → some に書き換わっても気づけるようにする回帰テスト。
+    const withBye = division(
+      "d1",
+      "予選トーナメント",
+      "SINGLE_ELIMINATION",
+      [{ id: "e1", participantId: "p1", seed: 0 }],
+      [
+        {
+          id: "m1",
+          bracket: "winners",
+          round: 1,
+          order: 0,
+          matchName: "m1",
+          slots: [{ kind: "entry", entryId: "e1" }, { kind: "bye" }],
+        },
+      ],
+    );
+    const final = finalDivision([
+      {
+        id: "x1",
+        seed: 0,
+        source: { kind: "matchWinner", divisionId: "d1", matchId: "m1" },
+      },
+      { id: "x2", participantId: "p3", seed: 1 },
+    ]);
+
+    expect(resolveEntrySources([withBye, final]).get("d9")?.get("x1")).toEqual({
+      state: "resolved",
+      participantId: "p1",
+      label: "予選トーナメント 1回戦 (1)の勝者",
     });
   });
 
@@ -452,6 +505,25 @@ describe("resolveEntrySources", () => {
     expect(
       resolveEntrySources([named, final]).get("d9")?.get("x1")?.label,
     ).toBe("予選トーナメント 第5試合の勝者");
+  });
+
+  it("展開済みの試合名が空文字なら位置ラベルを使うこと", () => {
+    const named: EntrySourceDivision = {
+      ...qualifier(),
+      matchNames: new Map([["m1", ""]]),
+    };
+    const final = finalDivision([
+      {
+        id: "x1",
+        seed: 0,
+        source: { kind: "matchWinner", divisionId: "d1", matchId: "m1" },
+      },
+      { id: "x2", participantId: "p9", seed: 1 },
+    ]);
+
+    expect(
+      resolveEntrySources([named, final]).get("d9")?.get("x1")?.label,
+    ).toBe("予選トーナメント 1回戦 (1)の勝者");
   });
 
   it("リーグの試合を参照した仮名は位置が無いので matchName をそのまま使う", () => {

@@ -45,7 +45,9 @@ export const divisionErrorMessage: (error: DivisionError) => string =
     ),
     Match.tag(
       "DivisionDuplicateEntryError",
-      () => "その参加者はすでにエントリーしています",
+      // 参照エントリー（他部門の勝者/敗者・順位）の二重登録でも使われるため、
+      // 「参加者」に限定しない言い方にする。
+      () => "すでに同じエントリーが登録されています",
     ),
     Match.tag(
       "DivisionMemberNotFoundError",

@@ -1,4 +1,4 @@
-import { Effect } from "effect";
+import { Effect, Exit } from "effect";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { failureTag } from "@/shared/testing/exit";
 import { buildFromFirstRound } from "../single-elimination/build";
@@ -41,6 +41,24 @@ const e = (id: string) => ({ kind: "entry" as const, entryId: id });
 const entries = {
   version: 1,
   entries: [{ id: "a", participantId: "p-a", seed: 0 }],
+};
+
+/**
+ * failureTag はタグしか返さないため、sameDivision と notLeague のように
+ * 同じタグで理由（reason）だけが違う失敗を見分けられない。2 つの検証規則を
+ * 入れ替えても気づけるよう、失敗値そのものを取り出す。
+ */
+const failureError = <A, E extends { _tag: string }>(
+  exit: Exit.Exit<A, E>,
+): E => {
+  if (Exit.isSuccess(exit)) {
+    throw new Error("失敗を期待したが成功した");
+  }
+  const cause = exit.cause;
+  if (cause._tag !== "Fail") {
+    throw new Error(`Fail を期待したが ${cause._tag} だった`);
+  }
+  return cause.error;
 };
 
 const mocks = [
@@ -293,6 +311,7 @@ describe("assignSlotInDb", () => {
     );
 
     expect(failureTag(exit)).toBe("DivisionEntrySourceInvalidError");
+    expect(failureError(exit)).toMatchObject({ reason: "sameDivision" });
     // 参照先の部門を読みに行く前に落ちる：呼ばれるのは編集対象の division を
     // 読む 1 回だけ。
     expect(divisionFindFirst).toHaveBeenCalledTimes(1);
@@ -321,6 +340,7 @@ describe("assignSlotInDb", () => {
     );
 
     expect(failureTag(exit)).toBe("DivisionEntrySourceInvalidError");
+    expect(failureError(exit)).toMatchObject({ reason: "notLeague" });
   });
 
   it("同じ参照が既に 1 回戦のスロットに置かれていたら拒否する", async () => {

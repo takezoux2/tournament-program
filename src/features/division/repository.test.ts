@@ -344,14 +344,27 @@ describe("loadEntrySourceContext", () => {
 
   it("壊れた Json を持つ部門は除いて続け、他の部門の仮名は出す", async () => {
     findMany.mockResolvedValue([
-      { id: "d1", name: "壊れた部門", order: 0, format: "SINGLE_ELIMINATION", createdAt: new Date(), entries: "壊れた値", matchingConfig: { version: 1, matches: [] }, results: { version: 1, matches: [] }, resultConfig: null },
+      {
+        id: "d1",
+        name: "壊れた部門",
+        order: 0,
+        format: "SINGLE_ELIMINATION",
+        createdAt: new Date(),
+        entries: "壊れた値",
+        matchingConfig: { version: 1, matches: [] },
+        results: { version: 1, matches: [] },
+        resultConfig: null,
+      },
       {
         id: "d2",
         name: "無事な部門",
         order: 1,
         format: "SINGLE_ELIMINATION",
         createdAt: new Date(),
-        entries: { version: 1, entries: [{ id: "e1", participantId: "p1", seed: 0 }] },
+        entries: {
+          version: 1,
+          entries: [{ id: "e1", participantId: "p1", seed: 0 }],
+        },
         matchingConfig: { version: 1, matches: [] },
         results: { version: 1, matches: [] },
         resultConfig: null,

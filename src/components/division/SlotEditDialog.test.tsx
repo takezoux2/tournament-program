@@ -134,7 +134,7 @@ describe("SlotEditDialog", () => {
 
   it("失敗したら閉じずにエラーを出す", async () => {
     const fail = vi.fn(async () => ({
-      error: "その参加者はすでにエントリーしています",
+      error: "すでに同じエントリーが登録されています",
     }));
     const onClose = vi.fn();
     render(
@@ -153,14 +153,14 @@ describe("SlotEditDialog", () => {
       screen.getByRole("button", { name: "この選手にする" }),
     );
     expect(await screen.findByRole("alert")).toHaveTextContent(
-      "その参加者はすでにエントリーしています",
+      "すでに同じエントリーが登録されています",
     );
     expect(onClose).not.toHaveBeenCalled();
   });
 
   it("前の操作のエラーではなく、最後に送った操作のエラーを出す", async () => {
     const failAssign = vi.fn(async () => ({
-      error: "その参加者はすでにエントリーしています",
+      error: "すでに同じエントリーが登録されています",
     }));
     const failClear = vi.fn(async () => ({
       error: "勝敗が記録されているため変更できません",
@@ -180,7 +180,7 @@ describe("SlotEditDialog", () => {
       screen.getByRole("button", { name: "この選手にする" }),
     );
     expect(await screen.findByRole("alert")).toHaveTextContent(
-      "その参加者はすでにエントリーしています",
+      "すでに同じエントリーが登録されています",
     );
     await userEvent.click(
       screen.getByRole("button", { name: "スロットを空にする" }),

@@ -67,7 +67,7 @@ describe("divisionErrorMessage（追加分）", () => {
     [
       "DivisionDuplicateEntryError",
       new DivisionDuplicateEntryError({ divisionId: "d1" }),
-      "その参加者はすでにエントリーしています",
+      "すでに同じエントリーが登録されています",
     ],
     [
       "DivisionMemberNotFoundError",

@@ -111,8 +111,10 @@ export function BracketEditorSetup({
   return (
     <div className="space-y-6">
       {locked && <LockedNotice />}
-      {warnings.map((warning) => (
-        <Notice key={warning}>{warning}</Notice>
+      {warnings.map((warning, index) => (
+        // 同じ文言の警告が複数出ることがあるため、文言だけを key にすると
+        // 重複してしまう。index を足して一意にする。
+        <Notice key={`${index}-${warning}`}>{warning}</Notice>
       ))}
 
       <section className="space-y-3">

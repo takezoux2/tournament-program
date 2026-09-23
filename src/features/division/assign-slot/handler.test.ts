@@ -118,7 +118,7 @@ describe("assignSlotAction", () => {
     data.set("memberId", "m-2");
     const state = await assignSlotAction(INITIAL_DIVISION_FORM_STATE, data);
     expect(state).toEqual({
-      error: "その参加者はすでにエントリーしています",
+      error: "すでに同じエントリーが登録されています",
     });
   });
 

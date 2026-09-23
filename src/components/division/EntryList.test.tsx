@@ -127,5 +127,12 @@ describe("EntryList", () => {
 
     expect(screen.getByText("予選リーグA 1位")).toBeInTheDocument();
     expect(screen.queryByText("（不明な参加者）")).not.toBeInTheDocument();
+
+    // 参照エントリーは参加者を持たないので、選手番号の編集フォーム
+    // （PlayerNumberForm）が出ないこと。
+    const row = screen.getByRole("listitem");
+    expect(
+      within(row).queryByRole("textbox", { name: /の選手番号$/ }),
+    ).not.toBeInTheDocument();
   });
 });
