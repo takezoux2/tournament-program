@@ -64,8 +64,11 @@ const sourceLabel = (
     return BROKEN_SOURCE_LABEL;
   }
   const position = matchPositionLabel(match, target.format);
+  // 展開済みの試合名が空文字で入っていることがある（未設定と区別しない
+  // 保存経路がある）。?? は空文字を「値あり」とみなすので、ここで弾く。
+  const rawMatchName = target.matchNames?.get(source.matchId);
   const name =
-    target.matchNames?.get(source.matchId) ??
+    (rawMatchName === "" ? undefined : rawMatchName) ??
     (position === "" ? match.matchName : position);
   return `${target.name} ${name}の${
     source.kind === "matchWinner" ? "勝者" : "敗者"
@@ -189,12 +192,17 @@ export const resolveEntrySources = (
       ) {
         return { state: "pending", label };
       }
-      const hits = leagueRank(target).filter((row) => row.rank === source.rank);
-      if (hits.length === 0) {
-        // エントリー数より大きい順位を指している
+      const rows = leagueRank(target);
+      if (source.rank > rows.length) {
+        // rank は parse で 1 以上を保証済み。ここでの範囲外は
+        // 「エントリー数より大きい順位を指している」の一択なので broken。
         return { state: "broken", label };
       }
-      if (hits.length > 1) {
+      const hits = rows.filter((row) => row.rank === source.rank);
+      if (hits.length !== 1) {
+        // rankStandings は同順位のとき番号を飛ばす（1, 1, 3）。飛ばされた
+        // 順位（この例の 2 位）は範囲内だが 1 人に絞れない。部門も順位も
+        // 実在するので broken ではなく、同順位で絞れない未確定として扱う。
         return { state: "ambiguous", label, reason: "tie" };
       }
       return followEntry(target, hits[0].entryId, label);
@@ -205,6 +213,13 @@ export const resolveEntrySources = (
       return { state: "broken", label };
     }
     if (source.kind === "matchWinner") {
+      // 両スロットが BYE の試合には勝ち上がる人が居ない。resolveMatchSlots は
+      // こうした上流の試合を「空き枠」として扱う（resolve.ts の winnerOf の
+      // 分岐と同じ考え）。ここで pending のままにすると永久に埋まらないので
+      // broken にする。
+      if (resolved.slots.every((slot) => slot.state === "bye")) {
+        return { state: "broken", label };
+      }
       return resolved.winnerEntryId === null
         ? { state: "pending", label }
         : followEntry(target, resolved.winnerEntryId, label);

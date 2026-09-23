@@ -176,6 +176,38 @@ describe("resolveEntrySources", () => {
     });
   });
 
+  it("両スロットが BYE の試合には勝者も居ないので勝者参照は broken にする", () => {
+    const bothBye = division(
+      "d1",
+      "予選トーナメント",
+      "SINGLE_ELIMINATION",
+      [],
+      [
+        {
+          id: "m1",
+          bracket: "winners",
+          round: 1,
+          order: 0,
+          matchName: "m1",
+          slots: [{ kind: "bye" }, { kind: "bye" }],
+        },
+      ],
+    );
+    const final = finalDivision([
+      {
+        id: "x1",
+        seed: 0,
+        source: { kind: "matchWinner", divisionId: "d1", matchId: "m1" },
+      },
+      { id: "x2", participantId: "p3", seed: 1 },
+    ]);
+
+    expect(resolveEntrySources([bothBye, final]).get("d9")?.get("x1")).toEqual({
+      state: "broken",
+      label: "予選トーナメント 1回戦 (1)の勝者",
+    });
+  });
+
   it("リーグの全試合が終わっていれば N 位を解決する", () => {
     const final = finalDivision([
       {
@@ -243,6 +275,32 @@ describe("resolveEntrySources", () => {
     expect(resolved.get("d9")?.get("x1")).toEqual({
       state: "ambiguous",
       label: "予選リーグA 1位",
+      reason: "tie",
+    });
+  });
+
+  it("同順位で飛ばされた順位は broken ではなく ambiguous にする", () => {
+    const final = finalDivision([
+      {
+        id: "x1",
+        seed: 0,
+        source: { kind: "leagueRank", divisionId: "d2", rank: 2 },
+      },
+      { id: "x2", participantId: "p9", seed: 1 },
+    ]);
+    // 全員 1 勝 1 敗で巴戦になり 3 人が同じ 1 位になる（2 位は飛ばされる）
+    const resolved = resolveEntrySources([
+      league([
+        { matchId: "n1", winnerEntryId: "l1" },
+        { matchId: "n2", winnerEntryId: "l3" },
+        { matchId: "n3", winnerEntryId: "l2" },
+      ]),
+      final,
+    ]);
+
+    expect(resolved.get("d9")?.get("x1")).toEqual({
+      state: "ambiguous",
+      label: "予選リーグA 2位",
       reason: "tie",
     });
   });
@@ -479,6 +537,15 @@ describe("entrySourceWarnings", () => {
             matchId: "m1",
           },
         },
+        {
+          id: "x3",
+          seed: 2,
+          source: {
+            kind: "matchWinner" as const,
+            divisionId: "d4",
+            matchId: "m2",
+          },
+        },
       ],
     };
     const resolved = new Map([
@@ -491,10 +558,19 @@ describe("entrySourceWarnings", () => {
         },
       ],
       ["x2", { state: "broken" as const, label: BROKEN_SOURCE_LABEL }],
+      [
+        "x3",
+        {
+          state: "ambiguous" as const,
+          label: BROKEN_SOURCE_LABEL,
+          reason: "cycle" as const,
+        },
+      ],
     ]);
 
     expect(entrySourceWarnings(entries, resolved, new Map())).toEqual([
       "予選リーグA 1位 は同順位のため決まりません",
+      "参照が循環しているため、選手が決まりません",
       "参照先が見つからない枠があります",
     ]);
   });
