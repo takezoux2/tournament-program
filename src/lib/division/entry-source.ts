@@ -329,6 +329,22 @@ export const entrySourceLabels = (
     ]),
   );
 
+/**
+ * 解決済みの参照エントリーの participantId。entryId → participantId。
+ *
+ * 表示名の文字列（entrySourceLabels）だと、選手番号や所属を付けられない。
+ * ブラケットの描画は participantId を渡して、名前・所属・選手番号を
+ * 参加者エントリーと同じ経路から引く。
+ */
+export const entrySourceParticipantIds = (
+  resolved: ReadonlyMap<string, ResolvedEntry>,
+): Map<string, string> =>
+  new Map(
+    [...resolved].flatMap(([entryId, entry]) =>
+      entry.state === "resolved" ? [[entryId, entry.participantId] as const] : [],
+    ),
+  );
+
 /** まだ誰でもない枠の entryId。結果入力を伏せるのに使う。 */
 export const unresolvedEntryIds = (
   resolved: ReadonlyMap<string, ResolvedEntry>,

@@ -120,6 +120,9 @@ export default async function PublicDivisionPage({
           overallSeq={overallSeq}
           heightClassName="h-[calc(100dvh-11rem)]"
           entryLabels={entrySources.views.get(division.id)?.labels}
+          entryParticipantIds={
+            entrySources.views.get(division.id)?.participantIds
+          }
         />
       </div>
     </main>

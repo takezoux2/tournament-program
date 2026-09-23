@@ -51,6 +51,13 @@ export type FromDivisionInput = {
    * entrySourceLabels で作って渡す。
    */
   entryLabels?: ReadonlyMap<string, string>;
+  /**
+   * 解決済みの参照エントリーの participantId。entryId → participantId。
+   * 表示名の文字列だけの entryLabels では選手番号や所属を付けられないため、
+   * 解決済みならこちらを優先して参加者から名前・所属を引く
+   * （lib/division/entry-source.ts の entrySourceParticipantIds で作る）。
+   */
+  entryParticipantIds?: ReadonlyMap<string, string>;
 };
 
 export type FromDivisionResult = {
@@ -102,12 +109,15 @@ export function fromDivision(
   const participants: Participant[] = [];
   const entryIds = new Set<string>();
   for (const entry of input.entries.entries) {
+    // 解決済みの参照エントリーは participantId を経由して参加者から名前・
+    // 所属を引く。これで prepare-bracket.ts の選手番号の前置（No.◯）も
+    // 参加者エントリーと同じ経路にでき、印刷での呼び出しに使える。
+    const participantId =
+      entry.participantId ?? input.entryParticipantIds?.get(entry.id);
     const source =
-      entry.participantId === undefined
-        ? undefined
-        : sourceById.get(entry.participantId);
-    // 参照エントリーは参加者を持たないので仮名で描く。名前がどちらからも
-    // 引けないのはデータ不整合なので、従来どおり描かない。
+      participantId === undefined ? undefined : sourceById.get(participantId);
+    // 参加者を引けない（未確定の参照エントリー）は仮名で描く。team は無い。
+    // 名前がどちらからも引けないのはデータ不整合なので、従来どおり描かない。
     const name = source?.name ?? input.entryLabels?.get(entry.id);
     if (name === undefined) {
       return null;

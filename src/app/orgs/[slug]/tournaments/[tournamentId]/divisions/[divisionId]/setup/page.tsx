@@ -100,6 +100,9 @@ export default async function DivisionSetupPage({
               setMatchName: setMatchNameAction,
             }}
             entryLabels={entrySources.views.get(division.id)?.labels}
+            entryParticipantIds={
+              entrySources.views.get(division.id)?.participantIds
+            }
             sourceOptions={buildSlotSourceOptions(
               entrySources.divisions,
               division.id,
@@ -124,6 +127,9 @@ export default async function DivisionSetupPage({
               setPlayerNumber: setPlayerNumberAction,
             }}
             entryLabels={entrySources.views.get(division.id)?.labels}
+            entryParticipantIds={
+              entrySources.views.get(division.id)?.participantIds
+            }
           />
         )}
       </div>

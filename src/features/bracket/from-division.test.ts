@@ -527,5 +527,40 @@ describe("fromDivision", () => {
 
       expect(result).toBeNull();
     });
+
+    it("解決済みの参照エントリーは entryParticipantIds 経由で参加者の名前と team を描く", () => {
+      const result = fromDivision(
+        buildInput({
+          entries: sourceEntries,
+          matchingConfig: sourceMatchingConfig,
+          participants,
+          // entryLabels（仮名）も渡すが、解決済みなら participantId 側を優先する
+          entryLabels: new Map([["x1", "予選リーグA 1位"]]),
+          entryParticipantIds: new Map([["x1", "p1"]]),
+        }),
+      );
+
+      expect(result?.participants).toEqual([
+        { id: "x1", name: "佐藤 蓮", seed: 0, team: "青葉クラブ" },
+        { id: "e2", name: "鈴木 陽菜", seed: 1, team: undefined },
+      ]);
+    });
+
+    it("entryParticipantIds が指す参加者を引けなければ entryLabels の仮名に落ちる", () => {
+      const result = fromDivision(
+        buildInput({
+          entries: sourceEntries,
+          matchingConfig: sourceMatchingConfig,
+          participants: [participants[1]],
+          entryLabels: new Map([["x1", "予選リーグA 1位"]]),
+          entryParticipantIds: new Map([["x1", "missing"]]),
+        }),
+      );
+
+      expect(result?.participants).toEqual([
+        { id: "x1", name: "予選リーグA 1位", seed: 0, team: undefined },
+        { id: "e2", name: "鈴木 陽菜", seed: 1, team: undefined },
+      ]);
+    });
   });
 });

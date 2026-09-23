@@ -3,6 +3,7 @@ import type { DivisionFormat } from "@/generated/prisma/enums";
 import {
   type EntrySourceDivision,
   entrySourceLabels,
+  entrySourceParticipantIds,
   entrySourceWarnings,
   resolveEntrySources,
 } from "@/lib/division/entry-source";
@@ -200,6 +201,12 @@ export const listOverallOrderSources = async (
 export type EntrySourceView = {
   /** entryId → 画面に出す名前。参照エントリーだけを含む */
   labels: Map<string, string>;
+  /**
+   * entryId → participantId。解決済みの参照エントリーだけを含む。
+   * ブラケットの描画が選手番号・所属を参加者と同じ経路で引くのに使う
+   * （entrySourceParticipantIds のコメント参照）。
+   */
+  participantIds: Map<string, string>;
   /** 同順位・循環・参照切れ・重複の注意書き。無ければ空配列 */
   warnings: string[];
 };
@@ -274,6 +281,7 @@ export const loadEntrySourceContext = async (
         division.id,
         {
           labels: entrySourceLabels(entries, participantNameById),
+          participantIds: entrySourceParticipantIds(entries),
           warnings: entrySourceWarnings(
             division.entries,
             entries,

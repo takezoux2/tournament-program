@@ -4,6 +4,7 @@ import {
   BROKEN_SOURCE_LABEL,
   type EntrySourceDivision,
   entrySourceLabels,
+  entrySourceParticipantIds,
   entrySourceWarnings,
   resolveEntrySources,
   unresolvedEntryIds,
@@ -626,6 +627,23 @@ describe("entrySourceLabels", () => {
         ["x1", "山田太郎"],
         ["x2", "予選リーグA 2位"],
       ]),
+    );
+  });
+});
+
+describe("entrySourceParticipantIds", () => {
+  it("解決済みの entryId だけを participantId の表にする", () => {
+    const resolved = new Map([
+      [
+        "x1",
+        { state: "resolved" as const, participantId: "p1", label: "仮名1" },
+      ],
+      ["x2", { state: "pending" as const, label: "仮名2" }],
+      ["x3", { state: "broken" as const, label: "仮名3" }],
+    ]);
+
+    expect(entrySourceParticipantIds(resolved)).toEqual(
+      new Map([["x1", "p1"]]),
     );
   });
 });

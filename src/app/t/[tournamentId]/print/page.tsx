@@ -115,6 +115,9 @@ export default async function PublicPrintPage({
               overallSeq={overallSeq}
               withResults={options.results}
               entryLabels={entrySources.views.get(division.id)?.labels}
+              entryParticipantIds={
+                entrySources.views.get(division.id)?.participantIds
+              }
             />
           </div>
         ))}

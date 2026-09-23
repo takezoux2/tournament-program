@@ -35,6 +35,7 @@ export function DivisionMatchingView({
   overallSeq,
   heightClassName,
   entryLabels,
+  entryParticipantIds,
 }: {
   division: DivisionDetail;
   participants: DivisionParticipant[];
@@ -43,6 +44,8 @@ export function DivisionMatchingView({
   heightClassName?: string;
   /** 参照エントリーの表示名（entryId → 名前）。ページが entry-source から作る */
   entryLabels?: ReadonlyMap<string, string>;
+  /** 解決済みの参照エントリーの participantId。ページが entry-source から作る */
+  entryParticipantIds?: ReadonlyMap<string, string>;
 }) {
   switch (division.format) {
     case "SINGLE_ELIMINATION":
@@ -55,6 +58,7 @@ export function DivisionMatchingView({
           overallSeq={overallSeq}
           heightClassName={heightClassName}
           entryLabels={entryLabels}
+          entryParticipantIds={entryParticipantIds}
         />
       );
     case "ROUND_ROBIN":

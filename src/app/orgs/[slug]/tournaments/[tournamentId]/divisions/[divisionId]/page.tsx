@@ -81,6 +81,9 @@ export default async function DivisionPage({
             participants={participants}
             overallSeq={overallSeq}
             entryLabels={entrySources.views.get(division.id)?.labels}
+            entryParticipantIds={
+              entrySources.views.get(division.id)?.participantIds
+            }
           />
         </div>
       </div>

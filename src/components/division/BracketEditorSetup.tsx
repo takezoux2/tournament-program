@@ -40,6 +40,7 @@ export function BracketEditorSetup({
   overallSeq,
   actions,
   entryLabels,
+  entryParticipantIds,
   sourceOptions,
   warnings = [],
 }: {
@@ -53,6 +54,8 @@ export function BracketEditorSetup({
   actions: BracketEditorSetupActions;
   /** 参照エントリーの表示名（entryId → 名前）。呼び出し側が entry-source から作る */
   entryLabels?: ReadonlyMap<string, string>;
+  /** 解決済みの参照エントリーの participantId。呼び出し側が entry-source から作る */
+  entryParticipantIds?: ReadonlyMap<string, string>;
   /** 参照できる他部門。ページが buildSlotSourceOptions で作って渡す */
   sourceOptions: SlotSourceOption[];
   /**
@@ -149,6 +152,7 @@ export function BracketEditorSetup({
               participants={participants}
               overallSeq={overallSeq}
               entryLabels={entryLabels}
+              entryParticipantIds={entryParticipantIds}
               editor={{
                 locked,
                 slug,
