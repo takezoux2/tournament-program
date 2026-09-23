@@ -3,6 +3,7 @@ import { matchPositionLabel } from "./label";
 import { type ResolvedMatch, resolveMatchSlots } from "./resolve";
 import { type LeagueRankRow, leagueRankOrder } from "./standings";
 import type {
+  BracketMatch,
   DivisionEntries,
   DivisionResults,
   EntrySource,
@@ -41,6 +42,29 @@ export const BROKEN_SOURCE_LABEL = "（参照先が見つかりません）";
 const UNKNOWN_PARTICIPANT_LABEL = "（不明な参加者）";
 
 /**
+ * 参照先の試合を指す文字列。展開済みの試合名 → 位置（「1回戦 (1)」）→
+ * 位置を持たないリーグだけテンプレートそのまま、の順で決める。
+ *
+ * 仮名（この下の sourceLabel）と、スロット編集の選択肢
+ * （features/division/slot-source-options.ts）が同じ文字列を出す必要がある。
+ * 規則が 2 箇所に分かれると片方だけ直して食い違うため、ここに 1 つだけ置く。
+ */
+export const matchSourceName = (
+  match: BracketMatch,
+  format: DivisionFormat,
+  matchNames?: ReadonlyMap<string, string>,
+): string => {
+  const position = matchPositionLabel(match, format);
+  // 展開済みの試合名が空文字で入っていることがある（未設定と区別しない
+  // 保存経路がある）。?? は空文字を「値あり」とみなすので、ここで弾く。
+  const rawMatchName = matchNames?.get(match.id);
+  return (
+    (rawMatchName === "" ? undefined : rawMatchName) ??
+    (position === "" ? match.matchName : position)
+  );
+};
+
+/**
  * 仮名。画面・公開・印刷・結果入力が同じ文字列を出すよう、ここだけが作る。
  *
  * 試合名は展開済みのもの（{{OverallSeq}} 入り）を最優先する。展開済みが
@@ -63,13 +87,7 @@ const sourceLabel = (
   if (match === undefined) {
     return BROKEN_SOURCE_LABEL;
   }
-  const position = matchPositionLabel(match, target.format);
-  // 展開済みの試合名が空文字で入っていることがある（未設定と区別しない
-  // 保存経路がある）。?? は空文字を「値あり」とみなすので、ここで弾く。
-  const rawMatchName = target.matchNames?.get(source.matchId);
-  const name =
-    (rawMatchName === "" ? undefined : rawMatchName) ??
-    (position === "" ? match.matchName : position);
+  const name = matchSourceName(match, target.format, target.matchNames);
   return `${target.name} ${name}の${
     source.kind === "matchWinner" ? "勝者" : "敗者"
   }`;

@@ -1,6 +1,8 @@
 import type { DivisionFormat } from "@/generated/prisma/enums";
-import type { EntrySourceDivision } from "@/lib/division/entry-source";
-import { matchPositionLabel } from "@/lib/division/label";
+import {
+  type EntrySourceDivision,
+  matchSourceName,
+} from "@/lib/division/entry-source";
 
 /** スロット編集で選べる参照先の 1 部門。 */
 export type SlotSourceOption = {
@@ -31,15 +33,10 @@ export const buildSlotSourceOptions = (
       divisionId: division.id,
       divisionName: division.name,
       format: division.format,
-      matches: division.matchingConfig.matches.map((match) => {
-        const position = matchPositionLabel(match, division.format);
-        return {
-          matchId: match.id,
-          label:
-            division.matchNames?.get(match.id) ??
-            (position === "" ? match.matchName : position),
-        };
-      }),
+      matches: division.matchingConfig.matches.map((match) => ({
+        matchId: match.id,
+        label: matchSourceName(match, division.format, division.matchNames),
+      })),
       maxRank:
         division.format === "ROUND_ROBIN" ? division.entries.entries.length : 0,
     }));

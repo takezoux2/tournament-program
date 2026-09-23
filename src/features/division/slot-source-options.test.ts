@@ -77,4 +77,15 @@ describe("buildSlotSourceOptions", () => {
       { matchId: "q1", label: "第3試合" },
     ]);
   });
+
+  it("展開済みの試合名が空文字なら位置を使う", () => {
+    const withEmptyName: EntrySourceDivision = {
+      ...division("d1", "予選トーナメント", "SINGLE_ELIMINATION", 2, ["q1"]),
+      matchNames: new Map([["q1", ""]]),
+    };
+
+    expect(buildSlotSourceOptions([withEmptyName], "d9")[0].matches).toEqual([
+      { matchId: "q1", label: "1回戦 (1)" },
+    ]);
+  });
 });
