@@ -57,7 +57,7 @@ describe("assignSlotAction", () => {
       {
         matchId: "m1-0",
         slotIndex: 1,
-        member: { mode: "existing", memberId: "m-2" },
+        occupant: { mode: "existing", memberId: "m-2" },
       },
     );
     expect(state).toEqual({ error: null, succeeded: 1 });
@@ -120,6 +120,24 @@ describe("assignSlotAction", () => {
     expect(state).toEqual({
       error: "その参加者はすでにエントリーしています",
     });
+  });
+
+  it("リーグ順位の指定をポートへ渡す", async () => {
+    const data = formData();
+    data.set("matchId", "m1");
+    data.set("slotIndex", "0");
+    data.set("mode", "leagueRank");
+    data.set("sourceDivisionId", "d2");
+    data.set("rank", "2");
+    await assignSlotAction(INITIAL_DIVISION_FORM_STATE, data);
+    expect(assignSlotInDb).toHaveBeenCalledWith(
+      { organizationId: "o1", tournamentId: "t1", divisionId: "d1" },
+      {
+        matchId: "m1",
+        slotIndex: 0,
+        occupant: { mode: "leagueRank", sourceDivisionId: "d2", rank: 2 },
+      },
+    );
   });
 
   it("見つからなければ 404", async () => {

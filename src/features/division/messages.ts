@@ -1,5 +1,16 @@
 import { Match } from "effect";
-import type { DivisionError } from "./errors";
+import type { DivisionEntrySourceInvalidError, DivisionError } from "./errors";
+
+/** 参照先が使えない理由ごとの文言。 */
+const ENTRY_SOURCE_INVALID_MESSAGES: Record<
+  DivisionEntrySourceInvalidError["reason"],
+  string
+> = {
+  notFound: "参照先の部門が見つかりません",
+  sameDivision: "同じ部門の結果は参照できません",
+  notLeague: "順位を参照できるのはリーグの部門だけです",
+  matchNotFound: "参照先の試合が見つかりません。画面を再読み込みしてください",
+};
 
 /**
  * Match.exhaustive により、errors.ts にタグを足して文言を書き忘れると
@@ -67,6 +78,10 @@ export const divisionErrorMessage: (error: DivisionError) => string =
     Match.tag(
       "DivisionShapeMismatchError",
       () => "この組み合わせはトーナメントの形ではありません。作り直してください",
+    ),
+    Match.tag(
+      "DivisionEntrySourceInvalidError",
+      (error) => ENTRY_SOURCE_INVALID_MESSAGES[error.reason],
     ),
     Match.exhaustive,
   );

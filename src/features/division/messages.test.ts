@@ -3,6 +3,7 @@ import {
   DivisionDataError,
   DivisionDuplicateEntryError,
   DivisionEntryLimitError,
+  DivisionEntrySourceInvalidError,
   DivisionFirstRoundLimitError,
   DivisionMemberNotFoundError,
   DivisionNotEnoughEntriesError,
@@ -129,5 +130,13 @@ describe("divisionErrorMessage（追加分）", () => {
     expect(
       divisionErrorMessage(new DivisionShapeMismatchError({ divisionId: "d1" })),
     ).toBe("この組み合わせはトーナメントの形ではありません。作り直してください");
+  });
+
+  it("参照先が使えない理由ごとの文言を返す", () => {
+    expect(
+      divisionErrorMessage(
+        new DivisionEntrySourceInvalidError({ reason: "notLeague" }),
+      ),
+    ).toBe("順位を参照できるのはリーグの部門だけです");
   });
 });
