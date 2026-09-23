@@ -23,7 +23,12 @@ export type PlayedMatch = {
   outcome: LeagueOutcome | null;
 };
 
-type Tally = { wins: number; draws: number; losses: number; points: number };
+export type Tally = {
+  wins: number;
+  draws: number;
+  losses: number;
+  points: number;
+};
 
 const emptyTally = (): Tally => ({ wins: 0, draws: 0, losses: 0, points: 0 });
 
