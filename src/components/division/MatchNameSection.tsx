@@ -23,6 +23,7 @@ export function MatchNameSection({
   setMatchNameAction,
   mismatched,
   emptyMessage,
+  entryLabels,
 }: {
   division: { id: string; format: DivisionFormat };
   entries: DivisionEntries;
@@ -37,6 +38,8 @@ export function MatchNameSection({
   mismatched: boolean;
   /** 行が 1 つも無いときの文言。画面ごとに言い方が違う */
   emptyMessage: string;
+  /** 参照エントリーの表示名（entryId → 名前）。呼び出し側が entry-source から作る */
+  entryLabels?: ReadonlyMap<string, string>;
 }) {
   return (
     <section className="space-y-3">
@@ -52,6 +55,7 @@ export function MatchNameSection({
             participants,
             division.format,
             resolveMatchNames(matchingConfig, division.id, overallSeq),
+            entryLabels,
           )}
           slug={slug}
           tournamentId={tournamentId}

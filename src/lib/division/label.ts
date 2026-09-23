@@ -19,11 +19,17 @@ export type SlotLabeler = (slot: SlotSource) => string;
  * 名前を引けなかった entry は「（不明な参加者）」にして落とさない。
  * 参加者一覧が古いだけでも一覧は読めた方がよい。bye と書き分けるのは、
  * 引けないだけのスロットを「不戦勝」と出すとブラケットの読み違いになるため。
+ *
+ * entryLabels は参照エントリー（他部門の結果で決まる枠）の表示名。参加者から
+ * 名前を引けないため、呼び出し側が lib/division/entry-source.ts の
+ * entrySourceLabels で作って渡す。解決済みなら実選手の名前、未確定なら
+ * 「予選リーグA 1位」のような仮名が入っている。
  */
 export const createSlotLabeler = (
   matchNames: ReadonlyMap<string, string>,
   entries: DivisionEntries,
   participants: { id: string; name: string }[],
+  entryLabels: ReadonlyMap<string, string> = new Map(),
 ): SlotLabeler => {
   const participantById = new Map(
     participants.map((participant) => [participant.id, participant.name]),
@@ -42,7 +48,11 @@ export const createSlotLabeler = (
   return (slot) => {
     switch (slot.kind) {
       case "entry":
-        return nameByEntryId.get(slot.entryId) ?? "（不明な参加者）";
+        return (
+          nameByEntryId.get(slot.entryId) ??
+          entryLabels.get(slot.entryId) ??
+          "（不明な参加者）"
+        );
       case "winnerOf":
         return `${matchNames.get(slot.matchId) ?? "?"}の勝者`;
       case "loserOf":

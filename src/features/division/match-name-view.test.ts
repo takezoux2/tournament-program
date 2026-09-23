@@ -97,4 +97,42 @@ describe("toMatchOrderView", () => {
     expect(row.template).toBe(DEFAULT_MATCH_NAME);
     expect(row.matchName).toBe("第9試合");
   });
+
+  it("参照エントリーの仮名を対戦の表示に使う", () => {
+    const rows = toMatchOrderView(
+      {
+        version: 1,
+        matches: [
+          {
+            id: "m1",
+            bracket: "winners",
+            round: 1,
+            order: 0,
+            matchName: "第1試合",
+            slots: [
+              { kind: "entry", entryId: "x1" },
+              { kind: "entry", entryId: "e2" },
+            ],
+          },
+        ],
+      },
+      {
+        version: 1,
+        entries: [
+          {
+            id: "x1",
+            seed: 0,
+            source: { kind: "leagueRank", divisionId: "d2", rank: 1 },
+          },
+          { id: "e2", participantId: "p2", seed: 1 },
+        ],
+      },
+      [{ id: "p2", name: "佐藤" }],
+      "SINGLE_ELIMINATION",
+      new Map([["m1", "第1試合"]]),
+      new Map([["x1", "予選リーグA 1位"]]),
+    );
+
+    expect(rows[0].card).toBe("予選リーグA 1位 vs 佐藤");
+  });
 });

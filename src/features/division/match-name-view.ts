@@ -41,8 +41,15 @@ export const toMatchOrderView = (
   format: DivisionFormat,
   /** 展開済みの試合名。{{OverallSeq}} は大会全体を見ないと決まらないので上で作って渡す */
   matchNames: ReadonlyMap<string, string>,
+  /** 参照エントリーの表示名。entry-source.ts の entrySourceLabels で作る */
+  entryLabels?: ReadonlyMap<string, string>,
 ): MatchNameRowView[] => {
-  const labelSlot = createSlotLabeler(matchNames, entries, participants);
+  const labelSlot = createSlotLabeler(
+    matchNames,
+    entries,
+    participants,
+    entryLabels,
+  );
 
   return config.matches.map((match) => ({
     matchId: match.id,
