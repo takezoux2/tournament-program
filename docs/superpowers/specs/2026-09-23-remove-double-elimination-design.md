@@ -16,6 +16,8 @@
 * `src/features/division/double-elimination/` の削除
 * DE を扱うために導入した `SlotBracketFormat` 抽象の畳み込み
 * 形式ディスパッチ（ラベル・リンク・描画・印刷）から DE の分岐を削除
+* DE の枝が消えることで到達不能になる画面・スライスの削除
+  （`DivisionSetup`、`MatchingSection`、`toSetupView`、`swap-slots` スライス、`swapSlots`）
 * 上記に追従するテストの更新
 
 含まない:
@@ -127,15 +129,58 @@ const MIN_ENTRIES: Record<EditableFormat, number> = {
 `isSlotBracketFormat` / `buildSlotBracket` / `matchesSlotBracketShape` を使う 3 ファイルを
 直接判定に戻す。`format === "SINGLE_ELIMINATION"` でも同じ型の絞り込みが効くため挙動は変わらない。
 
+`isSlotBracketFormat` / `buildSlotBracket` / `matchesSlotBracketShape` を使っていた 3 ファイルの
+うち、`swap-slots/repository.ts` と `DivisionSetup.tsx` は後述のとおり**ファイルごと削除**する。
+残るのは setup ページのガードだけ。
+
 | ファイル | 変更 |
 | --- | --- |
-| `src/features/division/swap-slots/repository.ts` | `isSlotBracketFormat(format)` → `format === "SINGLE_ELIMINATION"`、`buildSlotBracket(format, slots)` → `buildFromSlots(slots)`、`matchesSlotBracketShape(format, ...)` → `isSingleEliminationShape(...)` |
-| `src/components/division/DivisionSetup.tsx` | 同上 |
 | `src/app/orgs/[slug]/tournaments/[tournamentId]/divisions/[divisionId]/setup/page.tsx` | ガードを `division.format !== "SINGLE_ELIMINATION"` に |
 
 `minEntries` / `maxEntries` だけを使う 4 ファイル
 （`add-entry/repository.ts`、`remove-entry/repository.ts`、`generate-matching/repository.ts`、
 `BracketEditorSetup.tsx`）は**無変更**。
+
+## 到達不能になるコードの削除
+
+setup ページは `division.format === "SINGLE_ELIMINATION"` なら `BracketEditorSetup`、
+そうでなければ `DivisionSetup` を描く三項分岐になっている。DE が唯一の「そうでない」形式
+（リーグはその手前で `notFound()`）なので、DE を消すと `DivisionSetup` の枝が到達不能になる。
+三項分岐を `BracketEditorSetup` 一本にし、孤立するものを削除する。
+
+とくに `swap-slots/repository.ts` は「スロット型でなければ no-op」→「`SINGLE_ELIMINATION`
+なら no-op」の 2 段ガードなので、DE が無くなると必ず no-op を返す関数になる。
+1 回戦の入れ替えは DE 専用の操作だった（SE は `add-first-round-match` などの
+スライスと D&D エディタで編集する）。機能ごと落とすのが正しい。
+
+削除する:
+
+* `src/components/division/DivisionSetup.tsx` / `DivisionSetup.test.tsx`
+* `src/components/division/MatchingSection.tsx` / `MatchingSection.test.tsx`
+  （`DivisionSetup` だけが import している）
+* `src/features/division/single-elimination/view.ts` / `view.test.ts`
+  （`toSetupView`。`DivisionSetup` だけが import している）
+* `src/features/division/swap-slots/` 一式
+  （`handler.ts` / `handler.test.ts` / `usecase.ts` / `repository.ts` / `repository.test.ts`
+  / `schema.ts` / `schema.test.ts`）
+* `src/features/division/single-elimination/edit.ts` の `swapSlots` と、
+  `edit.test.ts` の `describe("swapSlots")` ブロック
+  （`swap-slots/repository.ts` だけが使っている。同ファイルの `generateSlots` /
+  `placeEntry` は `matching-strategy.ts` が使い続けるので残す）
+
+`setup/page.tsx` からは `swapSlotsAction`・`DivisionSetup`・`addEntryAction`・
+`removeEntryAction`・`reorderEntryAction`・`setPlayerNumberAction` の import が落ちる
+（後ろ 4 つは `DivisionSetup` にしか渡していないため。各スライス自体は
+`/league` ページと参加者ページが使い続けるので**消さない**）。
+
+巻き添えで消してはいけないもの（`LeagueSetup` と `/league` ページが使い続ける）:
+`EntryList`、`AddEntryForm`、`GenerateMatchingForm`、`MatchNameSection`、`LockedNotice`、
+`Notice`、`parse-setup-data.ts`、および `add-entry` / `remove-entry` / `reorder-entry` /
+`generate-matching` / `set-match-name` / `set-player-number` の各スライス。
+
+`src/lib/division/types.ts` の `MatchScoreEntry.entryId` のコメントは
+「swap-slots でスロットを入れ替えたときに採点が別人に付け替わってしまうため」と
+書いてあるので、消えるスライス名への言及を外す（`entryId` で持つ判断自体は変えない）。
 
 ## 表示側
 
@@ -212,10 +257,12 @@ DE を参照するテストから該当ケースを削除・更新する。
   `regenerateMatching` などは SE / RR の 2 形式に絞る
 * `src/features/division/format.test.ts`
 * `src/features/bracket/from-division.test.ts`
-* `src/features/division/{swap-slots,add-entry,remove-entry,reorder-entry,generate-matching,set-match-name}/repository.test.ts`
+* `src/features/division/{add-entry,remove-entry,reorder-entry,generate-matching,set-match-name}/repository.test.ts`
+  （`swap-slots/` はディレクトリごと消えるので更新不要）
 * `src/features/division/remove-entry/handler.test.ts`
 * `src/features/division/{setup-store,first-round-store}.test.ts`
 * `src/components/division/{DivisionMatchingView,DivisionDetail,DivisionList,DivisionBracket}.test.tsx`
+  （`DivisionSetup.test.tsx` / `MatchingSection.test.tsx` はファイルごと消えるので更新不要）
 * `src/components/print/PrintBracket.test.tsx`
 * `src/app/orgs/[slug]/tournaments/[tournamentId]/divisions/[divisionId]/setup/page.test.tsx`
 * `src/app/orgs/[slug]/tournaments/[tournamentId]/divisions/[divisionId]/page.test.tsx`
