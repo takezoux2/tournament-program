@@ -467,4 +467,65 @@ describe("fromDivision", () => {
       ),
     ).toBeNull();
   });
+
+  describe("参照エントリー", () => {
+    // x1 は他部門の結果で決まる枠（source 付き、participantId は無い）。
+    // e2 は通常のエントリー。
+    const sourceEntries: DivisionEntries = {
+      version: 1,
+      entries: [
+        {
+          id: "x1",
+          seed: 0,
+          source: { kind: "leagueRank", divisionId: "d2", rank: 1 },
+        },
+        { id: "e2", participantId: "p2", seed: 1 },
+      ],
+    };
+
+    const sourceMatchingConfig: MatchingConfig = {
+      version: 1,
+      matches: [
+        {
+          id: "m1",
+          bracket: "winners",
+          round: 1,
+          order: 0,
+          matchName: "1",
+          slots: [
+            { kind: "entry", entryId: "x1" },
+            { kind: "entry", entryId: "e2" },
+          ],
+        },
+      ],
+    };
+
+    it("参照エントリーは entryLabels の名前で描く", () => {
+      const result = fromDivision(
+        buildInput({
+          entries: sourceEntries,
+          matchingConfig: sourceMatchingConfig,
+          participants: [participants[1]],
+          entryLabels: new Map([["x1", "予選リーグA 1位"]]),
+        }),
+      );
+
+      expect(result?.participants).toEqual([
+        { id: "x1", name: "予選リーグA 1位", seed: 0, team: undefined },
+        { id: "e2", name: "鈴木 陽菜", seed: 1, team: undefined },
+      ]);
+    });
+
+    it("参照エントリーに entryLabels の名前も参加者の名前も無ければ null", () => {
+      const result = fromDivision(
+        buildInput({
+          entries: sourceEntries,
+          matchingConfig: sourceMatchingConfig,
+          participants: [participants[1]],
+        }),
+      );
+
+      expect(result).toBeNull();
+    });
+  });
 });

@@ -108,4 +108,43 @@ describe("prepareBracket", () => {
       message: "「リーグ（総当たり）」のブラケット表示はまだ対応していません",
     });
   });
+
+  it("参照エントリーの仮名を entryLabels 経由でブラケットに載せる", () => {
+    const prepared = prepareBracket(
+      buildDivision({
+        entries: {
+          version: 1,
+          entries: [
+            {
+              id: "x1",
+              seed: 0,
+              source: { kind: "leagueRank", divisionId: "d2", rank: 1 },
+            },
+            { id: "e2", participantId: "p2", seed: 1 },
+          ],
+        },
+        matchingConfig: {
+          version: 1,
+          matches: [
+            {
+              id: "m1",
+              bracket: "winners",
+              round: 1,
+              order: 0,
+              slots: [
+                { kind: "entry", entryId: "x1" },
+                { kind: "entry", entryId: "e2" },
+              ],
+            },
+          ],
+        },
+        results: { version: 1, matches: [] },
+      }),
+      participants,
+      noSeq,
+      { entryLabels: new Map([["x1", "予選リーグA 1位"]]) },
+    );
+
+    expect(prepared.kind).toBe("ready");
+  });
 });

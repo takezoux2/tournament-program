@@ -45,6 +45,12 @@ export type FromDivisionInput = {
    * 見ないと決まらないため、部門だけを受け取るこの関数では作れない。
    */
   matchNames: ReadonlyMap<string, string>;
+  /**
+   * 参照エントリー（他部門の結果で決まる枠）の表示名。entryId → 名前。
+   * 参加者から名前を引けないため、呼び出し側が lib/division/entry-source.ts の
+   * entrySourceLabels で作って渡す。
+   */
+  entryLabels?: ReadonlyMap<string, string>;
 };
 
 export type FromDivisionResult = {
@@ -100,19 +106,19 @@ export function fromDivision(
       entry.participantId === undefined
         ? undefined
         : sourceById.get(entry.participantId);
-    if (!source) {
-      // エントリーの参照先が欠けている＝データ不整合。描かない。
-      // 参照エントリーもここへ来る（名前が無い）。Task 5 で entryLabels を
-      // 見るようにするまでは、ブラケットを描かず案内に倒す。
+    // 参照エントリーは参加者を持たないので仮名で描く。名前がどちらからも
+    // 引けないのはデータ不整合なので、従来どおり描かない。
+    const name = source?.name ?? input.entryLabels?.get(entry.id);
+    if (name === undefined) {
       return null;
     }
     entryIds.add(entry.id);
     participants.push({
       id: entry.id,
-      name: source.name,
+      name,
       // 部門内シード。大会全体の Participant.seed ではない。
       seed: entry.seed,
-      team: source.team,
+      team: source?.team,
     });
   }
 
