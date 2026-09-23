@@ -28,18 +28,25 @@ export type AssignSlotPort = (
   input: AssignSlotInput,
 ) => Effect.Effect<DivisionSetupOutcome<null>, DivisionError>;
 
-/** 同じ参照を指しているか。同じ枠を 2 つ置かせないための比較。 */
+/**
+ * 同じ参照を指しているか。同じ枠を 2 つ置かせないための比較。
+ *
+ * kind が等しい前提の組み合わせを switch で尽くし、新しい kind を
+ * 増やしたときに書き忘れをコンパイルエラーで気づけるようにする
+ * （if の組み合わせだと、尽くしたことをコンパイラが保証してくれない）。
+ */
 const sameSource = (left: EntrySource, right: EntrySource): boolean => {
   if (left.kind !== right.kind || left.divisionId !== right.divisionId) {
     return false;
   }
-  if (left.kind === "leagueRank" && right.kind === "leagueRank") {
-    return left.rank === right.rank;
+  switch (left.kind) {
+    case "leagueRank":
+      return right.kind === "leagueRank" && left.rank === right.rank;
+    case "matchWinner":
+      return right.kind === "matchWinner" && left.matchId === right.matchId;
+    case "matchLoser":
+      return right.kind === "matchLoser" && left.matchId === right.matchId;
   }
-  if (left.kind !== "leagueRank" && right.kind !== "leagueRank") {
-    return left.matchId === right.matchId;
-  }
-  return false;
 };
 
 /**

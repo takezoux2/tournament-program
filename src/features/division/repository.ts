@@ -258,6 +258,18 @@ export const loadEntrySourceContext = async (
   const views = new Map(
     divisions.map((division) => {
       const entries = resolved.get(division.id) ?? new Map();
+      // 1 回戦のスロットに置かれていないエントリーは設計上残る（試合の
+      // 削除で外れたものや旧画面で登録したもの。assign-slot/repository.ts の
+      // コメント参照）。ブラケット上の枠の数と警告の件数を揃えるため、
+      // 置かれている entryId だけを警告の対象にする。組み合わせが
+      // 未作成（試合ゼロ）の部門ではこの集合が空になり警告は出ない。
+      const placedEntryIds = new Set(
+        division.matchingConfig.matches.flatMap((match) =>
+          match.slots.flatMap((slot) =>
+            slot.kind === "entry" ? [slot.entryId] : [],
+          ),
+        ),
+      );
       return [
         division.id,
         {
@@ -266,6 +278,7 @@ export const loadEntrySourceContext = async (
             division.entries,
             entries,
             participantNameById,
+            placedEntryIds,
           ),
         },
       ];

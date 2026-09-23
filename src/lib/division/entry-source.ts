@@ -1,5 +1,5 @@
 import type { DivisionFormat } from "@/generated/prisma/enums";
-import { matchPositionLabel } from "./label";
+import { matchPositionLabel, UNKNOWN_PARTICIPANT_LABEL } from "./label";
 import { type ResolvedMatch, resolveMatchSlots } from "./resolve";
 import { type LeagueRankRow, leagueRankOrder } from "./standings";
 import type {
@@ -32,14 +32,11 @@ export type EntrySourceDivision = {
 export type ResolvedEntry =
   | { state: "resolved"; participantId: string; label: string }
   | { state: "pending"; label: string }
-  | { state: "ambiguous"; label: string; reason: "tie" | "cycle" }
+  | { state: "ambiguous"; label: string; reason: "tie" | "cycle" | "draw" }
   | { state: "broken"; label: string };
 
 /** 参照先の部門・試合が消えている枠の表示。 */
 export const BROKEN_SOURCE_LABEL = "（参照先が見つかりません）";
-
-// 文言は label.ts と揃える
-const UNKNOWN_PARTICIPANT_LABEL = "（不明な参加者）";
 
 /**
  * 参照先の試合を指す文字列。展開済みの試合名 → 位置（「1回戦 (1)」）→
@@ -230,6 +227,13 @@ export const resolveEntrySources = (
     if (resolved === undefined) {
       return { state: "broken", label };
     }
+    // resolveMatchSlots の decideWinner は「記録が無い」と「引き分けの記録が
+    // ある」のどちらも winnerEntryId: null にまとめてしまう（types.ts の
+    // MatchResultRecord.winnerEntryId のコメント参照）。前者は pending でよいが
+    // 後者は結果が出ても永久に埋まらないので、記録そのものを見て区別する。
+    const isDraw = target.results.matches.some(
+      (record) => record.matchId === source.matchId && record.winnerEntryId === null,
+    );
     if (source.kind === "matchWinner") {
       // 両スロットが BYE の試合には勝ち上がる人が居ない。resolveMatchSlots は
       // こうした上流の試合を「空き枠」として扱う（resolve.ts の winnerOf の
@@ -238,16 +242,21 @@ export const resolveEntrySources = (
       if (resolved.slots.every((slot) => slot.state === "bye")) {
         return { state: "broken", label };
       }
-      return resolved.winnerEntryId === null
-        ? { state: "pending", label }
-        : followEntry(target, resolved.winnerEntryId, label);
+      if (resolved.winnerEntryId !== null) {
+        return followEntry(target, resolved.winnerEntryId, label);
+      }
+      return isDraw
+        ? { state: "ambiguous", label, reason: "draw" }
+        : { state: "pending", label };
     }
     // 敗者。BYE を含む試合は不戦勝なので敗者が生まれない
     if (resolved.slots.some((slot) => slot.state === "bye")) {
       return { state: "broken", label };
     }
     if (resolved.winnerEntryId === null) {
-      return { state: "pending", label };
+      return isDraw
+        ? { state: "ambiguous", label, reason: "draw" }
+        : { state: "pending", label };
     }
     const loser = resolved.slots.find(
       (slot) =>
@@ -338,12 +347,26 @@ export const entrySourceWarnings = (
   entries: DivisionEntries,
   resolved: ReadonlyMap<string, ResolvedEntry>,
   participantNameById: ReadonlyMap<string, string>,
+  /**
+   * 1 回戦のスロットに置かれている entryId。渡されたときは、この集合に
+   * 無いエントリー（試合の削除で外れたものや旧画面で登録したもの。
+   * assign-slot/repository.ts のコメント参照）を警告の対象から外す。
+   * ブラケット上は 1 枠しか無いのに、置かれていない側のぶんまで数えて
+   * 警告を出してしまうのを防ぐ。省略時は純粋関数としてテストしやすいよう
+   * 従来どおり全件を数える。
+   */
+  placedEntryIds?: ReadonlySet<string>,
 ): string[] => {
   const warnings: string[] = [];
   let hasCycle = false;
   let hasBroken = false;
+  const isPlaced = (entryId: string): boolean =>
+    placedEntryIds === undefined || placedEntryIds.has(entryId);
 
   for (const entry of entries.entries) {
+    if (!isPlaced(entry.id)) {
+      continue;
+    }
     const item = resolved.get(entry.id);
     if (item === undefined) {
       continue;
@@ -351,6 +374,8 @@ export const entrySourceWarnings = (
     if (item.state === "ambiguous") {
       if (item.reason === "cycle") {
         hasCycle = true;
+      } else if (item.reason === "draw") {
+        warnings.push(`${item.label} は引き分けのため決まりません`);
       } else {
         warnings.push(`${item.label} は同順位のため決まりません`);
       }
@@ -371,6 +396,9 @@ export const entrySourceWarnings = (
   // データは書けてしまうので、気づけるように名前で知らせる。
   const counts = new Map<string, number>();
   for (const entry of entries.entries) {
+    if (!isPlaced(entry.id)) {
+      continue;
+    }
     const item = resolved.get(entry.id);
     const participantId =
       item === undefined

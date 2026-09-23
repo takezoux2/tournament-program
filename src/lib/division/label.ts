@@ -5,6 +5,12 @@ import type { BracketMatch, DivisionEntries, SlotSource } from "./types";
 export type SlotLabeler = (slot: SlotSource) => string;
 
 /**
+ * 参加者を引けなかったときに出す文言。画面・結果表・エントリーの参照解決の
+ * 3 箇所が同じ文字列を出す必要があるため、ここに 1 つだけ置く。
+ */
+export const UNKNOWN_PARTICIPANT_LABEL = "（不明な参加者）";
+
+/**
  * スロットの表示文字列を作る関数を返す。
  *
  * 部門の試合名一覧（features/division）と大会の試合一覧（features/schedule）が
@@ -51,7 +57,7 @@ export const createSlotLabeler = (
         return (
           nameByEntryId.get(slot.entryId) ??
           entryLabels.get(slot.entryId) ??
-          "（不明な参加者）"
+          UNKNOWN_PARTICIPANT_LABEL
         );
       case "winnerOf":
         return `${matchNames.get(slot.matchId) ?? "?"}の勝者`;

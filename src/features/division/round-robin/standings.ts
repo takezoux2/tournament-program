@@ -1,3 +1,4 @@
+import { UNKNOWN_PARTICIPANT_LABEL } from "@/lib/division/label";
 import {
   flip,
   type LeagueOutcome,
@@ -36,9 +37,6 @@ export type LeagueTableView = {
   headers: { entryId: string; label: string }[];
   rows: LeagueTableRow[];
 };
-
-// 文言は lib/division/label.ts と揃える
-const UNKNOWN_PARTICIPANT_LABEL = "（不明な参加者）";
 
 /**
  * 勝敗込みの星取表と順位表を 1 つの表にまとめて返す。

@@ -1,3 +1,4 @@
+import { UNKNOWN_PARTICIPANT_LABEL } from "@/lib/division/label";
 import type { DivisionEntries, MatchingConfig } from "@/lib/division/types";
 
 /** エントリーを seed 昇順に並べ、表示名を解決した一覧を返す。 */
@@ -13,11 +14,11 @@ const labeledEntries = (
     .map((entry) => ({
       entryId: entry.id,
       // 名前を引けなくても行は出す。参加者一覧が古いだけで編集不能に
-      // なるのは困る。文言は lib/division/label.ts と揃える。
+      // なるのは困る。
       label:
         (entry.participantId === undefined
           ? undefined
-          : nameById.get(entry.participantId)) ?? "（不明な参加者）",
+          : nameById.get(entry.participantId)) ?? UNKNOWN_PARTICIPANT_LABEL,
     }));
 };
 

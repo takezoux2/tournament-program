@@ -526,6 +526,65 @@ describe("resolveEntrySources", () => {
     ).toBe("予選トーナメント 1回戦 (1)の勝者");
   });
 
+  it("参照先の試合が引き分けなら ambiguous(draw) にする", () => {
+    const final = finalDivision([
+      {
+        id: "x1",
+        seed: 0,
+        source: { kind: "matchWinner", divisionId: "d2", matchId: "n1" },
+      },
+      { id: "x2", participantId: "p9", seed: 1 },
+    ]);
+    const resolved = resolveEntrySources([
+      league([{ matchId: "n1", winnerEntryId: null }]),
+      final,
+    ]);
+
+    expect(resolved.get("d9")?.get("x1")).toEqual({
+      state: "ambiguous",
+      label: "予選リーグA n1の勝者",
+      reason: "draw",
+    });
+  });
+
+  it("引き分けの試合の matchLoser 参照も ambiguous(draw) にする", () => {
+    const final = finalDivision([
+      {
+        id: "x1",
+        seed: 0,
+        source: { kind: "matchLoser", divisionId: "d2", matchId: "n1" },
+      },
+      { id: "x2", participantId: "p9", seed: 1 },
+    ]);
+    const resolved = resolveEntrySources([
+      league([{ matchId: "n1", winnerEntryId: null }]),
+      final,
+    ]);
+
+    expect(resolved.get("d9")?.get("x1")).toEqual({
+      state: "ambiguous",
+      label: "予選リーグA n1の敗者",
+      reason: "draw",
+    });
+  });
+
+  it("記録が無いだけなら（引き分けではなく）pending のままにする", () => {
+    const final = finalDivision([
+      {
+        id: "x1",
+        seed: 0,
+        source: { kind: "matchWinner", divisionId: "d2", matchId: "n1" },
+      },
+      { id: "x2", participantId: "p9", seed: 1 },
+    ]);
+    const resolved = resolveEntrySources([league(), final]);
+
+    expect(resolved.get("d9")?.get("x1")).toEqual({
+      state: "pending",
+      label: "予選リーグA n1の勝者",
+    });
+  });
+
   it("リーグの試合を参照した仮名は位置が無いので matchName をそのまま使う", () => {
     const final = finalDivision([
       {
@@ -587,7 +646,7 @@ describe("unresolvedEntryIds", () => {
 });
 
 describe("entrySourceWarnings", () => {
-  it("同順位・循環・参照先なしを文言にする", () => {
+  it("同順位・引き分け・循環・参照先なしを文言にする", () => {
     const entries = {
       version: 1 as const,
       entries: [
@@ -618,6 +677,15 @@ describe("entrySourceWarnings", () => {
             matchId: "m2",
           },
         },
+        {
+          id: "x4",
+          seed: 3,
+          source: {
+            kind: "matchWinner" as const,
+            divisionId: "d2",
+            matchId: "n1",
+          },
+        },
       ],
     };
     const resolved = new Map([
@@ -638,13 +706,101 @@ describe("entrySourceWarnings", () => {
           reason: "cycle" as const,
         },
       ],
+      [
+        "x4",
+        {
+          state: "ambiguous" as const,
+          label: "予選リーグA n1の勝者",
+          reason: "draw" as const,
+        },
+      ],
     ]);
 
     expect(entrySourceWarnings(entries, resolved, new Map())).toEqual([
       "予選リーグA 1位 は同順位のため決まりません",
+      "予選リーグA n1の勝者 は引き分けのため決まりません",
       "参照が循環しているため、選手が決まりません",
       "参照先が見つからない枠があります",
     ]);
+  });
+
+  it("スロットに置かれていないエントリーは警告に出さない", () => {
+    const entries = {
+      version: 1 as const,
+      entries: [
+        {
+          id: "x1",
+          seed: 0,
+          source: {
+            kind: "leagueRank" as const,
+            divisionId: "d2",
+            rank: 1,
+          },
+        },
+        { id: "x2", participantId: "p1", seed: 1 },
+      ],
+    };
+    const resolved = new Map([
+      [
+        "x1",
+        {
+          state: "ambiguous" as const,
+          label: "予選リーグA 1位",
+          reason: "tie" as const,
+        },
+      ],
+    ]);
+
+    // x1 も x2 もスロットに置かれていない（placedEntryIds が空）ので、
+    // 同順位の警告も、山田が 2 つの枠に入っている警告も出ない。
+    expect(
+      entrySourceWarnings(
+        entries,
+        resolved,
+        new Map([["p1", "山田太郎"]]),
+        new Set(),
+      ),
+    ).toEqual([]);
+  });
+
+  it("重複の警告も、置かれていないエントリーは対象から外す", () => {
+    const entries = {
+      version: 1 as const,
+      entries: [
+        { id: "x1", participantId: "p1", seed: 0 },
+        {
+          id: "x2",
+          seed: 1,
+          source: {
+            kind: "leagueRank" as const,
+            divisionId: "d2",
+            rank: 1,
+          },
+        },
+      ],
+    };
+    const resolved = new Map([
+      [
+        "x2",
+        {
+          state: "resolved" as const,
+          participantId: "p1",
+          label: "予選リーグA 1位",
+        },
+      ],
+    ]);
+
+    // x1 はスロットに置かれた直接エントリー、x2 は旧画面などで残った
+    // 置かれていない参照エントリー。ブラケット上は x1 の 1 枠しか無いので、
+    // x2 を対象から外すと重複警告は出ない。
+    expect(
+      entrySourceWarnings(
+        entries,
+        resolved,
+        new Map([["p1", "山田太郎"]]),
+        new Set(["x1"]),
+      ),
+    ).toEqual([]);
   });
 
   it("同じ人が 2 つの枠に入っていたら知らせる", () => {
