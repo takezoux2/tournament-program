@@ -423,4 +423,81 @@ describe("buildScheduleView の試合名", () => {
       card: "準決勝の勝者 vs 第2試合の敗者",
     });
   });
+
+  it("参照エントリーの仮名を対戦の表示に使う", () => {
+    const league: ScheduleDivision = {
+      id: "d2",
+      name: "予選リーグA",
+      order: 0,
+      format: "ROUND_ROBIN",
+      entries: {
+        version: 1,
+        entries: [
+          { id: "l1", participantId: "p1", seed: 0 },
+          { id: "l2", participantId: "p2", seed: 1 },
+        ],
+      },
+      matchingConfig: {
+        version: 1,
+        matches: [
+          {
+            id: "n1",
+            bracket: "winners",
+            round: 1,
+            order: 0,
+            matchName: "第1試合",
+            slots: [
+              { kind: "entry", entryId: "l1" },
+              { kind: "entry", entryId: "l2" },
+            ],
+          },
+        ],
+      },
+      // まだ 1 試合も終わっていないので順位は決まらない
+      results: { version: 1, matches: [] },
+      resultConfig: DEFAULT_DIVISION_RESULT_CONFIG,
+    };
+    const final: ScheduleDivision = {
+      id: "d9",
+      name: "決勝トーナメント",
+      order: 1,
+      format: "SINGLE_ELIMINATION",
+      entries: {
+        version: 1,
+        entries: [
+          {
+            id: "x1",
+            seed: 0,
+            source: { kind: "leagueRank", divisionId: "d2", rank: 1 },
+          },
+          { id: "x2", participantId: "p3", seed: 1 },
+        ],
+      },
+      matchingConfig: {
+        version: 1,
+        matches: [
+          {
+            id: "f1",
+            bracket: "winners",
+            round: 1,
+            order: 0,
+            matchName: "決勝",
+            slots: [
+              { kind: "entry", entryId: "x1" },
+              { kind: "entry", entryId: "x2" },
+            ],
+          },
+        ],
+      },
+      results: { version: 1, matches: [] },
+      resultConfig: DEFAULT_DIVISION_RESULT_CONFIG,
+    };
+
+    const rows = buildScheduleView([league, final], participants, []);
+    const row = rows.find(
+      (item) => item.kind === "match" && item.matchId === "f1",
+    );
+
+    expect(row).toMatchObject({ card: "予選リーグA 1位 vs 鈴木" });
+  });
 });

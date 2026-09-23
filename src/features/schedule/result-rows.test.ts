@@ -303,4 +303,92 @@ describe("buildResultRows", () => {
       entryId: null,
     });
   });
+
+  it("未確定の参照エントリーは押せず、行は waiting になる", () => {
+    const league: ScheduleDivision = {
+      id: "d2",
+      name: "予選リーグA",
+      order: 0,
+      format: "ROUND_ROBIN",
+      entries: {
+        version: 1,
+        entries: [
+          { id: "l1", participantId: "p1", seed: 0 },
+          { id: "l2", participantId: "p2", seed: 1 },
+        ],
+      },
+      matchingConfig: {
+        version: 1,
+        matches: [
+          match("n1", 1, 0, "第1試合", [
+            { kind: "entry", entryId: "l1" },
+            { kind: "entry", entryId: "l2" },
+          ]),
+        ],
+      },
+      // まだ 1 試合も終わっていないので順位は決まらない
+      results: { version: 1, matches: [] },
+      resultConfig: DEFAULT_DIVISION_RESULT_CONFIG,
+    };
+    const final: ScheduleDivision = {
+      id: "d9",
+      name: "決勝トーナメント",
+      order: 1,
+      format: "SINGLE_ELIMINATION",
+      entries: {
+        version: 1,
+        entries: [
+          {
+            id: "x1",
+            seed: 0,
+            source: { kind: "leagueRank", divisionId: "d2", rank: 1 },
+          },
+          { id: "x2", participantId: "p3", seed: 1 },
+        ],
+      },
+      matchingConfig: {
+        version: 1,
+        matches: [
+          match("f1", 1, 0, "決勝", [
+            { kind: "entry", entryId: "x1" },
+            { kind: "entry", entryId: "x2" },
+          ]),
+        ],
+      },
+      results: { version: 1, matches: [] },
+      resultConfig: DEFAULT_DIVISION_RESULT_CONFIG,
+    };
+
+    const leagueRows: ScheduleRowView[] = [matchRow("n1", "第1試合")];
+    const finalRows: ScheduleRowView[] = [
+      {
+        kind: "match",
+        key: "match:d9:f1",
+        divisionId: "d9",
+        divisionName: "決勝トーナメント",
+        matchId: "f1",
+        matchName: "決勝",
+        label: "1回戦 (1)",
+        card: "予選リーグA 1位 vs 鈴木",
+      },
+    ];
+
+    const result = buildResultRows(
+      [...leagueRows, ...finalRows],
+      [league, final],
+      participants,
+    );
+    const row = result.find(
+      (item) => item.kind === "match" && item.matchId === "f1",
+    );
+
+    expect(row).toMatchObject({
+      kind: "match",
+      state: "waiting",
+      slots: [
+        { label: "予選リーグA 1位", entryId: null },
+        { label: "鈴木", entryId: "x2" },
+      ],
+    });
+  });
 });

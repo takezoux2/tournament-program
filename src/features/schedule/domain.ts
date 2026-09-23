@@ -1,5 +1,9 @@
 import { toDateTimeLocalValue } from "@/lib/datetime/local";
 import {
+  entrySourceLabels,
+  resolveEntrySources,
+} from "@/lib/division/entry-source";
+import {
   createSlotLabeler,
   matchCardLabel,
   matchPositionLabel,
@@ -58,17 +62,35 @@ const buildMatchRows = (
 ): ScheduleRowView[] => {
   const rows: { row: ScheduleRowView; seq: number }[] = [];
 
-  for (const division of divisions) {
-    // 行の試合名とカードの「◯◯の勝者」が同じ展開結果を使うよう、部門ごとに 1 回だけ作る。
-    const matchNames = resolveMatchNames(
-      division.matchingConfig,
+  // 行の試合名とカードの「◯◯の勝者」が同じ展開結果を使うよう、部門ごとに 1 回だけ作る。
+  // 参照エントリーの解決にも同じ表を渡す（仮名の中の試合名がずれないため）。
+  const matchNamesByDivision = new Map(
+    divisions.map((division) => [
       division.id,
-      overallSeq,
-    );
+      resolveMatchNames(division.matchingConfig, division.id, overallSeq),
+    ]),
+  );
+  const participantNameById = new Map(
+    participants.map((participant) => [participant.id, participant.name]),
+  );
+  const resolvedSources = resolveEntrySources(
+    divisions.map((division) => ({
+      ...division,
+      matchNames: matchNamesByDivision.get(division.id),
+    })),
+  );
+
+  for (const division of divisions) {
+    const matchNames =
+      matchNamesByDivision.get(division.id) ?? new Map<string, string>();
     const labelSlot = createSlotLabeler(
       matchNames,
       division.entries,
       participants,
+      entrySourceLabels(
+        resolvedSources.get(division.id) ?? new Map(),
+        participantNameById,
+      ),
     );
 
     for (const match of division.matchingConfig.matches) {
