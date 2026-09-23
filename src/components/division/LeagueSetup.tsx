@@ -23,8 +23,8 @@ import { MatchOrderList } from "./MatchOrderList";
 import { Notice } from "./Notice";
 
 /**
- * トーナメントの DivisionSetup と違い swapSlots を取らない。
- * 1 回戦スロットの入れ替えは総当たりに意味が無いため。
+ * LeagueSetupActions にスロットを入れ替える操作は無い。1 回戦スロットの入れ替えは
+ * 勝ち上がり木（トーナメント）特有の概念で、総当たりには意味が無いため。
  */
 export type LeagueSetupActions = {
   addEntry: DivisionFormAction;

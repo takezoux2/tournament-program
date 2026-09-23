@@ -143,4 +143,67 @@ describe("PrintBracket", () => {
 
     expect(screen.getByText("不戦")).toBeInTheDocument();
   });
+
+  it("敗者側・決勝を含むブラケットでは区画の見出しを描く", () => {
+    renderBracket(
+      {
+        id: "d3",
+        name: "混合",
+        matches: [
+          {
+            id: "m1",
+            round: 1,
+            order: 0,
+            slots: [
+              { kind: "participant", participantId: "a" },
+              { kind: "participant", participantId: "b" },
+            ],
+          },
+          {
+            id: "m2",
+            round: 1,
+            order: 1,
+            slots: [
+              { kind: "participant", participantId: "c" },
+              { kind: "participant", participantId: "d" },
+            ],
+          },
+          {
+            id: "wf",
+            round: 2,
+            order: 0,
+            slots: [
+              { kind: "winnerOf", matchId: "m1" },
+              { kind: "winnerOf", matchId: "m2" },
+            ],
+          },
+          {
+            id: "l1",
+            bracket: "losers",
+            round: 2,
+            order: 0,
+            slots: [
+              { kind: "loserOf", matchId: "m1" },
+              { kind: "loserOf", matchId: "m2" },
+            ],
+          },
+          {
+            id: "gf",
+            bracket: "final",
+            round: 3,
+            order: 0,
+            slots: [
+              { kind: "winnerOf", matchId: "wf" },
+              { kind: "winnerOf", matchId: "l1" },
+            ],
+          },
+        ],
+      },
+      [],
+    );
+
+    expect(screen.getByText("勝者側")).toBeInTheDocument();
+    expect(screen.getByText("敗者側")).toBeInTheDocument();
+    expect(screen.getByText("決勝")).toBeInTheDocument();
+  });
 });

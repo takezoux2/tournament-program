@@ -14,7 +14,7 @@ import { MatchNameRow } from "./MatchNameRow";
  * トーナメントとリーグで同じ部品を使う。違いは行の中身（位置の文言）だけで、
  * それは toMatchOrderView が format を見て吸収する。
  *
- * フックを持たないが "use client" を残すのは、Server Component（DivisionSetup /
+ * フックを持たないが "use client" を残すのは、Server Component（BracketEditorSetup /
  * LeagueSetup）とクライアント部品（MatchNameRow）の境界をこれまでと同じ位置に
  * 保つため。
  */

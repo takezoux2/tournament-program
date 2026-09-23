@@ -12,7 +12,7 @@ export type SetupData = {
 };
 
 /**
- * setup 画面（DivisionSetup / BracketEditorSetup）が読む entries /
+ * setup 画面（BracketEditorSetup）が読む entries /
  * matchingConfig / results の Json 3 列をまとめてパースする。
  *
  * Json は DB の列で、アプリの外から壊れた値が入りうる。パースの失敗は

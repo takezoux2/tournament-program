@@ -19,7 +19,9 @@ export const DIVISION_FORMATS = Object.values(DivisionFormat);
  * 形式ごとに、組み合わせビューアが参加者名を描画に使うか。使わない形式で
  * 詳細ページ・公開ページが毎回参加者一覧のクエリを投げずに済むよう、
  * ページ側がこれを見て読み出しを省く。Record で持つのは、形式を増やした
- * ときに書き忘れがコンパイルエラーになるようにするため。
+ * ときに書き忘れがコンパイルエラーになるようにするため
+ * （現在の DivisionFormat はどちらも true なので実際には省かれないが、
+ * 参加者名を使わない形式が増えたときの安全策として残す）。
  */
 const USES_PARTICIPANTS: Record<DivisionFormat, boolean> = {
   SINGLE_ELIMINATION: true,
