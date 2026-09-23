@@ -3916,3 +3916,20 @@ EOF
 4. リーグの全試合に結果を入れると、ブラケットの表示が実際の選手名に変わること。結果入力の勝者ボタンが出ること。
 5. 巴戦（3 人が 1 勝 1 敗）にすると、設定画面に「同順位のため決まりません」が出て、ブラケットは仮名に戻ること。
 6. 印刷ページ（`/t/<id>/print`）と公開ページでも同じ文字列が出ること。
+
+---
+
+## 実装時の決定（記録）
+
+計画から変えた点。コードが正で、この節はなぜ変えたかの記録。
+
+1. **解決モジュールの置き場所**（Task 2・3）… `features/division` ではなく `src/lib/division/entry-source.ts`。`features/schedule`（結果入力）も使うため、`docs/code-design/architecture.md` の「features 同列への依存は禁止」に従って下位共通層へ下ろした。順位付けの純粋部分も `src/lib/division/standings.ts` へ移した。
+2. **仮名の中の試合名**（Task 3）… 計画の実装コード（展開済みの試合名 → 位置ラベル → リーグだけテンプレート）が正で、計画のテスト期待値（`m1の勝者` のようにテンプレートをそのまま出す形）が誤りだった。`BracketMatch.matchName` は `第{{OverallSeq}}試合` のような未展開のテンプレートなので、画面に出してはいけない。テスト期待値を `1回戦 (1)の勝者` の形へ直した。空文字の試合名は未設定として扱う。
+3. **試合名の決め方を 1 箇所に**（Task 9）… 選択肢の文字列と仮名が食い違わないよう、`src/lib/division/entry-source.ts` の `matchSourceName` に切り出して `buildSlotSourceOptions` からも呼ぶ。
+4. **リーグの N 位は全試合が終わるまで未確定**（Task 3）… 途中の順位で確定させると、残りの試合で順位がひっくり返ったときに決勝の組み合わせが黙って変わるため。
+5. **同順位で飛ばされた順位も未確定**（Task 3）… 順位付けは同順位のとき番号を飛ばす（1, 1, 3）。飛ばされた 2 位を `broken`（参照先が見つかりません）にすると嘘になるので `ambiguous`（同順位）にする。
+6. **両側 BYE の試合**（Task 3）… 勝ち上がる人が居ないので、勝者参照は `pending` ではなく `broken`。
+7. **loader の名前と戻り値**（Task 6）… `loadEntrySourceViews` ではなく `loadEntrySourceContext`。`{ views, divisions }` を返し、`divisions` を Task 9 の選択肢作りが使い回す（同じクエリを 2 回投げないため）。
+8. **二重エントリーの文言**（cleanup）… `DivisionDuplicateEntryError` は参照エントリーの二重登録にも使うので、「その参加者はすでにエントリーしています」から「すでに同じエントリーが登録されています」へ直した。
+
+実装中に見送った指摘（今後やるなら）: `src/components/division/LeagueSetup.tsx` への `entryLabels` の配線（リーグに参照エントリーは作れないので、形式変更時だけ「（不明な参加者）」が出る）、`SlotEditDialog` のモードごとの分割、`loadEntrySourceContext` のリーグ部門での空振り（1 クエリ）。
