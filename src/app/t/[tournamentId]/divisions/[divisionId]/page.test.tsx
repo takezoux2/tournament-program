@@ -35,6 +35,8 @@ vi.mock("@/features/division/repository", () => ({
   ) => listParticipantsInTournament(organizationId, tournamentId),
   listOverallOrderSources: (tournamentId: string) =>
     listOverallOrderSources(tournamentId),
+  loadEntrySourceContext: () =>
+    Promise.resolve({ views: new Map(), divisions: [] }),
 }));
 vi.mock("@/shared/middleware/require-session", () => ({
   getOptionalSession: () => getOptionalSession(),

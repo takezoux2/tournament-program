@@ -34,12 +34,15 @@ export function DivisionMatchingView({
   participants,
   overallSeq,
   heightClassName,
+  entryLabels,
 }: {
   division: DivisionDetail;
   participants: DivisionParticipant[];
   /** 大会全体の通し番号。試合名の {{OverallSeq}} の展開に使う */
   overallSeq: ReadonlyMap<string, number>;
   heightClassName?: string;
+  /** 参照エントリーの表示名（entryId → 名前）。ページが entry-source から作る */
+  entryLabels?: ReadonlyMap<string, string>;
 }) {
   switch (division.format) {
     case "SINGLE_ELIMINATION":
@@ -51,6 +54,7 @@ export function DivisionMatchingView({
           participants={participants}
           overallSeq={overallSeq}
           heightClassName={heightClassName}
+          entryLabels={entryLabels}
         />
       );
     case "ROUND_ROBIN":

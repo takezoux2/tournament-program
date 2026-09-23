@@ -1,10 +1,21 @@
 import "server-only";
 import type { DivisionFormat } from "@/generated/prisma/enums";
 import {
+  type EntrySourceDivision,
+  entrySourceLabels,
+  entrySourceWarnings,
+  resolveEntrySources,
+} from "@/lib/division/entry-source";
+import { resolveMatchNames } from "@/lib/division/match-name";
+import {
   buildOverallSeq,
   type OverallOrderDivision,
 } from "@/lib/division/overall-order";
-import { parseMatchingConfig } from "@/lib/division/parse";
+import {
+  parseDivisionEntries,
+  parseDivisionResults,
+  parseMatchingConfig,
+} from "@/lib/division/parse";
 import { prisma } from "@/shared/db/prisma";
 
 export type DivisionSummary = {
@@ -183,4 +194,83 @@ export const listOverallOrderSources = async (
         : [{ divisionId: item.divisionId, matchId: item.matchId }],
     ),
   );
+};
+
+/** 1 部門ぶんの、参照エントリーの表示名と運営に見せる注意書き。 */
+export type EntrySourceView = {
+  /** entryId → 画面に出す名前。参照エントリーだけを含む */
+  labels: Map<string, string>;
+  /** 同順位・循環・参照切れ・重複の注意書き。無ければ空配列 */
+  warnings: string[];
+};
+
+/**
+ * 参照エントリーを解決して、部門ごとの表示名と注意書きにする。
+ *
+ * 参照は大会の中で閉じるので、1 部門を描くページでも大会の全部門を 1 度
+ * 読む。部門ごとに引くとクエリが部門数だけ増えるため、印刷ページと同じ
+ * listDivisionDetailsInTournament を使う。
+ *
+ * 壊れた Json を持つ部門はその部門だけ除いて続ける（他の部門の表示は
+ * 出したい）。除かれた部門を参照している枠は「参照先が見つかりません」に
+ * なる。
+ */
+export type EntrySourceContext = {
+  views: Map<string, EntrySourceView>;
+  /** 解決に使ったスナップショット。スロット編集の選択肢作りが使い回す */
+  divisions: EntrySourceDivision[];
+};
+
+export const loadEntrySourceContext = async (
+  organizationId: string,
+  tournamentId: string,
+  overallSeq: ReadonlyMap<string, number>,
+  participants: { id: string; name: string }[],
+): Promise<EntrySourceContext> => {
+  const rows = await listDivisionDetailsInTournament(
+    organizationId,
+    tournamentId,
+  );
+
+  const divisions: EntrySourceDivision[] = [];
+  for (const row of rows) {
+    try {
+      const matchingConfig = parseMatchingConfig(row.matchingConfig);
+      divisions.push({
+        id: row.id,
+        name: row.name,
+        format: row.format,
+        entries: parseDivisionEntries(row.entries),
+        matchingConfig,
+        results: parseDivisionResults(row.results),
+        matchNames: resolveMatchNames(matchingConfig, row.id, overallSeq),
+      });
+    } catch {
+      // 壊れた Json を持つ部門はこの部門だけ除いて続ける
+    }
+  }
+
+  const participantNameById = new Map(
+    participants.map((participant) => [participant.id, participant.name]),
+  );
+  const resolved = resolveEntrySources(divisions);
+
+  const views = new Map(
+    divisions.map((division) => {
+      const entries = resolved.get(division.id) ?? new Map();
+      return [
+        division.id,
+        {
+          labels: entrySourceLabels(entries, participantNameById),
+          warnings: entrySourceWarnings(
+            division.entries,
+            entries,
+            participantNameById,
+          ),
+        },
+      ];
+    }),
+  );
+
+  return { views, divisions };
 };

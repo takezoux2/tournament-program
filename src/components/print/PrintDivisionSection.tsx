@@ -14,6 +14,8 @@ type BodyProps = {
   participants: DivisionParticipant[];
   overallSeq: ReadonlyMap<string, number>;
   withResults: boolean;
+  /** 参照エントリーの表示名（entryId → 名前）。ページが entry-source から作る */
+  entryLabels?: ReadonlyMap<string, string>;
 };
 
 const BracketBody = ({
@@ -21,10 +23,12 @@ const BracketBody = ({
   participants,
   overallSeq,
   withResults,
+  entryLabels,
 }: BodyProps) => {
   const prepared = prepareBracket(division, participants, overallSeq, {
     withResults,
     withPlayerNumber: true,
+    entryLabels,
   });
   if (prepared.kind === "notice") {
     return <Notice>{prepared.message}</Notice>;

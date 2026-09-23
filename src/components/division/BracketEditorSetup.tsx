@@ -1,8 +1,8 @@
+import { minEntries } from "@/features/division/matching-strategy";
 import type {
   DivisionDetail,
   DivisionParticipant,
 } from "@/features/division/repository";
-import { minEntries } from "@/features/division/matching-strategy";
 import { isSingleEliminationShape } from "@/features/division/single-elimination/build";
 import { firstRoundPairs } from "@/features/division/single-elimination/first-round";
 import type { DivisionFormAction } from "@/features/division/state";
@@ -38,6 +38,7 @@ export function BracketEditorSetup({
   tournamentId,
   overallSeq,
   actions,
+  entryLabels,
 }: {
   division: DivisionDetail;
   participants: DivisionParticipant[];
@@ -47,6 +48,8 @@ export function BracketEditorSetup({
   /** 大会全体の通し番号。{{OverallSeq}} の展開に使う */
   overallSeq: ReadonlyMap<string, number>;
   actions: BracketEditorSetupActions;
+  /** 参照エントリーの表示名（entryId → 名前）。呼び出し側が entry-source から作る */
+  entryLabels?: ReadonlyMap<string, string>;
 }) {
   const parsed = parseSetupData(division);
   if (parsed === null) {
@@ -130,6 +133,7 @@ export function BracketEditorSetup({
               division={division}
               participants={participants}
               overallSeq={overallSeq}
+              entryLabels={entryLabels}
               editor={{
                 locked,
                 slug,
@@ -162,6 +166,7 @@ export function BracketEditorSetup({
             ? "まだ組み合わせがありません"
             : "「試合を追加」で 1 回戦の試合を作ります"
         }
+        entryLabels={entryLabels}
       />
     </div>
   );

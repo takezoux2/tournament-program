@@ -39,6 +39,7 @@ export function DivisionSetup({
   tournamentId,
   actions,
   overallSeq,
+  entryLabels,
 }: {
   division: DivisionDetail;
   participants: DivisionParticipant[];
@@ -48,6 +49,8 @@ export function DivisionSetup({
   actions: DivisionSetupActions;
   /** 大会全体の通し番号。{{OverallSeq}} の展開に使う */
   overallSeq: ReadonlyMap<string, number>;
+  /** 参照エントリーの表示名（entryId → 名前）。呼び出し側が entry-source から作る */
+  entryLabels?: ReadonlyMap<string, string>;
 }) {
   // ページ側で弾いているため実際には届かないが、防御的にこの画面が
   // トーナメント専用であることを型より外でも守っておく。リーグの
@@ -153,6 +156,7 @@ export function DivisionSetup({
         setMatchNameAction={actions.setMatchName}
         mismatched={mismatched}
         emptyMessage="まだ組み合わせがありません"
+        entryLabels={entryLabels}
       />
 
       <section className="space-y-3">
@@ -161,6 +165,7 @@ export function DivisionSetup({
           division={division}
           participants={participants}
           overallSeq={overallSeq}
+          entryLabels={entryLabels}
         />
       </section>
     </div>

@@ -8,6 +8,7 @@ import { PublicPreviewNotice } from "@/components/public/PublicPreviewNotice";
 import {
   listDivisionDetailsInTournament,
   listOverallOrderSources,
+  loadEntrySourceContext,
 } from "@/features/division/repository";
 import { listParticipantsWithDivisions } from "@/features/participant/repository";
 import { parsePrintOptions, printPageCss } from "@/features/print/options";
@@ -72,6 +73,15 @@ export default async function PublicPrintPage({
     listOverallOrderSources(tournament.id),
   ]);
 
+  // 印刷は既に全部門を読んでいるが、解決には parse 済みの形が要るため
+  // 同じ関数を通す（クエリ 1 本ぶんの重複は許す。文言を 1 箇所に保つ方を採る）。
+  const entrySources = await loadEntrySourceContext(
+    tournament.organizationId,
+    tournament.id,
+    overallSeq,
+    participants,
+  );
+
   return (
     <main className="min-h-screen bg-slate-100 text-slate-900 print:bg-white">
       {/* 用紙サイズは実行時に決まるので、@page はここで埋め込む */}
@@ -104,6 +114,7 @@ export default async function PublicPrintPage({
               participants={participants}
               overallSeq={overallSeq}
               withResults={options.results}
+              entryLabels={entrySources.views.get(division.id)?.labels}
             />
           </div>
         ))}

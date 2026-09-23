@@ -15,6 +15,7 @@ import {
   findDivisionInTournament,
   listOverallOrderSources,
   listParticipantsInTournament,
+  loadEntrySourceContext,
 } from "@/features/division/repository";
 import { setMatchNameAction } from "@/features/division/set-match-name/handler";
 import { swapSlotsAction } from "@/features/division/swap-slots/handler";
@@ -46,6 +47,15 @@ export default async function DivisionSetupPage({
   if (!isSlotBracketFormat(division.format)) {
     notFound();
   }
+
+  // 参照エントリー（他部門の結果で決まる枠）の表示名。参照は大会の中で
+  // 閉じるので、この部門だけを描くページでも全部門を 1 度読む。
+  const entrySources = await loadEntrySourceContext(
+    organization.id,
+    tournamentId,
+    overallSeq,
+    participants,
+  );
 
   return (
     <main className="min-h-screen bg-slate-50">
@@ -88,6 +98,7 @@ export default async function DivisionSetupPage({
               generateMatching: generateMatchingAction,
               setMatchName: setMatchNameAction,
             }}
+            entryLabels={entrySources.views.get(division.id)?.labels}
           />
         ) : (
           <DivisionSetup
@@ -106,6 +117,7 @@ export default async function DivisionSetupPage({
               setMatchName: setMatchNameAction,
               setPlayerNumber: setPlayerNumberAction,
             }}
+            entryLabels={entrySources.views.get(division.id)?.labels}
           />
         )}
       </div>
