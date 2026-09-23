@@ -6,8 +6,6 @@ import { DivisionFormat } from "@/generated/prisma/enums";
  */
 export const DIVISION_FORMAT_LABELS: Record<DivisionFormat, string> = {
   SINGLE_ELIMINATION: "シングルエリミネーション",
-  DOUBLE_ELIMINATION_GRAND_FINAL: "ダブルエリミネーション（優勝決定戦あり）",
-  DOUBLE_ELIMINATION_THIRD_PLACE: "ダブルエリミネーション（敗者側優勝が3位）",
   ROUND_ROBIN: "リーグ（総当たり）",
 };
 
@@ -26,8 +24,6 @@ export const DIVISION_FORMATS = Object.values(DivisionFormat);
 const USES_PARTICIPANTS: Record<DivisionFormat, boolean> = {
   SINGLE_ELIMINATION: true,
   ROUND_ROBIN: true,
-  DOUBLE_ELIMINATION_GRAND_FINAL: true,
-  DOUBLE_ELIMINATION_THIRD_PLACE: true,
 };
 
 export const needsParticipants = (format: DivisionFormat): boolean =>

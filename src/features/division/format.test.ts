@@ -23,12 +23,7 @@ describe("DIVISION_FORMAT_LABELS", () => {
     // ソートせず順序まで固定する。ここを手書きの配列に戻したり、
     // アルファベット順などに並べ替えたりする変更を検出するため、
     // 期待値はスキーマの宣言順を書き写した固定値にする(実装からの逆算にしない)。
-    expect(DIVISION_FORMATS).toEqual([
-      "SINGLE_ELIMINATION",
-      "DOUBLE_ELIMINATION_GRAND_FINAL",
-      "DOUBLE_ELIMINATION_THIRD_PLACE",
-      "ROUND_ROBIN",
-    ]);
+    expect(DIVISION_FORMATS).toEqual(["SINGLE_ELIMINATION", "ROUND_ROBIN"]);
   });
 });
 
@@ -36,7 +31,5 @@ describe("needsParticipants", () => {
   it("参加者一覧が要るのはブラケットと結果表を描く全形式", () => {
     expect(needsParticipants("SINGLE_ELIMINATION")).toBe(true);
     expect(needsParticipants("ROUND_ROBIN")).toBe(true);
-    expect(needsParticipants("DOUBLE_ELIMINATION_GRAND_FINAL")).toBe(true);
-    expect(needsParticipants("DOUBLE_ELIMINATION_THIRD_PLACE")).toBe(true);
   });
 });

@@ -43,8 +43,6 @@ export function DivisionMatchingView({
 }) {
   switch (division.format) {
     case "SINGLE_ELIMINATION":
-    case "DOUBLE_ELIMINATION_GRAND_FINAL":
-    case "DOUBLE_ELIMINATION_THIRD_PLACE":
       return (
         <DivisionBracket
           division={division}

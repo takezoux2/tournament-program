@@ -13,7 +13,7 @@ const divisions: DivisionSummary[] = [
     id: "d3",
     name: "決勝トーナメント",
     order: 2,
-    format: "DOUBLE_ELIMINATION_GRAND_FINAL",
+    format: "ROUND_ROBIN",
   },
 ];
 
@@ -40,7 +40,8 @@ describe("DivisionList", () => {
     renderList(divisions);
 
     expect(screen.getByText("シングルエリミネーション")).toBeInTheDocument();
-    expect(screen.getByText("リーグ（総当たり）")).toBeInTheDocument();
+    // d2 と d3 の 2 件がリーグ。
+    expect(screen.getAllByText("リーグ（総当たり）")).toHaveLength(2);
   });
 
   it("先頭は上へ、末尾は下へを押せなくする", () => {

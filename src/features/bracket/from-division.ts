@@ -16,11 +16,7 @@ import type {
 } from "./types";
 
 /** ブラケットとして描ける形式。リーグは星取表（LeagueResultTable）で描く。 */
-const BRACKET_FORMATS: readonly DivisionFormat[] = [
-  "SINGLE_ELIMINATION",
-  "DOUBLE_ELIMINATION_GRAND_FINAL",
-  "DOUBLE_ELIMINATION_THIRD_PLACE",
-];
+const BRACKET_FORMATS: readonly DivisionFormat[] = ["SINGLE_ELIMINATION"];
 
 /** 表示名を解決済みの参加者。DB からの取得は呼び出し側（repository）が行う。 */
 export type DivisionSourceParticipant = {
@@ -74,9 +70,9 @@ const toSlotSource = (source: DivisionSlotSource): SlotSource => {
 /**
  * Division の Json を features/bracket の描画型へ変換する。
  *
- * SE と DE を扱う。SE は勝ち上がり木だけを許す。描画側は勝ち上がり木を前提に
- * したレイアウトしか持たないため、リーグの星取表や扱えない部門は null を
- * 返して呼び出し元に案内を出させる。
+ * 扱うのはシングルエリミネーションだけで、勝ち上がり木しか許さない。描画側は
+ * 勝ち上がり木を前提にしたレイアウトしか持たないため、リーグの星取表や
+ * 扱えない部門は null を返して呼び出し元に案内を出させる。
  */
 export function fromDivision(
   input: FromDivisionInput,
@@ -87,8 +83,6 @@ export function fromDivision(
   if (input.matchingConfig.matches.length === 0) {
     return null;
   }
-  const singleElimination = input.format === "SINGLE_ELIMINATION";
-
   const sourceById = new Map(input.participants.map((p) => [p.id, p]));
 
   // entries に現れるものだけを描画対象にする。大会には他の部門にしか出ない
@@ -117,20 +111,22 @@ export function fromDivision(
 
   const matches: Match[] = [];
   for (const source of input.matchingConfig.matches) {
-    // シングルエリミネーションに敗者側の試合があるのは形式を書き換えた
-    // 部門などの不整合。勝ち上がり木として描けないので描かない。
-    if (singleElimination && source.bracket !== "winners") {
+    // ブラケットは勝ち上がり木として描く。敗者側の試合があるのは
+    // 形式を書き換えた部門などの不整合。描けないので描かない。
+    if (source.bracket !== "winners") {
       return null;
     }
     for (const slot of source.slots) {
-      if (singleElimination && slot.kind === "loserOf") {
-        return null;
-      }
       if (
         (slot.kind === "winnerOf" || slot.kind === "loserOf") &&
         !matchIds.has(slot.matchId)
       ) {
         // 存在しない試合を参照している＝データ不整合。描かない。
+        return null;
+      }
+      if (slot.kind === "loserOf") {
+        // 敗者側の枠も勝ち上がり木には置けない。上の参照検証を先に通すため、
+        // ここで弾くのは参照が正しいことを確かめた後にする。
         return null;
       }
       if (slot.kind === "entry" && !entryIds.has(slot.entryId)) {

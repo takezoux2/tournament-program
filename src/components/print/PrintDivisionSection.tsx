@@ -77,8 +77,6 @@ export function PrintDivisionSection(props: BodyProps) {
       {(() => {
         switch (division.format) {
           case "SINGLE_ELIMINATION":
-          case "DOUBLE_ELIMINATION_GRAND_FINAL":
-          case "DOUBLE_ELIMINATION_THIRD_PLACE":
             return <BracketBody {...props} />;
           case "ROUND_ROBIN":
             return <LeagueBody {...props} />;

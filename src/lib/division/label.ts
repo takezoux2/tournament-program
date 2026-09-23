@@ -56,7 +56,7 @@ export const matchCardLabel = (
 ): string => `${labelSlot(match.slots[0])} vs ${labelSlot(match.slots[1])}`;
 
 /**
- * 「1回戦 (1)」のような構造上の位置。
+ * 「2回戦 (1)」のような、部門の中での位置を表す 1 行。
  *
  * 「第 N 試合」と書かないのは、試合名の既定値（第{{OverallSeq}}試合）と同じ形に
  * なり、大会の通し番号と取り違えるため。括弧の数字はラウンド内の上からの位置
@@ -65,8 +65,9 @@ export const matchCardLabel = (
  * リーグは節も回戦も持たないので位置の文言を出さない（空文字）。表示側は
  * formatDivisionPosition を通して、空文字なら区切りごと描かない。
  *
- * ダブルエリミは勝者側・敗者側・決勝を書き分ける（「勝者側2回戦 (1)」
- * 「敗者側1回戦 (2)」「決勝」）。
+ * losers / final は現在の組み合わせ生成では作られないが、それらを持つ Json を
+ * 読んだときに回戦が嘘にならないよう書き分けを残してある。round は全ブラケット
+ * 通しの番号（敗者側 L は L + 1）で保存されている。
  *
  * 形式を引数に取るのは、この関数が大会の進行順（複数の部門が混ざる）でも
  * 使われるため。呼び出し側がその試合の部門の形式を知っている。
@@ -78,13 +79,9 @@ export const matchPositionLabel = (
   if (format === "ROUND_ROBIN") {
     return "";
   }
-  if (format === "SINGLE_ELIMINATION") {
-    return `${match.round}回戦 (${match.order + 1})`;
-  }
-  // ダブルエリミの round は全ブラケット通しの番号（敗者側 L は L + 1）。
   switch (match.bracket) {
     case "winners":
-      return `勝者側${match.round}回戦 (${match.order + 1})`;
+      return `${match.round}回戦 (${match.order + 1})`;
     case "losers":
       return `敗者側${match.round - 1}回戦 (${match.order + 1})`;
     case "final":

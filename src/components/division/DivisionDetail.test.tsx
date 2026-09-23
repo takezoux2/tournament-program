@@ -38,19 +38,6 @@ describe("DivisionDetailView", () => {
     expect(
       screen.getByRole("link", { name: "エントリー・対戦表" }),
     ).toHaveAttribute("href", "/orgs/acme/tournaments/t1/divisions/d1/league");
-  });
-
-  it("ダブルエリミネーションも /setup へ送る", () => {
-    render(
-      <DivisionDetailView
-        {...props}
-        division={division({ format: "DOUBLE_ELIMINATION_GRAND_FINAL" })}
-      />,
-    );
-
-    expect(
-      screen.getByRole("link", { name: "エントリー・組み合わせ" }),
-    ).toHaveAttribute("href", "/orgs/acme/tournaments/t1/divisions/d1/setup");
     // 部門の編集は形式に関わらず開ける。
     expect(
       screen.getByRole("link", { name: "部門を編集" }),

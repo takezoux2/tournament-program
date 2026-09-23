@@ -122,20 +122,19 @@ describe("matchPositionLabel", () => {
       expect(matchPositionLabel(match, "ROUND_ROBIN")).toBe("");
     });
 
-    it("ダブルエリミネーションはブラケットごとの回戦で表す", () => {
-      expect(matchPositionLabel(match, "DOUBLE_ELIMINATION_GRAND_FINAL")).toBe(
-        "勝者側2回戦 (2)",
-      );
+    it("敗者側・決勝の試合はブラケット名を付けて表す", () => {
+      // 現在の生成では作られないが、これらを持つ Json を読んでも
+      // 「2回戦」のような嘘にならないことを固定する。
       expect(
         matchPositionLabel(
           { ...match, bracket: "losers", round: 3, order: 0 },
-          "DOUBLE_ELIMINATION_THIRD_PLACE",
+          "SINGLE_ELIMINATION",
         ),
       ).toBe("敗者側2回戦 (1)");
       expect(
         matchPositionLabel(
           { ...match, bracket: "final", round: 6, order: 0 },
-          "DOUBLE_ELIMINATION_GRAND_FINAL",
+          "SINGLE_ELIMINATION",
         ),
       ).toBe("決勝");
     });
