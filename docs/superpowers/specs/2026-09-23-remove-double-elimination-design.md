@@ -73,11 +73,9 @@ DROP TYPE "DivisionFormat_old";
 
 `Division.format` に `@default` は無いので、既定値の付け外しは要らない。
 
-既存 DE 部門のエントリー・勝敗記録も一緒に消える。適用対象は 2026-09-23 時点で
-ローカル開発 DB のみ（`DOUBLE_ELIMINATION_GRAND_FINAL` 2 件）。リポジトリに CI・
-デプロイ設定が無いため、他に適用先は無いという前提で進める。前提が違う環境がある
-場合は、適用前にその DB の `SELECT format, count(*) FROM "Division" GROUP BY format` を
-確認すること。
+既存 DE 部門のエントリー・勝敗記録も一緒に消える。適用対象はローカル開発 DB だけで、
+他に DB は無いことを 2026-09-23 に確認済み。ローカルの該当は
+`DOUBLE_ELIMINATION_GRAND_FINAL` 2 件で、消えて困るデータではない。
 
 ## 生成ロジック
 
