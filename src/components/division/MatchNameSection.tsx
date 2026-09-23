@@ -8,9 +8,9 @@ import { MatchOrderList } from "./MatchOrderList";
 import { Notice } from "./Notice";
 
 /**
- * 試合名の区画。DivisionSetup と BracketEditorSetup の両方が同じ形
- * （見出し・mismatched 時の案内・MatchOrderList）を出す。空のときの文言と
- * setMatchNameAction だけが画面ごとに違うので、そこだけ props で受け取る。
+ * 試合名の区画。BracketEditorSetup が出す、見出し・mismatched 時の案内・
+ * MatchOrderList をまとめた形。空のときの文言と setMatchNameAction は
+ * 呼び出し側で変わりうるので、そこだけ props で受け取る。
  */
 export function MatchNameSection({
   division,

@@ -27,8 +27,6 @@ export type BracketEditorSetupActions = {
 /**
  * シングルエリミネーションの setup 画面。プレビューがそのまま編集画面で、
  * 試合の追加と 1 回戦のスロット編集をブラケット上で行う。
- * ダブルエリミは勝者側 1 回戦だけを直接いじると敗者側の対応が崩れるため、
- * 従来の DivisionSetup のまま。
  */
 export function BracketEditorSetup({
   division,

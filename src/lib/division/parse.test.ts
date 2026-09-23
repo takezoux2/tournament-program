@@ -269,7 +269,7 @@ describe("parseMatchingConfig", () => {
     });
     const config = parseMatchingConfig({
       version: 1,
-      // ダブルエリミの round は全ブラケット通し（敗者側 L1 は round 2）。
+      // round は全ブラケット通し（敗者側 L1 は round 2）。
       matches: [
         match("f", "final", 4, 0),
         match("l1-0", "losers", 2, 0),

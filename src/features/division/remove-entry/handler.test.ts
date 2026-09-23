@@ -122,31 +122,11 @@ describe("removeEntryAction", () => {
     );
   });
 
-  it("ダブルエリミネーションでは形式の下限（3人）で文言を出す", async () => {
-    // ダブルエリミは 3 人が下限。3 → 2 人でも「2 人未満」は事実に反する
-    // （2 人はまだ残っている）ので、result.minimum をそのまま文言に使う。
-    removeEntryInDb.mockReturnValue(
-      Effect.succeed({
-        found: true,
-        value: { removed: true, matching: "cleared", minimum: 3 },
-      }),
-    );
-
-    const state = await removeEntryAction(
-      INITIAL_DIVISION_FORM_STATE,
-      formData("e1"),
-    );
-
-    expect(state.notice).toBe(
-      "エントリーを削除し、残りが3人未満になったため組み合わせを取り消しました",
-    );
-  });
-
   it("形式の上限を超えたままなら、上限に触れた文言を伝える", async () => {
-    // /edit で切り替わった直後の部門（リーグに限らずダブルエリミも）が
-    // 上限を超えたエントリーを残していると、regenerateMatching は
-    // 上限超過を理由に空を返す。「◯人未満」（下限割れ）の文言を使い回すと
-    // 原因が事実と違って伝わるため、上限の人数を含む専用の文言になっているか確かめる。
+    // /edit で切り替わった直後の部門が上限を超えたエントリーを残していると、
+    // regenerateMatching は上限超過を理由に空を返す。「◯人未満」（下限割れ）の
+    // 文言を使い回すと原因が事実と違って伝わるため、上限の人数を含む専用の
+    // 文言になっているか確かめる。
     removeEntryInDb.mockReturnValue(
       Effect.succeed({
         found: true,
@@ -161,26 +141,6 @@ describe("removeEntryAction", () => {
 
     expect(state.notice).toBe(
       "エントリーを削除しましたが、形式の上限（16人）を超えているため組み合わせを取り消しました。上限以下になるまで削除してから生成し直してください",
-    );
-  });
-
-  it("ダブルエリミネーションでも同じ文言で形式の上限（64人）を伝える", async () => {
-    // 文言がリーグ専用にならず、形式ごとの limit をそのまま差し込む
-    // 形式中立な作りになっていることを確かめる。
-    removeEntryInDb.mockReturnValue(
-      Effect.succeed({
-        found: true,
-        value: { removed: true, matching: "clearedOverCap", limit: 64 },
-      }),
-    );
-
-    const state = await removeEntryAction(
-      INITIAL_DIVISION_FORM_STATE,
-      formData("e1"),
-    );
-
-    expect(state.notice).toBe(
-      "エントリーを削除しましたが、形式の上限（64人）を超えているため組み合わせを取り消しました。上限以下になるまで削除してから生成し直してください",
     );
   });
 

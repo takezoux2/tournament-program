@@ -188,17 +188,6 @@ describe("DivisionPage", () => {
     expect(listParticipantsInTournament).toHaveBeenCalledWith("o1", "t1");
   });
 
-  it("ダブルエリミネーションもブラケット描画に参加者名を使うので参加者一覧を取得する", async () => {
-    findDivisionInTournament.mockResolvedValue({
-      ...division,
-      format: "DOUBLE_ELIMINATION_GRAND_FINAL",
-    });
-
-    await DivisionPage(pageProps("tennis", "t1", "d1"));
-
-    expect(listParticipantsInTournament).toHaveBeenCalledWith("o1", "t1");
-  });
-
   it("部門名を見出しに描画する", async () => {
     const element = await DivisionPage(pageProps("tennis", "t1", "d1"));
     render(element);

@@ -6,8 +6,6 @@ import { DivisionFormat } from "@/generated/prisma/enums";
  */
 export const DIVISION_FORMAT_LABELS: Record<DivisionFormat, string> = {
   SINGLE_ELIMINATION: "シングルエリミネーション",
-  DOUBLE_ELIMINATION_GRAND_FINAL: "ダブルエリミネーション（優勝決定戦あり）",
-  DOUBLE_ELIMINATION_THIRD_PLACE: "ダブルエリミネーション（敗者側優勝が3位）",
   ROUND_ROBIN: "リーグ（総当たり）",
 };
 
@@ -21,13 +19,13 @@ export const DIVISION_FORMATS = Object.values(DivisionFormat);
  * 形式ごとに、組み合わせビューアが参加者名を描画に使うか。使わない形式で
  * 詳細ページ・公開ページが毎回参加者一覧のクエリを投げずに済むよう、
  * ページ側がこれを見て読み出しを省く。Record で持つのは、形式を増やした
- * ときに書き忘れがコンパイルエラーになるようにするため。
+ * ときに書き忘れがコンパイルエラーになるようにするため
+ * （現在の DivisionFormat はどちらも true なので実際には省かれないが、
+ * 参加者名を使わない形式が増えたときの安全策として残す）。
  */
 const USES_PARTICIPANTS: Record<DivisionFormat, boolean> = {
   SINGLE_ELIMINATION: true,
   ROUND_ROBIN: true,
-  DOUBLE_ELIMINATION_GRAND_FINAL: true,
-  DOUBLE_ELIMINATION_THIRD_PLACE: true,
 };
 
 export const needsParticipants = (format: DivisionFormat): boolean =>

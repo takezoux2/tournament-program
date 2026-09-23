@@ -84,11 +84,14 @@ DB への読み書きが責務であり、描画には関わらない。
 `winnerOf` の参照が壊れる経路が存在しない。
 
 `buildFromSlots` は渡された配列の長さが 2 の冪でなくても、次の 2 の冪まで
-`{ kind: "bye" }` で埋めてから組み立てる。`generateSlots` の出力や `placeEntry` が
-返す配列はすでに 2 の冪だが、埋め立てが働く経路は実在する。`swap-slots` は保存済みの
-`matchingConfig` を `toSlots` で取り出して `buildFromSlots` に渡し直すため、DB の値が
-2 の冪でない（1 回戦の試合数が 2 の冪でない）場合、この往復で正規形に矯正される。
-つまりこの埋め立ては死んだコードではなく、外から入った歪な値を直す経路そのものである。
+`{ kind: "bye" }` で埋めてから組み立てる。ただし、いまこの埋め立てを実際に
+発火させる経路は無い。`buildFromSlots` の生きた呼び出し元は `matching-strategy.ts` の
+`regenerateMatching` だけで、その入力は `generateSlots`（`single-elimination/edit.ts`）の
+出力であり、これは空か 2 の冪のどちらかしか返さない。もう 1 つの呼び出し元
+`applyEntryAdded` の `SINGLE_ELIMINATION` 分岐も `buildFromSlots` を呼ぶが、この分岐自体が
+`add-entry/repository.ts` の早期 return（`current.format === "SINGLE_ELIMINATION"` なら
+`applyEntryAdded` を呼ばず素通りする）によって本番からは到達しない。つまりこの埋め立ては、
+呼び出し元の無い防御的な正規化として残っているだけである。
 
 リーグ（総当たり）は円卓法で節に割る。試合 id は `r{節}-{節内の位置}` で、
 やはり決定的である。エントリーが 1 人増えれば全員の試合が増えるため、
@@ -108,8 +111,6 @@ Json のパース、勝敗が記録済みかの確認、保存前の検証、`up
 1 つのトランザクションにまとめる。形式の判定もここに置き、編集画面を持たない形式は
 「その部門は無い」として `{ found: false }` に倒す。Server Action はページを
 経由せず直接叩ける別の入口なので、画面の分岐だけでは守れない。
-`swap-slots` だけは 1 回戦スロットの入れ替えという勝ち上がり木専用の操作なので、
-スライス側でさらに `SINGLE_ELIMINATION` に絞る。
 
 ## features/schedule
 
@@ -221,13 +222,13 @@ organizationId } }` と書き、3 段の所有権を 1 クエリで担保する�
 `create` だけは `where` を持てないため、同じトランザクションの中で大会の所属を
 別途確かめてから作る。
 
-編集スライス（`add-entry` / `remove-entry` / `reorder-entry` / `generate-matching` /
-`swap-slots`）も同じ原則に従う。所有権は `setup-store.ts` の `load` / `save` が
+編集スライス（`add-entry` / `remove-entry` / `reorder-entry` / `generate-matching`）も
+同じ原則に従う。所有権は `setup-store.ts` の `load` / `save` が
 `where` に入れて担保する。`add-entry` だけは `Member` と `Participant` を作るため
 `create` を使うが、`Member` は `organizationId` を直接持ち、`Participant` は
 所有権を確かめた `tournamentId` の下に作るので、境界は保たれる。
 
-`reorder-entry` と `swap-slots` の 0 件応答は `features/division/reorder` と同じ扱いで、
+`reorder-entry` の 0 件応答は `features/division/reorder` と同じ扱いで、
 「端まで来ている」と「その対象が無い」を区別せず、どちらも成功として返す。
 
 ## 認可モデル

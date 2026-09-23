@@ -179,10 +179,6 @@ model Division {
 enum DivisionFormat {
   /// シングルエリミネーション
   SINGLE_ELIMINATION
-  /// ダブルエリミネーション。勝者トーナメント優勝者と敗者トーナメント優勝者が最終試合を行う。
-  DOUBLE_ELIMINATION_GRAND_FINAL
-  /// ダブルエリミネーション。敗者トーナメント優勝者が 3 位となる。
-  DOUBLE_ELIMINATION_THIRD_PLACE
   /// リーグ（総当たり）
   ROUND_ROBIN
 }

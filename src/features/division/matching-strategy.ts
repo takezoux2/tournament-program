@@ -1,14 +1,5 @@
 import type { DivisionFormat } from "@/generated/prisma/enums";
-import type {
-  DivisionEntry,
-  MatchingConfig,
-  SlotSource,
-} from "@/lib/division/types";
-import {
-  buildDoubleElimination,
-  type DoubleEliminationVariant,
-  isDoubleEliminationShape,
-} from "./double-elimination/build";
+import type { DivisionEntry, MatchingConfig } from "@/lib/division/types";
 import { buildRoundRobin } from "./round-robin/build";
 import {
   buildFromSlots,
@@ -24,8 +15,6 @@ import { generateSlots, placeEntry } from "./single-elimination/edit";
 export const EDITABLE_FORMATS = [
   "SINGLE_ELIMINATION",
   "ROUND_ROBIN",
-  "DOUBLE_ELIMINATION_GRAND_FINAL",
-  "DOUBLE_ELIMINATION_THIRD_PLACE",
 ] as const satisfies readonly DivisionFormat[];
 
 export type EditableFormat = (typeof EDITABLE_FORMATS)[number];
@@ -48,66 +37,19 @@ export const isEditableFormat = (
 const MAX_ENTRIES: Record<EditableFormat, number> = {
   SINGLE_ELIMINATION: 128,
   ROUND_ROBIN: 16,
-  // 敗者側を含めると試合数がおよそ 2 倍になる。1 部門として回せる規模で切る。
-  DOUBLE_ELIMINATION_GRAND_FINAL: 64,
-  DOUBLE_ELIMINATION_THIRD_PLACE: 64,
 };
 
 export const maxEntries = (format: EditableFormat): number =>
   MAX_ENTRIES[format];
 
-/**
- * 組み合わせを作るのに必要なエントリー数。ダブルエリミは 2 人だと
- * 敗者側が作れない（buildDoubleElimination が空を返す）ので 3 人から。
- */
+/** 組み合わせを作るのに必要なエントリー数。 */
 const MIN_ENTRIES: Record<EditableFormat, number> = {
   SINGLE_ELIMINATION: 2,
   ROUND_ROBIN: 2,
-  DOUBLE_ELIMINATION_GRAND_FINAL: 3,
-  DOUBLE_ELIMINATION_THIRD_PLACE: 3,
 };
 
 export const minEntries = (format: EditableFormat): number =>
   MIN_ENTRIES[format];
-
-/**
- * 勝者側 1 回戦のスロット割当を唯一の情報源にする形式。
- * 1 回戦の入れ替え（swap-slots）と D&D エディタはこれらでだけ意味を持つ。
- */
-export type SlotBracketFormat = Exclude<EditableFormat, "ROUND_ROBIN">;
-
-export const isSlotBracketFormat = (
-  format: DivisionFormat,
-): format is SlotBracketFormat =>
-  format === "SINGLE_ELIMINATION" ||
-  format === "DOUBLE_ELIMINATION_GRAND_FINAL" ||
-  format === "DOUBLE_ELIMINATION_THIRD_PLACE";
-
-const VARIANTS: Record<
-  Exclude<SlotBracketFormat, "SINGLE_ELIMINATION">,
-  DoubleEliminationVariant
-> = {
-  DOUBLE_ELIMINATION_GRAND_FINAL: "grandFinal",
-  DOUBLE_ELIMINATION_THIRD_PLACE: "thirdPlace",
-};
-
-/** 1 回戦のスロット割当から、形式に応じた組み合わせを作る。 */
-export const buildSlotBracket = (
-  format: SlotBracketFormat,
-  slots: SlotSource[],
-): MatchingConfig =>
-  format === "SINGLE_ELIMINATION"
-    ? buildFromSlots(slots)
-    : buildDoubleElimination(slots, VARIANTS[format]);
-
-/** 保存済みの組み合わせが、この形式の画面で部分編集できる形か。 */
-export const matchesSlotBracketShape = (
-  format: SlotBracketFormat,
-  config: MatchingConfig,
-): boolean =>
-  format === "SINGLE_ELIMINATION"
-    ? isSingleEliminationShape(config)
-    : isDoubleEliminationShape(config, VARIANTS[format]);
 
 /**
  * 円卓法の組み合わせを上限内でだけ組み立てる。
@@ -125,28 +67,9 @@ const buildRoundRobinWithinCap = (entries: DivisionEntry[]): MatchingConfig =>
     : buildRoundRobin(entries);
 
 /**
- * ダブルエリミネーションの組み合わせを上限内でだけ組み立てる。
- *
- * buildRoundRobinWithinCap と同じ理由（/edit は format を無条件に書き換えられ、
- * 生成ボタンを経由しない remove-entry / reorder からも regenerateMatching が
- * 呼ばれる）で、SINGLE_ELIMINATION（128 人まで）の部門がそのまま
- * DOUBLE_ELIMINATION_*（64 人まで）になっていることがある。buildDoubleElimination
- * 自身は上限を知らず、65〜128 人でも黙って肥大化したブラケットを組み立てて
- * しまうため、ここで弾く。SINGLE_ELIMINATION は上限が生成の唯一の経路である
- * ことに変わりがないため、この cap は掛けない。
- */
-const buildSlotBracketWithinCap = (
-  format: Exclude<SlotBracketFormat, "SINGLE_ELIMINATION">,
-  entries: DivisionEntry[],
-): MatchingConfig =>
-  entries.length > MAX_ENTRIES[format]
-    ? { version: 1, matches: [] }
-    : buildSlotBracket(format, generateSlots(entries));
-
-/**
  * エントリーのシード順から組み合わせを丸ごと作り直す。
- * 必要人数に満たなければどの形式でも空を返す（スロット型は builder 自身が、
- * リーグ・ダブルエリミは各 WithinCap 関数の手前で builder が空を返す）。
+ * 必要人数に満たなければどちらの形式でも空を返す（トーナメントは
+ * buildFromSlots 自身が、リーグは buildRoundRobin が空を返す）。
  */
 export const regenerateMatching = (
   format: EditableFormat,
@@ -154,10 +77,7 @@ export const regenerateMatching = (
 ): MatchingConfig => {
   switch (format) {
     case "SINGLE_ELIMINATION":
-      return buildSlotBracket(format, generateSlots(entries));
-    case "DOUBLE_ELIMINATION_GRAND_FINAL":
-    case "DOUBLE_ELIMINATION_THIRD_PLACE":
-      return buildSlotBracketWithinCap(format, entries);
+      return buildFromSlots(generateSlots(entries));
     case "ROUND_ROBIN":
       return buildRoundRobinWithinCap(entries);
   }
@@ -166,11 +86,9 @@ export const regenerateMatching = (
 /**
  * エントリーを 1 人足したあとの組み合わせ。
  *
- * スロット型（トーナメント・ダブルエリミ）は勝者側 1 回戦のスロットに
- * 「一番下の bye を埋める」だけで既存の対戦カードが残る（buildSlotBracket が
- * 勝者側は buildFromSlots、ダブルエリミはさらに敗者側・決勝も組み直す）。
- * リーグには対応する操作が無い（1 人増えれば全員の試合が 1 つずつ増え、
- * 円卓法の割り当ても全部ずれる）ので丸ごと作り直す。
+ * トーナメントは 1 回戦のスロットに「一番下の bye を埋める」だけで既存の
+ * 対戦カードが残る。リーグには対応する操作が無い（1 人増えれば全員の試合が
+ * 1 つずつ増え、円卓法の割り当ても全部ずれる）ので丸ごと作り直す。
  *
  * 組み合わせが未作成のときは空のままにする。エントリーを足しただけで
  * 対戦表が生えると、生成を押していない運営者を驚かせる。
@@ -187,8 +105,6 @@ export const applyEntryAdded = (
 
   switch (format) {
     case "SINGLE_ELIMINATION":
-    case "DOUBLE_ELIMINATION_GRAND_FINAL":
-    case "DOUBLE_ELIMINATION_THIRD_PLACE":
       // /edit は format を無条件に書き換えられるため、リーグの星取表を
       // 持ったまま SINGLE_ELIMINATION になった部門が存在しうる。その星取表は
       // toSlots で 1 回戦だけ取り出して buildFromSlots に通すと 2 節目以降が
@@ -198,13 +114,10 @@ export const applyEntryAdded = (
       // 「rebuild this」の案内が消えずに残り、それが運営者の逃げ道になる。
       // 同じ参照を返すのは、呼び出し側が参照比較で「作り直したか」を
       // 判別するため（regenerated フラグが正しく false になる）。
-      if (!matchesSlotBracketShape(format, current)) {
+      if (!isSingleEliminationShape(current)) {
         return current;
       }
-      return buildSlotBracket(
-        format,
-        placeEntry(toSlots(current), addedEntryId),
-      );
+      return buildFromSlots(placeEntry(toSlots(current), addedEntryId));
     case "ROUND_ROBIN":
       return buildRoundRobin(entries);
   }
@@ -228,8 +141,6 @@ export const applyEntryReordered = (
 
   switch (format) {
     case "SINGLE_ELIMINATION":
-    case "DOUBLE_ELIMINATION_GRAND_FINAL":
-    case "DOUBLE_ELIMINATION_THIRD_PLACE":
       return current;
     case "ROUND_ROBIN":
       return buildRoundRobinWithinCap(entries);

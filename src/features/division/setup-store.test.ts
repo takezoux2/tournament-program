@@ -83,23 +83,6 @@ describe("runDivisionSetup", () => {
     );
   });
 
-  it("ダブルエリミネーションも編集できる形式なので mutate を呼び、形式を渡す", async () => {
-    // 全形式が編集画面を持つようになったので、found: false に倒れる形式は無い。
-    divisionFindFirst.mockResolvedValue({
-      ...emptyRow,
-      format: "DOUBLE_ELIMINATION_GRAND_FINAL",
-    });
-    const mutate = vi.fn(async () => ({ next: null, value: null }));
-
-    const result = await Effect.runPromise(runDivisionSetup(ids, mutate));
-
-    expect(result).toEqual({ found: true, value: null });
-    expect(mutate).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.objectContaining({ format: "DOUBLE_ELIMINATION_GRAND_FINAL" }),
-    );
-  });
-
   it("書き戻しでは format を更新しない", async () => {
     // 形式は /edit の責務。この経路では読み出すだけで書かない。
     divisionFindFirst.mockResolvedValue(emptyRow);

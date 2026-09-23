@@ -1,13 +1,9 @@
 import { describe, expect, it } from "vitest";
 import type { DivisionEntry, MatchingConfig } from "@/lib/division/types";
-import { buildDoubleElimination } from "./double-elimination/build";
 import {
   applyEntryAdded,
   applyEntryReordered,
-  buildSlotBracket,
   isEditableFormat,
-  isSlotBracketFormat,
-  matchesSlotBracketShape,
   maxEntries,
   minEntries,
   regenerateMatching,
@@ -29,8 +25,6 @@ describe("isEditableFormat", () => {
   it("全形式が編集画面を持つ", () => {
     expect(isEditableFormat("SINGLE_ELIMINATION")).toBe(true);
     expect(isEditableFormat("ROUND_ROBIN")).toBe(true);
-    expect(isEditableFormat("DOUBLE_ELIMINATION_GRAND_FINAL")).toBe(true);
-    expect(isEditableFormat("DOUBLE_ELIMINATION_THIRD_PLACE")).toBe(true);
   });
 });
 
@@ -41,6 +35,11 @@ describe("maxEntries", () => {
 
   it("トーナメントは従来どおり 128 人", () => {
     expect(maxEntries("SINGLE_ELIMINATION")).toBe(128);
+  });
+
+  it("どちらの形式も下限は 2 人", () => {
+    expect(minEntries("SINGLE_ELIMINATION")).toBe(2);
+    expect(minEntries("ROUND_ROBIN")).toBe(2);
   });
 });
 
@@ -204,123 +203,5 @@ describe("applyEntryReordered", () => {
     const result = applyEntryReordered("ROUND_ROBIN", current, entriesOf(16));
     expect(result.matches).toHaveLength(120);
     expect(result).toEqual(buildRoundRobin(entriesOf(16)));
-  });
-});
-
-describe("maxEntries / minEntries（ダブルエリミネーション）", () => {
-  it("DE は 3 人から 64 人まで", () => {
-    for (const format of [
-      "DOUBLE_ELIMINATION_GRAND_FINAL",
-      "DOUBLE_ELIMINATION_THIRD_PLACE",
-    ] as const) {
-      expect(maxEntries(format)).toBe(64);
-      expect(minEntries(format)).toBe(3);
-    }
-    expect(minEntries("SINGLE_ELIMINATION")).toBe(2);
-    expect(minEntries("ROUND_ROBIN")).toBe(2);
-  });
-});
-
-describe("ダブルエリミネーションの組み合わせ", () => {
-  it("regenerateMatching はバリアントに応じて作る", () => {
-    const slots = generateSlots(entriesOf(5));
-    expect(
-      regenerateMatching("DOUBLE_ELIMINATION_GRAND_FINAL", entriesOf(5)),
-    ).toEqual(buildDoubleElimination(slots, "grandFinal"));
-    expect(
-      regenerateMatching("DOUBLE_ELIMINATION_THIRD_PLACE", entriesOf(5)),
-    ).toEqual(buildDoubleElimination(slots, "thirdPlace"));
-  });
-
-  it("applyEntryAdded は空き枠を埋めて作り直す", () => {
-    const current = regenerateMatching(
-      "DOUBLE_ELIMINATION_GRAND_FINAL",
-      entriesOf(5),
-    );
-    const next = applyEntryAdded(
-      "DOUBLE_ELIMINATION_GRAND_FINAL",
-      current,
-      entriesOf(6),
-      "e6",
-    );
-    expect(
-      next.matches.some((match) =>
-        match.slots.some(
-          (slot) => slot.kind === "entry" && slot.entryId === "e6",
-        ),
-      ),
-    ).toBe(true);
-    expect(
-      matchesSlotBracketShape("DOUBLE_ELIMINATION_GRAND_FINAL", next),
-    ).toBe(true);
-  });
-
-  it("applyEntryAdded は形が違えば触らない", () => {
-    const league = buildRoundRobin(entriesOf(4));
-    expect(
-      applyEntryAdded(
-        "DOUBLE_ELIMINATION_THIRD_PLACE",
-        league,
-        entriesOf(5),
-        "e5",
-      ),
-    ).toBe(league);
-  });
-
-  it("applyEntryReordered は触らない", () => {
-    const current = regenerateMatching(
-      "DOUBLE_ELIMINATION_THIRD_PLACE",
-      entriesOf(4),
-    );
-    expect(
-      applyEntryReordered(
-        "DOUBLE_ELIMINATION_THIRD_PLACE",
-        current,
-        entriesOf(4),
-      ),
-    ).toBe(current);
-  });
-
-  it("regenerateMatching は上限（64人）を超えたエントリー数だと空を返す", () => {
-    // /edit は format を無条件に書き換えられるため、SINGLE_ELIMINATION（128人まで）の
-    // 部門がそのまま DOUBLE_ELIMINATION_GRAND_FINAL になり、生成ボタンを経由せず
-    // remove-entry / reorder から regenerateMatching が呼ばれることがある。
-    // ROUND_ROBIN と同じく、DE でも上限超過なら空を返して肥大化した
-    // ブラケットの再構築を防ぐ。
-    expect(
-      regenerateMatching("DOUBLE_ELIMINATION_GRAND_FINAL", entriesOf(65)),
-    ).toEqual(EMPTY);
-    expect(
-      regenerateMatching("DOUBLE_ELIMINATION_THIRD_PLACE", entriesOf(65)),
-    ).toEqual(EMPTY);
-  });
-
-  it("regenerateMatching は上限ちょうどの 64 人なら通常どおり作る", () => {
-    const slots = generateSlots(entriesOf(64));
-    expect(
-      regenerateMatching("DOUBLE_ELIMINATION_GRAND_FINAL", entriesOf(64)),
-    ).toEqual(buildDoubleElimination(slots, "grandFinal"));
-  });
-});
-
-describe("スロット型ブラケットのディスパッチ", () => {
-  it("リーグ以外がスロット型", () => {
-    expect(isSlotBracketFormat("SINGLE_ELIMINATION")).toBe(true);
-    expect(isSlotBracketFormat("DOUBLE_ELIMINATION_GRAND_FINAL")).toBe(true);
-    expect(isSlotBracketFormat("DOUBLE_ELIMINATION_THIRD_PLACE")).toBe(true);
-    expect(isSlotBracketFormat("ROUND_ROBIN")).toBe(false);
-  });
-
-  it("buildSlotBracket と matchesSlotBracketShape は形式ごとの builder に委ねる", () => {
-    const slots = generateSlots(entriesOf(4));
-    expect(buildSlotBracket("SINGLE_ELIMINATION", slots)).toEqual(
-      buildFromSlots(slots),
-    );
-    const de = buildSlotBracket("DOUBLE_ELIMINATION_GRAND_FINAL", slots);
-    expect(de).toEqual(buildDoubleElimination(slots, "grandFinal"));
-    expect(matchesSlotBracketShape("DOUBLE_ELIMINATION_GRAND_FINAL", de)).toBe(
-      true,
-    );
-    expect(matchesSlotBracketShape("SINGLE_ELIMINATION", de)).toBe(false);
   });
 });

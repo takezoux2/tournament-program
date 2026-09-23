@@ -124,7 +124,7 @@ export function EntryRowActions({
       )}
       {latestNotice === "reorder" && reorderState.notice !== undefined && (
         // biome の useSemanticElements 指摘に従い、role="status" ではなく
-        // 暗黙のロールが status な <output> を使う（MatchingSection と同じ）。
+        // 暗黙のロールが status な <output> を使う。
         // 並べ替えの notice は今まで受け取るだけで表示先が無く、
         // handler が返した通知が画面に届いていなかった。
         <output className="text-xs text-slate-600">

@@ -1,7 +1,6 @@
 import { Effect } from "effect";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { failureTag } from "@/shared/testing/exit";
-import { buildDoubleElimination } from "../double-elimination/build";
 import { buildFromSlots } from "../single-elimination/build";
 
 const divisionFindFirst = vi.fn();
@@ -13,7 +12,7 @@ const participantCreate = vi.fn();
 const participantFindMany = vi.fn();
 
 // シングルエリミはこの経路では編集しない（1 回戦スライスで組む）ため、
-// 汎用の振る舞いはダブルエリミ・リーグで確かめる。
+// 汎用の振る舞いはリーグで確かめる。
 // setup-store 経由で実際に組み立てまで走らせるため、mock するのは
 // Prisma の境界だけにする（setup-store 自体はモックしない）。
 vi.mock("@/shared/db/prisma", () => ({
@@ -45,7 +44,7 @@ const entry = (id: string) => ({ kind: "entry" as const, entryId: id });
 const bye = { kind: "bye" as const };
 
 const empty = {
-  format: "DOUBLE_ELIMINATION_GRAND_FINAL" as const,
+  format: "ROUND_ROBIN" as const,
   entries: { version: 1, entries: [] },
   matchingConfig: { version: 1, matches: [] },
   results: { version: 1, matches: [] },
@@ -143,7 +142,7 @@ describe("addEntryInDb", () => {
 
   it("エントリーを末尾の seed で足す", async () => {
     divisionFindFirst.mockResolvedValue({
-      format: "DOUBLE_ELIMINATION_GRAND_FINAL",
+      format: "ROUND_ROBIN",
       entries: {
         version: 1,
         entries: [
@@ -171,44 +170,6 @@ describe("addEntryInDb", () => {
     expect(written.entries[2].participantId).toBe("p3");
   });
 
-  it("組み合わせがあれば一番下の bye を埋める", async () => {
-    divisionFindFirst.mockResolvedValue({
-      format: "DOUBLE_ELIMINATION_GRAND_FINAL",
-      entries: {
-        version: 1,
-        entries: [
-          { id: "e1", participantId: "p1", seed: 0 },
-          { id: "e2", participantId: "p2", seed: 1 },
-        ],
-      },
-      matchingConfig: buildDoubleElimination(
-        [entry("e1"), bye, entry("e2"), bye],
-        "grandFinal",
-      ),
-      results: { version: 1, matches: [] },
-    });
-    participantCreate.mockResolvedValue({ id: "p3" });
-    participantFindMany.mockResolvedValue([
-      { id: "p1" },
-      { id: "p2" },
-      { id: "p3" },
-    ]);
-
-    const result = await Effect.runPromise(
-      addEntryInDb(ids, { mode: "existing", memberId: "m1" }),
-    );
-
-    const data = divisionUpdateMany.mock.calls[0][0].data;
-    const added = data.entries.entries[2].id;
-    expect(data.matchingConfig.matches[1].slots[1]).toEqual({
-      kind: "entry",
-      entryId: added,
-    });
-    // bye を埋めるだけでも buildSlotBracket が木を丸ごと組み立て直すため、
-    // 手で振った試合名は失われる。regenerated はその事実を伝える。
-    expect(result).toEqual({ found: true, value: { regenerated: true } });
-  });
-
   it("組み合わせが未作成なら組み合わせは空のまま", async () => {
     const result = await Effect.runPromise(
       addEntryInDb(ids, { mode: "existing", memberId: "m1" }),
@@ -222,7 +183,7 @@ describe("addEntryInDb", () => {
   it("同じ参加者の二重エントリーを拒否する", async () => {
     participantFindFirst.mockResolvedValue({ id: "p1" });
     divisionFindFirst.mockResolvedValue({
-      format: "DOUBLE_ELIMINATION_GRAND_FINAL",
+      format: "ROUND_ROBIN",
       entries: {
         version: 1,
         entries: [{ id: "e1", participantId: "p1", seed: 0 }],
@@ -236,29 +197,6 @@ describe("addEntryInDb", () => {
     );
 
     expect(failureTag(exit)).toBe("DivisionDuplicateEntryError");
-    expect(divisionUpdateMany).not.toHaveBeenCalled();
-  });
-
-  it("ダブルエリミは 64 人に達していたら拒否する", async () => {
-    divisionFindFirst.mockResolvedValue({
-      format: "DOUBLE_ELIMINATION_GRAND_FINAL",
-      entries: {
-        version: 1,
-        entries: Array.from({ length: 64 }, (_, index) => ({
-          id: `e${index}`,
-          participantId: `p${index}`,
-          seed: index,
-        })),
-      },
-      matchingConfig: { version: 1, matches: [] },
-      results: { version: 1, matches: [] },
-    });
-
-    const exit = await Effect.runPromiseExit(
-      addEntryInDb(ids, { mode: "existing", memberId: "m1" }),
-    );
-
-    expect(failureTag(exit)).toBe("DivisionEntryLimitError");
     expect(divisionUpdateMany).not.toHaveBeenCalled();
   });
 
@@ -283,35 +221,6 @@ describe("addEntryInDb", () => {
 
     expect(failureTag(exit)).toBe("DivisionEntryLimitError");
     expect(divisionUpdateMany).not.toHaveBeenCalled();
-  });
-
-  it("ダブルエリミは 16 人でも追加できる", async () => {
-    divisionFindFirst.mockResolvedValue({
-      format: "DOUBLE_ELIMINATION_GRAND_FINAL",
-      entries: {
-        version: 1,
-        entries: Array.from({ length: 16 }, (_, index) => ({
-          id: `e${index}`,
-          participantId: `p${index}`,
-          seed: index,
-        })),
-      },
-      matchingConfig: { version: 1, matches: [] },
-      results: { version: 1, matches: [] },
-    });
-    memberFindFirst.mockResolvedValue({ id: "m1" });
-    participantFindFirst.mockResolvedValue({ id: "pNew" });
-    participantFindMany.mockResolvedValue(
-      Array.from({ length: 16 }, (_, index) => ({ id: `p${index}` })).concat([
-        { id: "pNew" },
-      ]),
-    );
-
-    const result = await Effect.runPromise(
-      addEntryInDb(ids, { mode: "existing", memberId: "m1" }),
-    );
-
-    expect(result).toEqual({ found: true, value: { regenerated: false } });
   });
 
   it("シングルエリミでは何もしない（1 回戦スライスで編集する）", async () => {

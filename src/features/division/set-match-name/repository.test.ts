@@ -160,20 +160,4 @@ describe("setMatchNameInDb", () => {
     expect(result).toEqual({ found: true, value: null });
     expect(divisionUpdateMany).toHaveBeenCalled();
   });
-
-  it("ダブルエリミネーションの部門でも試合名を変えられる", async () => {
-    // 全形式が編集画面を持つようになったので、found: false に倒れる形式は無い。
-    divisionFindFirst.mockResolvedValue({
-      format: "DOUBLE_ELIMINATION_GRAND_FINAL",
-      entries,
-      matchingConfig: config,
-    });
-
-    const result = await Effect.runPromise(
-      setMatchNameInDb(ids, { matchId: "m1-0", matchName: "A" }),
-    );
-
-    expect(result).toEqual({ found: true, value: null });
-    expect(divisionUpdateMany).toHaveBeenCalled();
-  });
 });

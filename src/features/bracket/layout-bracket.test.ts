@@ -98,7 +98,7 @@ describe("layoutBracket", () => {
   });
 });
 
-describe("layoutBracket（ダブルエリミネーション）", () => {
+describe("layoutBracket（losers / final を含む入力）", () => {
   const side = (
     id: string,
     bracket: "winners" | "losers" | "final",

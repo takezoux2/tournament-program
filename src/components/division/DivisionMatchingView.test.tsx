@@ -154,21 +154,6 @@ describe("DivisionMatchingView", () => {
     ).toBeInTheDocument();
   });
 
-  it.each([
-    "DOUBLE_ELIMINATION_GRAND_FINAL",
-    "DOUBLE_ELIMINATION_THIRD_PLACE",
-  ] as const)("%s はブラケットを描く", (format) => {
-    render(
-      <DivisionMatchingView
-        division={buildDivision({ format })}
-        participants={participants}
-        heightClassName="h-[60dvh]"
-        overallSeq={noSeq}
-      />,
-    );
-    expect(screen.getByTestId("bracket")).toHaveTextContent("h-[60dvh]");
-  });
-
   it("SINGLE_ELIMINATION は大会全体の通し番号をブラケットへそのまま渡す", () => {
     const overallSeq = new Map([[overallSeqKey("d1", "m1-0"), 2]]);
     render(

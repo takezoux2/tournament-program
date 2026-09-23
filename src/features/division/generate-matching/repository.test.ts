@@ -115,24 +115,6 @@ describe("generateMatchingInDb", () => {
     expect(divisionUpdateMany).not.toHaveBeenCalled();
   });
 
-  it("ダブルエリミネーションは 3 人未満なら拒否する", async () => {
-    // ダブルエリミは敗者側を組むのに 3 人必要（2 人だと敗者側が作れない）。
-    // SINGLE_ELIMINATION/ROUND_ROBIN と下限が違うことを、失敗理由に乗る
-    // minimum で確かめる。
-    divisionFindFirst.mockResolvedValue({
-      format: "DOUBLE_ELIMINATION_GRAND_FINAL",
-      entries: entries(2),
-      matchingConfig: { version: 1, matches: [] },
-      results: { version: 1, matches: [] },
-    });
-
-    const exit = await Effect.runPromiseExit(generateMatchingInDb(ids));
-
-    expect(failureTag(exit)).toBe("DivisionNotEnoughEntriesError");
-    expect(minimumOf(exit)).toBe(3);
-    expect(divisionUpdateMany).not.toHaveBeenCalled();
-  });
-
   it("リーグの部門は総当たりの組み合わせを書く", async () => {
     divisionFindFirst.mockResolvedValue({
       format: "ROUND_ROBIN",

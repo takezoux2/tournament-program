@@ -16,8 +16,7 @@ type Applicable<T> = { applicable: false } | { applicable: true; value: T };
  * 1 回戦を直接編集する 4 スライスが共有する入口。runDivisionSetup の
  * トランザクション・結果ロック・保存前検証に、次の 2 つを足す。
  *
- * - SINGLE_ELIMINATION 以外は「その部門は無い」と同じ found: false に倒す
- *   （ダブルエリミは勝者側 1 回戦を直接いじると敗者側の対応が崩れるため対象外）。
+ * - SINGLE_ELIMINATION 以外は「その部門は無い」と同じ found: false に倒す。
  * - トーナメントの形でない組み合わせは部分編集させない（league の星取表を
  *   1 回戦だけ取り出して組み直すと 2 節目以降が消える）。
  */

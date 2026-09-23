@@ -50,11 +50,13 @@ describe("runFirstRoundEdit", () => {
       })),
     );
     expect(result).toEqual({ found: true, value: "ok" });
-    expect(divisionUpdateMany.mock.calls[0][0].data.matchingConfig).toEqual(next);
+    expect(divisionUpdateMany.mock.calls[0][0].data.matchingConfig).toEqual(
+      next,
+    );
   });
 
   it("SE 以外は mutate を呼ばず found: false", async () => {
-    divisionFindFirst.mockResolvedValue(row({ format: "DOUBLE_ELIMINATION_GRAND_FINAL" }));
+    divisionFindFirst.mockResolvedValue(row({ format: "ROUND_ROBIN" }));
     const mutate = vi.fn();
     const result = await Effect.runPromise(runFirstRoundEdit(ids, mutate));
     expect(result).toEqual({ found: false });
@@ -67,13 +69,31 @@ describe("runFirstRoundEdit", () => {
       row({
         entries: {
           version: 1,
-          entries: ["a", "b", "c"].map((id, seed) => ({ id, participantId: `p${id}`, seed })),
+          entries: ["a", "b", "c"].map((id, seed) => ({
+            id,
+            participantId: `p${id}`,
+            seed,
+          })),
         },
         matchingConfig: {
           version: 1,
           matches: [
-            { id: "r1", bracket: "winners", round: 1, order: 0, matchName: "1", slots: [e("a"), e("b")] },
-            { id: "r2", bracket: "winners", round: 1, order: 1, matchName: "1", slots: [e("a"), e("c")] },
+            {
+              id: "r1",
+              bracket: "winners",
+              round: 1,
+              order: 0,
+              matchName: "1",
+              slots: [e("a"), e("b")],
+            },
+            {
+              id: "r2",
+              bracket: "winners",
+              round: 1,
+              order: 1,
+              matchName: "1",
+              slots: [e("a"), e("c")],
+            },
           ],
         },
       }),
@@ -86,7 +106,12 @@ describe("runFirstRoundEdit", () => {
 
   it("結果があれば DivisionResultsRecordedError", async () => {
     divisionFindFirst.mockResolvedValue(
-      row({ results: { version: 1, matches: [{ matchId: "m1-0", winnerEntryId: "a" }] } }),
+      row({
+        results: {
+          version: 1,
+          matches: [{ matchId: "m1-0", winnerEntryId: "a" }],
+        },
+      }),
     );
     const exit = await Effect.runPromiseExit(
       runFirstRoundEdit(ids, async () => ({ next: null, value: null })),

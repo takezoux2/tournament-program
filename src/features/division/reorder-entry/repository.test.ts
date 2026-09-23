@@ -7,7 +7,7 @@ const divisionUpdateMany = vi.fn();
 const participantFindMany = vi.fn();
 
 // シングルエリミはこの経路では編集しない（1 回戦スライスで組む）ため、
-// 汎用の振る舞いはダブルエリミ・リーグで確かめる。
+// 汎用の振る舞いはリーグで確かめる。
 // setup-store 経由で実際に組み立てまで走らせるため、mock するのは
 // Prisma の境界だけにする（setup-store 自体はモックしない）。
 vi.mock("@/shared/db/prisma", () => ({
@@ -39,7 +39,7 @@ beforeEach(() => {
 describe("reorderEntryInDb", () => {
   it("シード順を入れ替える", async () => {
     divisionFindFirst.mockResolvedValue({
-      format: "DOUBLE_ELIMINATION_GRAND_FINAL",
+      format: "ROUND_ROBIN",
       entries: {
         version: 1,
         entries: [
@@ -64,61 +64,6 @@ describe("reorderEntryInDb", () => {
       "e2",
       "e1",
     ]);
-  });
-
-  it("ダブルエリミは並べ替えても組み合わせを作り直さない", async () => {
-    divisionFindFirst.mockResolvedValue({
-      format: "DOUBLE_ELIMINATION_GRAND_FINAL",
-      entries: {
-        version: 1,
-        entries: [
-          { id: "e1", participantId: "p1", seed: 0 },
-          { id: "e2", participantId: "p2", seed: 1 },
-        ],
-      },
-      matchingConfig: { version: 1, matches: [] },
-      results: { version: 1, matches: [] },
-    });
-    participantFindMany.mockResolvedValue([{ id: "p1" }, { id: "p2" }]);
-
-    const result = await Effect.runPromise(
-      reorderEntryInDb(ids, { entryId: "e2", direction: "up" }),
-    );
-
-    expect(result).toEqual({
-      found: true,
-      value: { moved: true, matching: "unchanged" },
-    });
-  });
-
-  it("組み合わせには手を触れない（ダブルエリミ）", async () => {
-    const matchingConfig = buildFromSlots([
-      { kind: "entry", entryId: "e1" },
-      { kind: "entry", entryId: "e2" },
-    ]);
-    divisionFindFirst.mockResolvedValue({
-      format: "DOUBLE_ELIMINATION_GRAND_FINAL",
-      entries: {
-        version: 1,
-        entries: [
-          { id: "e1", participantId: "p1", seed: 0 },
-          { id: "e2", participantId: "p2", seed: 1 },
-        ],
-      },
-      matchingConfig,
-      results: { version: 1, matches: [] },
-    });
-    participantFindMany.mockResolvedValue([{ id: "p1" }, { id: "p2" }]);
-
-    await Effect.runPromise(
-      reorderEntryInDb(ids, { entryId: "e2", direction: "up" }),
-    );
-
-    // スロットは entryId を直接持つので、seed を変えても壊れない。
-    // setup-store は読み出し時に Json を検証済みの形へ作り直すため、
-    // 参照そのものは test 側の変数と一致しない。内容の一致で確かめる。
-    const written = divisionUpdateMany.mock.calls[0][0].data.matchingConfig;
-    expect(written).toEqual(matchingConfig);
   });
 
   it("シングルエリミでは何もしない（1 回戦スライスで編集する）", async () => {
@@ -259,7 +204,7 @@ describe("reorderEntryInDb", () => {
 
   it("端まで来ていたら書き込まない", async () => {
     divisionFindFirst.mockResolvedValue({
-      format: "DOUBLE_ELIMINATION_GRAND_FINAL",
+      format: "ROUND_ROBIN",
       entries: {
         version: 1,
         entries: [

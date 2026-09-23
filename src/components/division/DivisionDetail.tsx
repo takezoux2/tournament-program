@@ -17,14 +17,6 @@ const SETUP_LINKS: Record<
 > = {
   SINGLE_ELIMINATION: { segment: "setup", label: "エントリー・組み合わせ" },
   ROUND_ROBIN: { segment: "league", label: "エントリー・対戦表" },
-  DOUBLE_ELIMINATION_GRAND_FINAL: {
-    segment: "setup",
-    label: "エントリー・組み合わせ",
-  },
-  DOUBLE_ELIMINATION_THIRD_PLACE: {
-    segment: "setup",
-    label: "エントリー・組み合わせ",
-  },
 };
 
 export function DivisionDetailView({
