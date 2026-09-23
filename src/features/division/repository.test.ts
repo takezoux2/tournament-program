@@ -322,7 +322,19 @@ describe("loadEntrySourceContext", () => {
             },
           ],
         },
-        matchingConfig: { version: 1, matches: [] },
+        matchingConfig: {
+          version: 1,
+          matches: [
+            {
+              id: "f1",
+              bracket: "winners",
+              round: 1,
+              order: 0,
+              matchName: "決勝",
+              slots: [{ kind: "entry", entryId: "x1" }, { kind: "bye" }],
+            },
+          ],
+        },
         results: { version: 1, matches: [] },
         resultConfig: {
           version: 1,
@@ -339,7 +351,10 @@ describe("loadEntrySourceContext", () => {
     ]);
 
     expect(views.get("d9")?.labels).toEqual(new Map([["x1", "山田太郎"]]));
+    // x1 は f1 の枠に置かれているので、警告の抑止（placedEntryIds）が
+    // 効いていても意味のあるアサーションになる。
     expect(views.get("d9")?.warnings).toEqual([]);
+    expect(views.get("d9")?.participantIds).toEqual(new Map([["x1", "p1"]]));
   });
 
   it("壊れた Json を持つ部門は除いて続け、他の部門の仮名は出す", async () => {

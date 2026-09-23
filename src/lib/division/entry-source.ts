@@ -367,7 +367,7 @@ export const entrySourceWarnings = (
   resolved: ReadonlyMap<string, ResolvedEntry>,
   participantNameById: ReadonlyMap<string, string>,
   /**
-   * 1 回戦のスロットに置かれている entryId。渡されたときは、この集合に
+   * 組み合わせのスロットに置かれている entryId。渡されたときは、この集合に
    * 無いエントリー（試合の削除で外れたものや旧画面で登録したもの。
    * assign-slot/repository.ts のコメント参照）を警告の対象から外す。
    * ブラケット上は 1 枠しか無いのに、置かれていない側のぶんまで数えて

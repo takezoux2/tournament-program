@@ -769,8 +769,10 @@ describe("entrySourceWarnings", () => {
       ],
     ]);
 
-    // x1 も x2 もスロットに置かれていない（placedEntryIds が空）ので、
-    // 同順位の警告も、山田が 2 つの枠に入っている警告も出ない。
+    // x1 はスロットに置かれていない（placedEntryIds が空）ので、
+    // 同順位の警告は出ない。なお x2 の participantId (p1) を指すエントリーは
+    // 他に無いため、重複の警告はフィルタの有無に関係なくそもそも起こらない
+    // （重複の抑止そのものは次のテストで確認する）。
     expect(
       entrySourceWarnings(
         entries,

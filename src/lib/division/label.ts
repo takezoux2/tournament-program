@@ -5,8 +5,8 @@ import type { BracketMatch, DivisionEntries, SlotSource } from "./types";
 export type SlotLabeler = (slot: SlotSource) => string;
 
 /**
- * 参加者を引けなかったときに出す文言。画面・結果表・エントリーの参照解決の
- * 3 箇所が同じ文字列を出す必要があるため、ここに 1 つだけ置く。
+ * 参加者を引けなかったときに出す文言。同じ文字列を出す箇所はここを import
+ * して使うこと（増減しても数えないよう、リテラルで持たない）。
  */
 export const UNKNOWN_PARTICIPANT_LABEL = "（不明な参加者）";
 
