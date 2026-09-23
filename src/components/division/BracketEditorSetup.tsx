@@ -41,6 +41,7 @@ export function BracketEditorSetup({
   actions,
   entryLabels,
   sourceOptions,
+  warnings = [],
 }: {
   division: DivisionDetail;
   participants: DivisionParticipant[];
@@ -54,6 +55,11 @@ export function BracketEditorSetup({
   entryLabels?: ReadonlyMap<string, string>;
   /** 参照できる他部門。ページが buildSlotSourceOptions で作って渡す */
   sourceOptions: SlotSourceOption[];
+  /**
+   * 参照エントリーについての注意書き（同順位・循環・参照切れ・重複）。
+   * 保存は止めない方針なので、気づけるようここに出す。
+   */
+  warnings?: string[];
 }) {
   const parsed = parseSetupData(division);
   if (parsed === null) {
@@ -105,6 +111,9 @@ export function BracketEditorSetup({
   return (
     <div className="space-y-6">
       {locked && <LockedNotice />}
+      {warnings.map((warning) => (
+        <Notice key={warning}>{warning}</Notice>
+      ))}
 
       <section className="space-y-3">
         <h2 className="text-sm font-bold text-slate-700">プレビュー</h2>

@@ -104,6 +104,7 @@ export default async function DivisionSetupPage({
               entrySources.divisions,
               division.id,
             )}
+            warnings={entrySources.views.get(division.id)?.warnings}
           />
         ) : (
           <DivisionSetup
