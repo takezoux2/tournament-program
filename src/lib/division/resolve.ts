@@ -86,8 +86,8 @@ export const resolveMatchSlots = (
         if (origin === undefined) {
           return { state: "pending" };
         }
-        // BYE を含む試合は不戦勝なので敗者が生まれない。ダブルエリミの
-        // 敗者側で pending のまま止まらないよう、空き枠として扱う。
+        // BYE を含む試合は不戦勝なので敗者が生まれない。loserOf のスロットが
+        // pending のまま止まらないよう、空き枠として扱う。
         if (origin.slots.some((slot) => slot.state === "bye")) {
           return { state: "bye" };
         }

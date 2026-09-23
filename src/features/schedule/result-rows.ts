@@ -164,8 +164,8 @@ export const buildResultRows = (
 
     // 確定しているスロットは参加者名で呼ぶ。未確定は組み合わせ上の表記
     // （「第3試合の勝者」）を使う。BYE は、元のスロット定義が loserOf 等でも
-    // （ダブルエリミの敗者側が BYE の伝播で空き枠になった場合を含め）
-    // 実際に立っているのは BYE なので、"BYE" 固定で表示する。
+    // （BYE の伝播で空き枠になった場合を含め）実際に立っているのは BYE なので、
+    // "BYE" 固定で表示する。
     const slotView = (index: 0 | 1): ResultSlotView => {
       const slot = resolved.slots[index];
       if (slot.state === "entry") {

@@ -82,11 +82,11 @@ export const removeEntryAction = async (
   }
 
   // 手動で入れ替えた配置が消えるのは驚きになりうるので、起きたことを明示する。
-  // "cleared" は形式ごとに下限が違う（トーナメント/リーグは 2 人、
-  // ダブルエリミは 3 人）ため、固定文言ではなく result.minimum を差し込む。
-  // "clearedOverCap" も同様に形式ごとに上限が違う（リーグ 16 人・ダブルエリミ
-  // 64 人）ため、result.limit を差し込む。リーグ専用の文言にすると、
-  // /edit で切り替わった直後のダブルエリミの部門で事実と違う案内になる。
+  // "cleared" は下限（minEntries）が形式ごとに決まる値のため、固定文言では
+  // なく result.minimum を差し込む。
+  // "clearedOverCap" は上限（maxEntries）が形式ごとに違う（トーナメント 128
+  // 人・リーグ 16 人）ため、result.limit を差し込む。リーグ専用の文言に
+  // すると、/edit で切り替わった直後の部門で事実と違う案内になる。
   const notice =
     result.matching === "cleared"
       ? `エントリーを削除し、残りが${result.minimum}人未満になったため組み合わせを取り消しました`

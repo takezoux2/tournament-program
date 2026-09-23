@@ -21,7 +21,10 @@ export type SlotSource =
   | { kind: "loserOf"; matchId: string }
   | { kind: "bye" };
 
-/** 試合がどのブラケットに属するか。シングルエリミネーションとリーグは "winners" 固定。 */
+/**
+ * 試合がどのブラケットに属するか。現在の組み合わせ生成が作るのは "winners" だけ。
+ * "losers" / "final" は、それらを持つ既存の Json を読めるように残してある。
+ */
 export type BracketSide = "winners" | "losers" | "final";
 
 /** 組み合わせの中の 1 試合。 */
@@ -85,8 +88,8 @@ export type DivisionResultConfig = {
 /** 1 人ぶんの採点。 */
 export type MatchScoreEntry = {
   /**
-   * DivisionEntry.id。スロット番号（0/1）で持たないのは、swap-slots で
-   * スロットを入れ替えたときに採点が別人に付け替わってしまうため。
+   * DivisionEntry.id。スロット番号（0/1）で持たないのは、スロットの
+   * 割り当てが変わったときに採点が別人に付け替わってしまうため。
    */
   entryId: string;
   /** 未入力は null。長さは保存時の resultConfig.score.count */
