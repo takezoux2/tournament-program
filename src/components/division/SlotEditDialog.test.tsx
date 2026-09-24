@@ -40,8 +40,26 @@ const props = (
   members: [{ id: "m-2", name: "鈴木 陽菜", nameKana: "すずき はるな" }],
   actions: { assignSlot: succeed, clearSlot: succeed, removeMatch: succeed },
   onClose: vi.fn(),
+  sourceOptions: [],
   ...overrides,
 });
+
+const sourceOptions = [
+  {
+    divisionId: "d1",
+    divisionName: "予選トーナメント",
+    format: "SINGLE_ELIMINATION" as const,
+    matches: [{ matchId: "q1", label: "第1試合" }],
+    maxRank: 0,
+  },
+  {
+    divisionId: "d2",
+    divisionName: "予選リーグA",
+    format: "ROUND_ROBIN" as const,
+    matches: [{ matchId: "n1", label: "第2試合" }],
+    maxRank: 3,
+  },
+];
 
 describe("SlotEditDialog", () => {
   it("開いた時点でモーダルを表示し、対象を見出しに出す", () => {
@@ -116,7 +134,7 @@ describe("SlotEditDialog", () => {
 
   it("失敗したら閉じずにエラーを出す", async () => {
     const fail = vi.fn(async () => ({
-      error: "その参加者はすでにエントリーしています",
+      error: "すでに同じエントリーが登録されています",
     }));
     const onClose = vi.fn();
     render(
@@ -135,14 +153,14 @@ describe("SlotEditDialog", () => {
       screen.getByRole("button", { name: "この選手にする" }),
     );
     expect(await screen.findByRole("alert")).toHaveTextContent(
-      "その参加者はすでにエントリーしています",
+      "すでに同じエントリーが登録されています",
     );
     expect(onClose).not.toHaveBeenCalled();
   });
 
   it("前の操作のエラーではなく、最後に送った操作のエラーを出す", async () => {
     const failAssign = vi.fn(async () => ({
-      error: "その参加者はすでにエントリーしています",
+      error: "すでに同じエントリーが登録されています",
     }));
     const failClear = vi.fn(async () => ({
       error: "勝敗が記録されているため変更できません",
@@ -162,7 +180,7 @@ describe("SlotEditDialog", () => {
       screen.getByRole("button", { name: "この選手にする" }),
     );
     expect(await screen.findByRole("alert")).toHaveTextContent(
-      "その参加者はすでにエントリーしています",
+      "すでに同じエントリーが登録されています",
     );
     await userEvent.click(
       screen.getByRole("button", { name: "スロットを空にする" }),
@@ -178,5 +196,40 @@ describe("SlotEditDialog", () => {
     render(<SlotEditDialog {...props({ members: [] })} />);
     expect(screen.getByLabelText("氏名")).toBeInTheDocument();
     expect(screen.queryByLabelText("メンバー")).not.toBeInTheDocument();
+  });
+
+  it("他部門の試合を選ぶモードでは試合と勝者・敗者を選べる", async () => {
+    render(<SlotEditDialog {...props({ sourceOptions })} />);
+
+    await userEvent.click(
+      screen.getByRole("radio", { name: "他部門の試合の結果" }),
+    );
+
+    expect(screen.getByLabelText("参照する部門")).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "第1試合" })).toBeInTheDocument();
+    expect(screen.getByRole("radio", { name: "勝者" })).toBeChecked();
+  });
+
+  it("リーグ順位モードではリーグの部門だけが選べる", async () => {
+    render(<SlotEditDialog {...props({ sourceOptions })} />);
+
+    await userEvent.click(
+      screen.getByRole("radio", { name: "他部門のリーグ順位" }),
+    );
+
+    const select = screen.getByLabelText("参照するリーグ");
+    expect(select).toHaveValue("d2");
+    expect(
+      screen.queryByRole("option", { name: "予選トーナメント" }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByLabelText("順位")).toHaveAttribute("max", "3");
+  });
+
+  it("参照先が無ければモードのラジオを出さない", () => {
+    render(<SlotEditDialog {...props({ sourceOptions: [] })} />);
+
+    expect(
+      screen.queryByRole("radio", { name: "他部門の試合の結果" }),
+    ).not.toBeInTheDocument();
   });
 });

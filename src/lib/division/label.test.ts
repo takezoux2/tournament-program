@@ -79,6 +79,47 @@ describe("createSlotLabeler", () => {
     const label = createSlotLabeler(names, entries, participants);
     expect(label({ kind: "bye" })).toBe("BYE");
   });
+
+  it("参照エントリーは渡された仮名で呼ぶ", () => {
+    const labelSlot = createSlotLabeler(
+      new Map(),
+      {
+        version: 1,
+        entries: [
+          {
+            id: "x1",
+            seed: 0,
+            source: { kind: "leagueRank", divisionId: "d2", rank: 1 },
+          },
+        ],
+      },
+      [],
+      new Map([["x1", "予選リーグA 1位"]]),
+    );
+
+    expect(labelSlot({ kind: "entry", entryId: "x1" })).toBe("予選リーグA 1位");
+  });
+
+  it("仮名が無ければ従来どおり「（不明な参加者）」にする", () => {
+    const labelSlot = createSlotLabeler(
+      new Map(),
+      {
+        version: 1,
+        entries: [
+          {
+            id: "x1",
+            seed: 0,
+            source: { kind: "leagueRank", divisionId: "d2", rank: 1 },
+          },
+        ],
+      },
+      [],
+    );
+
+    expect(labelSlot({ kind: "entry", entryId: "x1" })).toBe(
+      "（不明な参加者）",
+    );
+  });
 });
 
 describe("matchCardLabel", () => {

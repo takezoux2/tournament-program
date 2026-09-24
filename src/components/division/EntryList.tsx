@@ -15,6 +15,7 @@ export function EntryList({
   removeAction,
   setPlayerNumberAction,
   disabled,
+  entryLabels,
 }: {
   /** seed 昇順で渡す。端の判定にこの並びを使う。 */
   entries: DivisionEntry[];
@@ -26,6 +27,8 @@ export function EntryList({
   removeAction: DivisionFormAction;
   setPlayerNumberAction: ParticipantFormAction;
   disabled: boolean;
+  /** 参照エントリーの表示名（entryId → 名前）。ページが entry-source から作る */
+  entryLabels?: ReadonlyMap<string, string>;
 }) {
   if (entries.length === 0) {
     return <p className="text-sm text-slate-600">まだエントリーがありません</p>;
@@ -44,7 +47,10 @@ export function EntryList({
 
       <ul className="space-y-2">
         {entries.map((entry, index) => {
-          const participant = participantById.get(entry.participantId);
+          const participant =
+            entry.participantId === undefined
+              ? undefined
+              : participantById.get(entry.participantId);
           return (
             <li
               key={entry.id}
@@ -58,7 +64,9 @@ export function EntryList({
                       No.{participant.playerNumber}
                     </span>
                   )}
-                  {participant?.name ?? "（不明な参加者）"}
+                  {participant?.name ??
+                    entryLabels?.get(entry.id) ??
+                    "（不明な参加者）"}
                 </p>
                 {participant !== undefined && (
                   <p className="text-xs text-slate-500">

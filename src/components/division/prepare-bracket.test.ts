@@ -108,4 +108,89 @@ describe("prepareBracket", () => {
       message: "「リーグ（総当たり）」のブラケット表示はまだ対応していません",
     });
   });
+
+  it("参照エントリーの仮名を entryLabels 経由でブラケットに載せる", () => {
+    const prepared = prepareBracket(
+      buildDivision({
+        entries: {
+          version: 1,
+          entries: [
+            {
+              id: "x1",
+              seed: 0,
+              source: { kind: "leagueRank", divisionId: "d2", rank: 1 },
+            },
+            { id: "e2", participantId: "p2", seed: 1 },
+          ],
+        },
+        matchingConfig: {
+          version: 1,
+          matches: [
+            {
+              id: "m1",
+              bracket: "winners",
+              round: 1,
+              order: 0,
+              slots: [
+                { kind: "entry", entryId: "x1" },
+                { kind: "entry", entryId: "e2" },
+              ],
+            },
+          ],
+        },
+        results: { version: 1, matches: [] },
+      }),
+      participants,
+      noSeq,
+      { entryLabels: new Map([["x1", "予選リーグA 1位"]]) },
+    );
+
+    expect(prepared.kind).toBe("ready");
+  });
+
+  it("withPlayerNumber: true なら解決済みの参照エントリーにも選手番号を付ける", () => {
+    const prepared = prepareBracket(
+      buildDivision({
+        entries: {
+          version: 1,
+          entries: [
+            {
+              id: "x1",
+              seed: 0,
+              source: { kind: "leagueRank", divisionId: "d2", rank: 1 },
+            },
+            { id: "e2", participantId: "p2", seed: 1 },
+          ],
+        },
+        matchingConfig: {
+          version: 1,
+          matches: [
+            {
+              id: "m1",
+              bracket: "winners",
+              round: 1,
+              order: 0,
+              slots: [
+                { kind: "entry", entryId: "x1" },
+                { kind: "entry", entryId: "e2" },
+              ],
+            },
+          ],
+        },
+        results: { version: 1, matches: [] },
+      }),
+      participants,
+      noSeq,
+      {
+        withPlayerNumber: true,
+        // 表示名の仮名（entryLabels）も渡すが、解決済みなら参加者の名前・
+        // 選手番号が優先される（entryParticipantIds 経由）ことを確かめる。
+        entryLabels: new Map([["x1", "予選リーグA 1位"]]),
+        entryParticipantIds: new Map([["x1", "p1"]]),
+      },
+    );
+
+    if (prepared.kind !== "ready") throw new Error("ready のはず");
+    expect(prepared.matches[0].slots[0].participant?.name).toBe("No.1 佐藤 蓮");
+  });
 });

@@ -41,6 +41,19 @@ export type FromDivisionInput = {
    * 見ないと決まらないため、部門だけを受け取るこの関数では作れない。
    */
   matchNames: ReadonlyMap<string, string>;
+  /**
+   * 参照エントリー（他部門の結果で決まる枠）の表示名。entryId → 名前。
+   * 参加者から名前を引けないため、呼び出し側が lib/division/entry-source.ts の
+   * entrySourceLabels で作って渡す。
+   */
+  entryLabels?: ReadonlyMap<string, string>;
+  /**
+   * 解決済みの参照エントリーの participantId。entryId → participantId。
+   * 表示名の文字列だけの entryLabels では選手番号や所属を付けられないため、
+   * 解決済みならこちらを優先して参加者から名前・所属を引く
+   * （lib/division/entry-source.ts の entrySourceParticipantIds で作る）。
+   */
+  entryParticipantIds?: ReadonlyMap<string, string>;
 };
 
 export type FromDivisionResult = {
@@ -90,18 +103,26 @@ export function fromDivision(
   const participants: Participant[] = [];
   const entryIds = new Set<string>();
   for (const entry of input.entries.entries) {
-    const source = sourceById.get(entry.participantId);
-    if (!source) {
-      // エントリーの参照先が欠けている＝データ不整合。描かない。
+    // 解決済みの参照エントリーは participantId を経由して参加者から名前・
+    // 所属を引く。これで prepare-bracket.ts の選手番号の前置（No.◯）も
+    // 参加者エントリーと同じ経路にでき、印刷での呼び出しに使える。
+    const participantId =
+      entry.participantId ?? input.entryParticipantIds?.get(entry.id);
+    const source =
+      participantId === undefined ? undefined : sourceById.get(participantId);
+    // 参加者を引けない（未確定の参照エントリー）は仮名で描く。team は無い。
+    // 名前がどちらからも引けないのはデータ不整合なので、従来どおり描かない。
+    const name = source?.name ?? input.entryLabels?.get(entry.id);
+    if (name === undefined) {
       return null;
     }
     entryIds.add(entry.id);
     participants.push({
       id: entry.id,
-      name: source.name,
+      name,
       // 部門内シード。大会全体の Participant.seed ではない。
       seed: entry.seed,
-      team: source.team,
+      team: source?.team,
     });
   }
 

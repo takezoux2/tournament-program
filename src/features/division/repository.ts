@@ -1,10 +1,22 @@
 import "server-only";
 import type { DivisionFormat } from "@/generated/prisma/enums";
 import {
+  type EntrySourceDivision,
+  entrySourceLabels,
+  entrySourceParticipantIds,
+  entrySourceWarnings,
+  resolveEntrySources,
+} from "@/lib/division/entry-source";
+import { resolveMatchNames } from "@/lib/division/match-name";
+import {
   buildOverallSeq,
   type OverallOrderDivision,
 } from "@/lib/division/overall-order";
-import { parseMatchingConfig } from "@/lib/division/parse";
+import {
+  parseDivisionEntries,
+  parseDivisionResults,
+  parseMatchingConfig,
+} from "@/lib/division/parse";
 import { prisma } from "@/shared/db/prisma";
 
 export type DivisionSummary = {
@@ -183,4 +195,103 @@ export const listOverallOrderSources = async (
         : [{ divisionId: item.divisionId, matchId: item.matchId }],
     ),
   );
+};
+
+/** 1 部門ぶんの、参照エントリーの表示名と運営に見せる注意書き。 */
+export type EntrySourceView = {
+  /** entryId → 画面に出す名前。参照エントリーだけを含む */
+  labels: Map<string, string>;
+  /**
+   * entryId → participantId。解決済みの参照エントリーだけを含む。
+   * ブラケットの描画が選手番号・所属を参加者と同じ経路で引くのに使う
+   * （entrySourceParticipantIds のコメント参照）。
+   */
+  participantIds: Map<string, string>;
+  /** 同順位・循環・参照切れ・重複の注意書き。無ければ空配列 */
+  warnings: string[];
+};
+
+/**
+ * 参照エントリーを解決して、部門ごとの表示名と注意書きにする。
+ *
+ * 参照は大会の中で閉じるので、1 部門を描くページでも大会の全部門を 1 度
+ * 読む。部門ごとに引くとクエリが部門数だけ増えるため、印刷ページと同じ
+ * listDivisionDetailsInTournament を使う。
+ *
+ * 壊れた Json を持つ部門はその部門だけ除いて続ける（他の部門の表示は
+ * 出したい）。除かれた部門を参照している枠は「参照先が見つかりません」に
+ * なる。
+ */
+export type EntrySourceContext = {
+  views: Map<string, EntrySourceView>;
+  /** 解決に使ったスナップショット。スロット編集の選択肢作りが使い回す */
+  divisions: EntrySourceDivision[];
+};
+
+export const loadEntrySourceContext = async (
+  organizationId: string,
+  tournamentId: string,
+  overallSeq: ReadonlyMap<string, number>,
+  participants: { id: string; name: string }[],
+): Promise<EntrySourceContext> => {
+  const rows = await listDivisionDetailsInTournament(
+    organizationId,
+    tournamentId,
+  );
+
+  const divisions: EntrySourceDivision[] = [];
+  for (const row of rows) {
+    try {
+      const matchingConfig = parseMatchingConfig(row.matchingConfig);
+      divisions.push({
+        id: row.id,
+        name: row.name,
+        format: row.format,
+        entries: parseDivisionEntries(row.entries),
+        matchingConfig,
+        results: parseDivisionResults(row.results),
+        matchNames: resolveMatchNames(matchingConfig, row.id, overallSeq),
+      });
+    } catch {
+      // 壊れた Json を持つ部門はこの部門だけ除いて続ける
+    }
+  }
+
+  const participantNameById = new Map(
+    participants.map((participant) => [participant.id, participant.name]),
+  );
+  const resolved = resolveEntrySources(divisions);
+
+  const views = new Map(
+    divisions.map((division) => {
+      const entries = resolved.get(division.id) ?? new Map();
+      // 1 回戦のスロットに置かれていないエントリーは設計上残る（試合の
+      // 削除で外れたものや旧画面で登録したもの。assign-slot/repository.ts の
+      // コメント参照）。ブラケット上の枠の数と警告の件数を揃えるため、
+      // 置かれている entryId だけを警告の対象にする。組み合わせが
+      // 未作成（試合ゼロ）の部門ではこの集合が空になり警告は出ない。
+      const placedEntryIds = new Set(
+        division.matchingConfig.matches.flatMap((match) =>
+          match.slots.flatMap((slot) =>
+            slot.kind === "entry" ? [slot.entryId] : [],
+          ),
+        ),
+      );
+      return [
+        division.id,
+        {
+          labels: entrySourceLabels(entries, participantNameById),
+          participantIds: entrySourceParticipantIds(entries),
+          warnings: entrySourceWarnings(
+            division.entries,
+            entries,
+            participantNameById,
+            placedEntryIds,
+          ),
+        },
+      ];
+    }),
+  );
+
+  return { views, divisions };
 };

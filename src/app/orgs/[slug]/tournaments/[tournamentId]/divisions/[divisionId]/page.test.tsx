@@ -49,6 +49,8 @@ vi.mock("@/features/division/repository", () => ({
   ) => listParticipantsInTournament(organizationId, tournamentId),
   listOverallOrderSources: (tournamentId: string) =>
     listOverallOrderSources(tournamentId),
+  loadEntrySourceContext: () =>
+    Promise.resolve({ views: new Map(), divisions: [] }),
 }));
 
 // DivisionMatchingView は組み合わせの組み立てまで踏み込むため、ページのテストでは

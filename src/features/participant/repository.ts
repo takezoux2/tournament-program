@@ -76,6 +76,11 @@ export const listParticipantsWithDivisions = async (
     }
 
     for (const entry of entries.entries) {
+      // 参照エントリーは「この参加者が出る部門」の逆引きに載らない。
+      // 誰なのかは参照先次第で、参加者一覧から辿れる関係ではないため。
+      if (entry.participantId === undefined) {
+        continue;
+      }
       const item = { id: division.id, name: division.name };
       const list = byParticipant.get(entry.participantId);
       if (list === undefined) {

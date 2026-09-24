@@ -20,6 +20,8 @@ vi.mock("@/features/division/repository", () => ({
   listDivisionDetailsInTournament: (organizationId: string, id: string) =>
     listDivisionDetailsInTournament(organizationId, id),
   listOverallOrderSources: (id: string) => listOverallOrderSources(id),
+  loadEntrySourceContext: () =>
+    Promise.resolve({ views: new Map(), divisions: [] }),
 }));
 vi.mock("@/features/participant/repository", () => ({
   listParticipantsWithDivisions: (organizationId: string, id: string) =>

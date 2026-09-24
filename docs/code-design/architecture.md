@@ -100,7 +100,9 @@ DB への読み書きが責務であり、描画には関わらない。
 試合として保存しない（保存すると `features/schedule` が実在しない試合の行を
 出してしまう）。誰が休みかは `round-robin/view.ts` が節ごとの差分から算出する。
 
-リーグの勝敗込み星取表と順位表は `round-robin/standings.ts` が組み立てる。
+リーグの勝敗込み星取表は `features/division/round-robin/standings.ts`
+（`toLeagueTableView`）が組み立てる。勝敗の集計と順位付けそのものは
+`src/lib/division/standings.ts` に下ろしてある（下ろした理由は後述）。
 勝点は勝 3・分 1・負 0 で、勝点 → 勝ち数 → 同点者どうしの直接対決 → 同順位の順に
 決める。閲覧ページ（管理画面の部門詳細と公開の部門ページ）は形式で描画を振り分ける
 `components/division/DivisionMatchingView.tsx` を通してこれを使う。編集画面の
@@ -199,6 +201,20 @@ bracket → round → order に揃えた順）」で末尾へ足す。この並�
 下位共通層の `src/lib/division/resolve.ts` に置く。`features/schedule` と
 `features/division`（`record-result`）の両方がここを参照する。同列のカテゴリ同士では
 依存できないため、`lib/division/label.ts` と同じ向きの下ろし方である。
+
+エントリーの参照（`Division.entries` の `source`。「予選リーグA 1位」のような
+仮名を出し、参照先の結果が出るたびに実選手まで解決し直す仕組み）の本体は
+`src/lib/division/entry-source.ts` に置く。設定画面（`features/division`、
+スロット編集の選択肢作りと警告表示）と結果入力（`features/schedule`、解決前は
+入力欄を伏せる）の両方がここを参照するため、`lib/division/resolve.ts` と同じ
+向きで下位共通層に下ろしてある。
+
+リーグの勝敗集計と順位付け（勝点の計算、同順位の判定）の純粋部分は
+`src/lib/division/standings.ts` に置く。星取表を組み立てる
+`round-robin/standings.ts` と、エントリーの参照が「リーグの N 位」を解決するのに
+使う `entry-source.ts` の両方が同じ順位付けを必要とし、後者は
+`features/schedule` からも呼ばれて同列のカテゴリ同士の依存を避けられないため、
+ここも `lib/division/resolve.ts` と同じ向きの下ろし方である。
 
 ## テナント分離の 2 原則
 

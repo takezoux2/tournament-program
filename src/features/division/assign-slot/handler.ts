@@ -4,12 +4,12 @@ import { Exit } from "effect";
 import { notFound } from "next/navigation";
 import { runOperationExit } from "@/shared/lib/logger/run-operation";
 import { requireOrganization } from "@/shared/middleware/require-organization";
-import { addEntrySchema } from "../add-entry/schema";
 import { divisionErrorFormState } from "../effect-to-form-state";
 import { readDivisionIds, slotTargetSchema } from "../first-round-schema";
 import { revalidateDivisionSetup } from "../revalidate";
 import type { DivisionFormState } from "../state";
 import { assignSlotInDb } from "./repository";
+import { slotOccupantSchema } from "./schema";
 import { assignSlotInDivision } from "./usecase";
 
 export const assignSlotAction = async (
@@ -27,16 +27,20 @@ export const assignSlotAction = async (
   if (!target.success) {
     return { error: target.error.issues[0].message };
   }
-  const member = addEntrySchema.safeParse({
+  const occupant = slotOccupantSchema.safeParse({
     mode: String(formData.get("mode") ?? ""),
     memberId: String(formData.get("memberId") ?? ""),
     name: String(formData.get("name") ?? ""),
     nameKana: String(formData.get("nameKana") ?? ""),
+    sourceDivisionId: String(formData.get("sourceDivisionId") ?? ""),
+    sourceMatchId: String(formData.get("sourceMatchId") ?? ""),
+    outcome: String(formData.get("outcome") ?? ""),
+    rank: String(formData.get("rank") ?? ""),
   });
-  if (!member.success) {
-    return { error: member.error.issues[0].message };
+  if (!occupant.success) {
+    return { error: occupant.error.issues[0].message };
   }
-  const input = { ...target.data, member: member.data };
+  const input = { ...target.data, occupant: occupant.data };
 
   const exit = await runOperationExit(
     "division.assign-slot",

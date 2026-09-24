@@ -27,6 +27,7 @@ const {
   listDivisionsInTournament,
   listOverallOrderSources,
   listParticipantsInTournament,
+  loadEntrySourceContext,
 } = await import("./repository");
 
 beforeEach(() => {
@@ -258,5 +259,142 @@ describe("listDivisionDetailsInTournament", () => {
         createdAt: true,
       },
     });
+  });
+});
+
+describe("loadEntrySourceContext", () => {
+  it("部門ごとの仮名と警告を返す", async () => {
+    // 予選リーグA（全試合終了）と、その 1 位を参照する決勝トーナメント
+    findMany.mockResolvedValue([
+      {
+        id: "d2",
+        name: "予選リーグA",
+        order: 0,
+        format: "ROUND_ROBIN",
+        createdAt: new Date(),
+        entries: {
+          version: 1,
+          entries: [
+            { id: "l1", participantId: "p1", seed: 0 },
+            { id: "l2", participantId: "p2", seed: 1 },
+          ],
+        },
+        matchingConfig: {
+          version: 1,
+          matches: [
+            {
+              id: "n1",
+              bracket: "winners",
+              round: 1,
+              order: 0,
+              matchName: "第1試合",
+              slots: [
+                { kind: "entry", entryId: "l1" },
+                { kind: "entry", entryId: "l2" },
+              ],
+            },
+          ],
+        },
+        results: {
+          version: 1,
+          matches: [{ matchId: "n1", winnerEntryId: "l1" }],
+        },
+        resultConfig: {
+          version: 1,
+          winReason: { enabled: false, options: [] },
+          score: { enabled: false, count: 3, aggregation: "sum" },
+          note: { enabled: false },
+        },
+      },
+      {
+        id: "d9",
+        name: "決勝トーナメント",
+        order: 1,
+        format: "SINGLE_ELIMINATION",
+        createdAt: new Date(),
+        entries: {
+          version: 1,
+          entries: [
+            {
+              id: "x1",
+              seed: 0,
+              source: { kind: "leagueRank", divisionId: "d2", rank: 1 },
+            },
+          ],
+        },
+        matchingConfig: {
+          version: 1,
+          matches: [
+            {
+              id: "f1",
+              bracket: "winners",
+              round: 1,
+              order: 0,
+              matchName: "決勝",
+              slots: [{ kind: "entry", entryId: "x1" }, { kind: "bye" }],
+            },
+          ],
+        },
+        results: { version: 1, matches: [] },
+        resultConfig: {
+          version: 1,
+          winReason: { enabled: false, options: [] },
+          score: { enabled: false, count: 3, aggregation: "sum" },
+          note: { enabled: false },
+        },
+      },
+    ]);
+
+    const { views } = await loadEntrySourceContext("o1", "t1", new Map(), [
+      { id: "p1", name: "山田太郎" },
+      { id: "p2", name: "佐藤" },
+    ]);
+
+    expect(views.get("d9")?.labels).toEqual(new Map([["x1", "山田太郎"]]));
+    // x1 は f1 の枠に置かれているので、警告の抑止（placedEntryIds）が
+    // 効いていても意味のあるアサーションになる。
+    expect(views.get("d9")?.warnings).toEqual([]);
+    expect(views.get("d9")?.participantIds).toEqual(new Map([["x1", "p1"]]));
+  });
+
+  it("壊れた Json を持つ部門は除いて続け、他の部門の仮名は出す", async () => {
+    findMany.mockResolvedValue([
+      {
+        id: "d1",
+        name: "壊れた部門",
+        order: 0,
+        format: "SINGLE_ELIMINATION",
+        createdAt: new Date(),
+        entries: "壊れた値",
+        matchingConfig: { version: 1, matches: [] },
+        results: { version: 1, matches: [] },
+        resultConfig: null,
+      },
+      {
+        id: "d2",
+        name: "無事な部門",
+        order: 1,
+        format: "SINGLE_ELIMINATION",
+        createdAt: new Date(),
+        entries: {
+          version: 1,
+          entries: [{ id: "e1", participantId: "p1", seed: 0 }],
+        },
+        matchingConfig: { version: 1, matches: [] },
+        results: { version: 1, matches: [] },
+        resultConfig: null,
+      },
+    ]);
+
+    const { views, divisions } = await loadEntrySourceContext(
+      "o1",
+      "t1",
+      new Map(),
+      [{ id: "p1", name: "山田太郎" }],
+    );
+
+    expect(views.has("d1")).toBe(false);
+    expect(views.get("d2")?.labels).toEqual(new Map());
+    expect(divisions.map((division) => division.id)).toEqual(["d2"]);
   });
 });

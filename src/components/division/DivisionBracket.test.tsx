@@ -270,6 +270,7 @@ describe("editor", () => {
     divisionId: "d1",
     members: [],
     actions: { assignSlot: action, clearSlot: action, removeMatch: action },
+    sourceOptions: [],
   };
 
   it("editor を渡すと EditableBracket で描き、locked を渡す", () => {

@@ -14,6 +14,8 @@ export function DivisionBracket({
   overallSeq,
   heightClassName = "h-[28rem]",
   editor,
+  entryLabels,
+  entryParticipantIds,
 }: {
   division: DivisionDetail;
   participants: DivisionParticipant[];
@@ -28,9 +30,16 @@ export function DivisionBracket({
   heightClassName?: string;
   /** 渡すと 1 回戦のスロットに鉛筆を出す編集モード。setup 画面だけが渡す */
   editor?: BracketEditor;
+  /** 参照エントリーの表示名（entryId → 名前）。ページが entry-source から作る */
+  entryLabels?: ReadonlyMap<string, string>;
+  /** 解決済みの参照エントリーの participantId。ページが entry-source から作る */
+  entryParticipantIds?: ReadonlyMap<string, string>;
 }) {
   // パースから座標計算までは印刷（PrintBracket）と共有する。
-  const prepared = prepareBracket(division, participants, overallSeq);
+  const prepared = prepareBracket(division, participants, overallSeq, {
+    entryLabels,
+    entryParticipantIds,
+  });
   if (prepared.kind === "notice") {
     return <Notice>{prepared.message}</Notice>;
   }

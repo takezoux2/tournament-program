@@ -1,3 +1,8 @@
+import {
+  entrySourceLabels,
+  resolveEntrySources,
+  unresolvedEntryIds,
+} from "@/lib/division/entry-source";
 import { createSlotLabeler } from "@/lib/division/label";
 import {
   buildMatchDependents,
@@ -71,9 +76,15 @@ export type ResultRowView =
 /**
  * BYE を先に見るのは、片側が不戦勝の試合は記録の有無にかかわらず
  * 入力させないため（勝者は自動で決まる）。
+ *
+ * waiting は「押せるスロットが揃っていない」ことを表す。前の試合の結果待ち
+ * （pending）と、他部門の結果で決まる枠がまだ誰でもない場合の両方が入る。
+ * 記録済みを先に見るのは、あとから参照先が未確定に戻っても入力済みの記録を
+ * 隠さないため（記録は消さないという方針に合わせる）。
  */
 const rowState = (
   resolved: ResolvedMatch,
+  slots: [ResultSlotView, ResultSlotView],
   isRecorded: boolean,
 ): ResultRowState => {
   if (resolved.slots.some((slot) => slot.state === "bye")) {
@@ -82,7 +93,7 @@ const rowState = (
   if (isRecorded) {
     return "recorded";
   }
-  if (resolved.slots.some((slot) => slot.state === "pending")) {
+  if (slots.some((slot) => slot.entryId === null)) {
     return "waiting";
   }
   return "ready";
@@ -114,6 +125,18 @@ export const buildResultRows = (
     namesByDivision.set(row.divisionId, names);
   }
 
+  // 参照エントリー（他部門の結果で決まる枠）の解決。全部門を見ないと作れない
+  // ので、行ごとではなくここで 1 度だけ作る。
+  const participantNameById = new Map(
+    participants.map((participant) => [participant.id, participant.name]),
+  );
+  const resolvedSources = resolveEntrySources(
+    divisions.map((division) => ({
+      ...division,
+      matchNames: namesByDivision.get(division.id),
+    })),
+  );
+
   const context = new Map(
     divisions.map((division) => [
       division.id,
@@ -124,6 +147,14 @@ export const buildResultRows = (
           namesByDivision.get(division.id) ?? new Map<string, string>(),
           division.entries,
           participants,
+          entrySourceLabels(
+            resolvedSources.get(division.id) ?? new Map(),
+            participantNameById,
+          ),
+        ),
+        // まだ誰でもない枠。押せるスロットから外す
+        unresolved: unresolvedEntryIds(
+          resolvedSources.get(division.id) ?? new Map(),
         ),
         // 記録の有無だけでなく中身も要るので、id から記録を引く表にする。
         recordById: new Map<string, MatchResultRecord>(
@@ -169,10 +200,15 @@ export const buildResultRows = (
     const slotView = (index: 0 | 1): ResultSlotView => {
       const slot = resolved.slots[index];
       if (slot.state === "entry") {
-        return {
-          label: current.labelSlot({ kind: "entry", entryId: slot.entryId }),
+        const label = current.labelSlot({
+          kind: "entry",
           entryId: slot.entryId,
-        };
+        });
+        // 参照先が未確定の枠は、誰か分からないまま勝敗を付けてしまわないよう
+        // 押せなくする。仮名（「予選リーグA 1位」）だけを出す。
+        return current.unresolved.has(slot.entryId)
+          ? { label, entryId: null }
+          : { label, entryId: slot.entryId };
       }
       if (slot.state === "bye") {
         return { label: current.labelSlot({ kind: "bye" }), entryId: null };
@@ -186,6 +222,7 @@ export const buildResultRows = (
     );
 
     const record = current.recordById.get(row.matchId);
+    const slots: [ResultSlotView, ResultSlotView] = [slotView(0), slotView(1)];
 
     return [
       {
@@ -196,9 +233,9 @@ export const buildResultRows = (
         matchId: row.matchId,
         matchName: row.matchName,
         label: row.label,
-        slots: [slotView(0), slotView(1)],
+        slots,
         winnerEntryId: resolved.winnerEntryId,
-        state: rowState(resolved, record !== undefined),
+        state: rowState(resolved, slots, record !== undefined),
         downstreamRecordedCount: [...downstream].filter((id) =>
           current.recordById.has(id),
         ).length,

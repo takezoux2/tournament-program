@@ -1,10 +1,11 @@
+import { minEntries } from "@/features/division/matching-strategy";
 import type {
   DivisionDetail,
   DivisionParticipant,
 } from "@/features/division/repository";
-import { minEntries } from "@/features/division/matching-strategy";
 import { isSingleEliminationShape } from "@/features/division/single-elimination/build";
 import { firstRoundPairs } from "@/features/division/single-elimination/first-round";
+import type { SlotSourceOption } from "@/features/division/slot-source-options";
 import type { DivisionFormAction } from "@/features/division/state";
 import type { MemberSummary } from "@/features/organization/repository";
 import { AddFirstRoundMatchButton } from "./AddFirstRoundMatchButton";
@@ -36,6 +37,10 @@ export function BracketEditorSetup({
   tournamentId,
   overallSeq,
   actions,
+  entryLabels,
+  entryParticipantIds,
+  sourceOptions,
+  warnings = [],
 }: {
   division: DivisionDetail;
   participants: DivisionParticipant[];
@@ -45,6 +50,17 @@ export function BracketEditorSetup({
   /** 大会全体の通し番号。{{OverallSeq}} の展開に使う */
   overallSeq: ReadonlyMap<string, number>;
   actions: BracketEditorSetupActions;
+  /** 参照エントリーの表示名（entryId → 名前）。呼び出し側が entry-source から作る */
+  entryLabels?: ReadonlyMap<string, string>;
+  /** 解決済みの参照エントリーの participantId。呼び出し側が entry-source から作る */
+  entryParticipantIds?: ReadonlyMap<string, string>;
+  /** 参照できる他部門。ページが buildSlotSourceOptions で作って渡す */
+  sourceOptions: SlotSourceOption[];
+  /**
+   * 参照エントリーについての注意書き（同順位・循環・参照切れ・重複）。
+   * 保存は止めない方針なので、気づけるようここに出す。
+   */
+  warnings?: string[];
 }) {
   const parsed = parseSetupData(division);
   if (parsed === null) {
@@ -77,7 +93,10 @@ export function BracketEditorSetup({
   const placedParticipantIds = new Set(
     parsed.entries.entries
       .filter((entry) => placedEntryIds.has(entry.id))
-      .map((entry) => entry.participantId),
+      .flatMap((entry) =>
+        // 参照エントリーは Member を持たないので候補の絞り込みには効かない
+        entry.participantId === undefined ? [] : [entry.participantId],
+      ),
   );
   const placedMemberIds = new Set(
     participants
@@ -93,6 +112,11 @@ export function BracketEditorSetup({
   return (
     <div className="space-y-6">
       {locked && <LockedNotice />}
+      {warnings.map((warning, index) => (
+        // 同じ文言の警告が複数出ることがあるため、文言だけを key にすると
+        // 重複してしまう。index を足して一意にする。
+        <Notice key={`${index}-${warning}`}>{warning}</Notice>
+      ))}
 
       <section className="space-y-3">
         <h2 className="text-sm font-bold text-slate-700">プレビュー</h2>
@@ -125,6 +149,8 @@ export function BracketEditorSetup({
               division={division}
               participants={participants}
               overallSeq={overallSeq}
+              entryLabels={entryLabels}
+              entryParticipantIds={entryParticipantIds}
               editor={{
                 locked,
                 slug,
@@ -136,6 +162,7 @@ export function BracketEditorSetup({
                   clearSlot: actions.clearSlot,
                   removeMatch: actions.removeFirstRoundMatch,
                 },
+                sourceOptions,
               }}
             />
           </>
@@ -157,6 +184,7 @@ export function BracketEditorSetup({
             ? "まだ組み合わせがありません"
             : "「試合を追加」で 1 回戦の試合を作ります"
         }
+        entryLabels={entryLabels}
       />
     </div>
   );

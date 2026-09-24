@@ -9,6 +9,7 @@ import {
   findDivisionInTournament,
   listOverallOrderSources,
   listParticipantsInTournament,
+  loadEntrySourceContext,
 } from "@/features/division/repository";
 import { formatPublicTitle } from "@/features/tournament/format";
 import { findPublicTournament } from "@/features/tournament/repository";
@@ -84,6 +85,15 @@ export default async function PublicDivisionPage({
     listOverallOrderSources(tournament.id),
   ]);
 
+  // 参照エントリー（他部門の結果で決まる枠）の表示名。参照は大会の中で
+  // 閉じるので、この部門だけを描くページでも全部門を 1 度読む。
+  const entrySources = await loadEntrySourceContext(
+    tournament.organizationId,
+    tournamentId,
+    overallSeq,
+    participants,
+  );
+
   return (
     <main className="min-h-screen bg-slate-50">
       <PublicHeader
@@ -109,6 +119,10 @@ export default async function PublicDivisionPage({
           participants={participants}
           overallSeq={overallSeq}
           heightClassName="h-[calc(100dvh-11rem)]"
+          entryLabels={entrySources.views.get(division.id)?.labels}
+          entryParticipantIds={
+            entrySources.views.get(division.id)?.participantIds
+          }
         />
       </div>
     </main>

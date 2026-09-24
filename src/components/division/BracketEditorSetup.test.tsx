@@ -70,6 +70,7 @@ const renderSetup = (d = division()) =>
       tournamentId="t1"
       overallSeq={new Map()}
       actions={actions}
+      sourceOptions={[]}
     />,
   );
 
@@ -152,5 +153,31 @@ describe("BracketEditorSetup", () => {
       }),
     );
     expect(screen.getByRole("button", { name: "試合を追加" })).toBeEnabled();
+  });
+
+  it("参照の警告を 1 行ずつ出す", () => {
+    render(
+      <BracketEditorSetup
+        division={division()}
+        participants={participants}
+        members={members}
+        slug="acme"
+        tournamentId="t1"
+        overallSeq={new Map()}
+        actions={actions}
+        sourceOptions={[]}
+        warnings={[
+          "予選リーグA 1位 は同順位のため決まりません",
+          "参照が循環しているため、選手が決まりません",
+        ]}
+      />,
+    );
+
+    expect(
+      screen.getByText("予選リーグA 1位 は同順位のため決まりません"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("参照が循環しているため、選手が決まりません"),
+    ).toBeInTheDocument();
   });
 });

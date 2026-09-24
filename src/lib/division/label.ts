@@ -5,6 +5,12 @@ import type { BracketMatch, DivisionEntries, SlotSource } from "./types";
 export type SlotLabeler = (slot: SlotSource) => string;
 
 /**
+ * 参加者を引けなかったときに出す文言。同じ文字列を出す箇所はここを import
+ * して使うこと（増減しても数えないよう、リテラルで持たない）。
+ */
+export const UNKNOWN_PARTICIPANT_LABEL = "（不明な参加者）";
+
+/**
  * スロットの表示文字列を作る関数を返す。
  *
  * 部門の試合名一覧（features/division）と大会の試合一覧（features/schedule）が
@@ -19,11 +25,17 @@ export type SlotLabeler = (slot: SlotSource) => string;
  * 名前を引けなかった entry は「（不明な参加者）」にして落とさない。
  * 参加者一覧が古いだけでも一覧は読めた方がよい。bye と書き分けるのは、
  * 引けないだけのスロットを「不戦勝」と出すとブラケットの読み違いになるため。
+ *
+ * entryLabels は参照エントリー（他部門の結果で決まる枠）の表示名。参加者から
+ * 名前を引けないため、呼び出し側が lib/division/entry-source.ts の
+ * entrySourceLabels で作って渡す。解決済みなら実選手の名前、未確定なら
+ * 「予選リーグA 1位」のような仮名が入っている。
  */
 export const createSlotLabeler = (
   matchNames: ReadonlyMap<string, string>,
   entries: DivisionEntries,
   participants: { id: string; name: string }[],
+  entryLabels: ReadonlyMap<string, string> = new Map(),
 ): SlotLabeler => {
   const participantById = new Map(
     participants.map((participant) => [participant.id, participant.name]),
@@ -31,14 +43,22 @@ export const createSlotLabeler = (
   const nameByEntryId = new Map(
     entries.entries.map((entry) => [
       entry.id,
-      participantById.get(entry.participantId) ?? null,
+      // 参照エントリー（participantId を持たない）は名前を引けない。
+      // 仮名は呼び出し側が entryLabels で渡す（Task 4 で足す）。
+      entry.participantId === undefined
+        ? null
+        : (participantById.get(entry.participantId) ?? null),
     ]),
   );
 
   return (slot) => {
     switch (slot.kind) {
       case "entry":
-        return nameByEntryId.get(slot.entryId) ?? "（不明な参加者）";
+        return (
+          nameByEntryId.get(slot.entryId) ??
+          entryLabels.get(slot.entryId) ??
+          UNKNOWN_PARTICIPANT_LABEL
+        );
       case "winnerOf":
         return `${matchNames.get(slot.matchId) ?? "?"}の勝者`;
       case "loserOf":

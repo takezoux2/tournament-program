@@ -36,6 +36,13 @@ export type PrepareBracketOptions = {
   withResults?: boolean;
   /** 表示名の前に選手番号を付ける。紙では選手番号で呼び出すため印刷で使う */
   withPlayerNumber?: boolean;
+  /** 参照エントリーの表示名。entry-source.ts の entrySourceLabels で作って渡す */
+  entryLabels?: ReadonlyMap<string, string>;
+  /**
+   * 解決済みの参照エントリーの participantId。entry-source.ts の
+   * entrySourceParticipantIds で作って渡す。選手番号・所属を付けるのに使う
+   */
+  entryParticipantIds?: ReadonlyMap<string, string>;
 };
 
 /**
@@ -49,7 +56,12 @@ export function prepareBracket(
   overallSeq: ReadonlyMap<string, number>,
   options: PrepareBracketOptions = {},
 ): PreparedBracket {
-  const { withResults = true, withPlayerNumber = false } = options;
+  const {
+    withResults = true,
+    withPlayerNumber = false,
+    entryLabels,
+    entryParticipantIds,
+  } = options;
 
   // Json は DB の列で、アプリの外から壊れた値が入りうる。パースの失敗は
   // ここで受け止め、ページ全体は落とさない。
@@ -112,6 +124,9 @@ export function prepareBracket(
       division.id,
       overallSeq,
     ),
+    // 仮名には選手番号を付けない（まだ誰でもないので番号が無い）
+    entryLabels,
+    entryParticipantIds,
   });
   if (converted === null) {
     return {

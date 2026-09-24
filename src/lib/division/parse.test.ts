@@ -488,6 +488,97 @@ describe("parseDivisionResultConfig", () => {
   });
 });
 
+describe("parseDivisionEntries の source", () => {
+  it("試合の勝者を参照するエントリーを読む", () => {
+    const parsed = parseDivisionEntries({
+      version: 1,
+      entries: [
+        {
+          id: "e1",
+          seed: 0,
+          source: { kind: "matchWinner", divisionId: "d2", matchId: "m1" },
+        },
+      ],
+    });
+
+    expect(parsed.entries[0]).toEqual({
+      id: "e1",
+      seed: 0,
+      source: { kind: "matchWinner", divisionId: "d2", matchId: "m1" },
+    });
+  });
+
+  it("試合の敗者とリーグ順位も読む", () => {
+    const parsed = parseDivisionEntries({
+      version: 1,
+      entries: [
+        {
+          id: "e1",
+          seed: 0,
+          source: { kind: "matchLoser", divisionId: "d2", matchId: "m1" },
+        },
+        {
+          id: "e2",
+          seed: 1,
+          source: { kind: "leagueRank", divisionId: "d3", rank: 2 },
+        },
+      ],
+    });
+
+    expect(parsed.entries.map((entry) => entry.source?.kind)).toEqual([
+      "matchLoser",
+      "leagueRank",
+    ]);
+  });
+
+  it("participantId と source のどちらも無い要素は読まない", () => {
+    expect(() =>
+      parseDivisionEntries({ version: 1, entries: [{ id: "e1", seed: 0 }] }),
+    ).toThrow(DivisionJsonError);
+  });
+
+  it("知らない kind は読まない", () => {
+    expect(() =>
+      parseDivisionEntries({
+        version: 1,
+        entries: [
+          { id: "e1", seed: 0, source: { kind: "coinToss", divisionId: "d2" } },
+        ],
+      }),
+    ).toThrow(DivisionJsonError);
+  });
+
+  it("rank が 0 以下なら読まない", () => {
+    expect(() =>
+      parseDivisionEntries({
+        version: 1,
+        entries: [
+          {
+            id: "e1",
+            seed: 0,
+            source: { kind: "leagueRank", divisionId: "d3", rank: 0 },
+          },
+        ],
+      }),
+    ).toThrow(DivisionJsonError);
+  });
+
+  it("divisionId が空文字なら読まない", () => {
+    expect(() =>
+      parseDivisionEntries({
+        version: 1,
+        entries: [
+          {
+            id: "e1",
+            seed: 0,
+            source: { kind: "matchWinner", divisionId: "", matchId: "m1" },
+          },
+        ],
+      }),
+    ).toThrow(DivisionJsonError);
+  });
+});
+
 describe("parseDivisionResults の詳細項目", () => {
   const base = {
     version: 1,

@@ -121,6 +121,16 @@ export class DivisionShapeMismatchError extends Data.TaggedError(
   readonly divisionId: string;
 }> {}
 
+/**
+ * エントリーの参照先（他部門の試合・リーグ順位）が使えないことを表す。
+ * 画面は選択肢を絞るが、Server Action は直接叩ける別の入口なので保存時にも見る。
+ */
+export class DivisionEntrySourceInvalidError extends Data.TaggedError(
+  "DivisionEntrySourceInvalidError",
+)<{
+  readonly reason: "notFound" | "sameDivision" | "notLeague" | "matchNotFound";
+}> {}
+
 export type DivisionError =
   | DivisionOrderConflictError
   | UnexpectedDivisionError
@@ -136,7 +146,8 @@ export type DivisionError =
   | DivisionResultNotRecordedError
   | DivisionWinReasonNotAllowedError
   | DivisionFirstRoundLimitError
-  | DivisionShapeMismatchError;
+  | DivisionShapeMismatchError
+  | DivisionEntrySourceInvalidError;
 
 /**
  * DivisionError の全タグをコンパイラに列挙させるための対照表。
@@ -163,6 +174,7 @@ const divisionErrorTags: Record<DivisionError["_tag"], true> = {
   DivisionWinReasonNotAllowedError: true,
   DivisionFirstRoundLimitError: true,
   DivisionShapeMismatchError: true,
+  DivisionEntrySourceInvalidError: true,
 };
 
 /**
